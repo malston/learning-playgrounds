@@ -10,7 +10,9 @@ See [results.md](results.md)
 
 ## Try It Out
 
+```sh
 cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
+```
 
 ## Full Transcript
 
@@ -124,3 +126,4 @@ cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude
   [Opus 4.6 | Max] │ ai-agent-architecture git:(main*)                                                                                                                 ⧉ In README.md
   Context ███░░░░░░░ 31% │ Usage █░░░░░░░░░ 13% (1h 19m / 5h)
   ⏵⏵ bypass permissions on (shift+tab to cycle) · 2 files +74 -53```
+```
