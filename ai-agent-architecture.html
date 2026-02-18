@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Architecture Explorer</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;
+  --text:#e6edf3;--text2:#8b949e;--accent:#58a6ff;
+  --green:#22c55e;--yellow:#eab308;--red:#ef4444;
+  --cat-foundation:#3b82f6;--cat-component:#14b8a6;
+  --cat-pattern:#8b5cf6;--cat-system:#f59e0b;--cat-role:#ec4899;
+}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);overflow:hidden;height:100vh}
+#app{display:flex;flex-direction:column;height:100vh}
+header{display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0}
+header h1{font-size:15px;font-weight:600;white-space:nowrap}
+header select{background:#21262d;color:var(--text);border:1px solid var(--border);border-radius:6px;padding:5px 10px;font-size:12px;cursor:pointer}
+header button{background:#21262d;color:var(--text2);border:1px solid var(--border);border-radius:6px;padding:5px 12px;font-size:12px;cursor:pointer}
+header button:hover{color:var(--text);border-color:var(--text2)}
+.legend{display:flex;gap:16px;padding:6px 20px;border-bottom:1px solid var(--border);background:var(--surface);font-size:11px;color:var(--text2);flex-shrink:0;flex-wrap:wrap}
+.legend-group{display:flex;gap:8px;align-items:center}
+.legend-dot{width:8px;height:8px;border-radius:50%;display:inline-block}
+.legend-sq{width:8px;height:8px;border-radius:2px;display:inline-block;border:2px solid}
+main{display:flex;flex:1;overflow:hidden;min-height:0}
+#map-wrap{flex:1;position:relative;overflow:hidden}
+#edge-svg{position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none}
+.node{
+  position:absolute;padding:5px 14px;border-radius:7px;font-size:12px;font-weight:600;
+  color:#fff;cursor:grab;user-select:none;white-space:nowrap;
+  border:2px solid var(--yellow);z-index:2;
+  transition:box-shadow .15s;
+}
+.node:hover{box-shadow:0 4px 12px rgba(0,0,0,.4);z-index:3}
+.node.selected{box-shadow:0 0 0 2px var(--accent),0 4px 14px rgba(0,0,0,.4);z-index:4}
+.node.dragging{cursor:grabbing;z-index:5}
+.node[data-k="know"]{border-color:var(--green)}
+.node[data-k="fuzzy"]{border-color:var(--yellow)}
+.node[data-k="unknown"]{border-color:var(--red)}
+.node .k-dot{
+  position:absolute;top:-4px;right:-4px;width:10px;height:10px;border-radius:50%;
+  border:1.5px solid var(--bg);cursor:pointer;
+}
+.node[data-k="know"] .k-dot{background:var(--green)}
+.node[data-k="fuzzy"] .k-dot{background:var(--yellow)}
+.node[data-k="unknown"] .k-dot{background:var(--red)}
+#detail{
+  width:340px;background:var(--surface);border-left:1px solid var(--border);
+  overflow-y:auto;padding:20px;flex-shrink:0;
+}
+#detail.empty{display:flex;align-items:center;justify-content:center;color:var(--text2);font-size:13px;text-align:center;padding:40px}
+#detail h2{font-size:16px;margin:0 0 6px}
+.cat-badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase;margin-bottom:12px}
+.desc{font-size:13px;line-height:1.65;color:var(--text2);margin-bottom:16px}
+.code-block{
+  background:var(--bg);border:1px solid var(--border);border-radius:6px;
+  padding:14px;overflow-x:auto;font-size:12px;line-height:1.5;
+  font-family:'SF Mono','Fira Code','Cascadia Code',monospace;margin-bottom:16px;
+}
+.code-block .kw{color:#ff7b72}.code-block .st{color:#a5d6ff}.code-block .cm{color:#6e7681}
+.when-box{
+  font-size:12px;color:var(--text2);padding:10px 12px;
+  background:rgba(88,166,255,.06);border-radius:6px;border-left:3px solid var(--accent);
+  line-height:1.55;margin-bottom:16px;
+}
+.k-toggle{display:flex;gap:6px;margin-top:8px}
+.k-toggle button{
+  flex:1;padding:5px 0;border-radius:5px;border:1px solid var(--border);
+  font-size:11px;font-weight:600;cursor:pointer;color:var(--text2);background:transparent;
+}
+.k-toggle button.active{color:#fff}
+.k-toggle button[data-v="know"].active{background:rgba(34,197,94,.2);border-color:var(--green);color:var(--green)}
+.k-toggle button[data-v="fuzzy"].active{background:rgba(234,179,8,.15);border-color:var(--yellow);color:var(--yellow)}
+.k-toggle button[data-v="unknown"].active{background:rgba(239,68,68,.15);border-color:var(--red);color:var(--red)}
+.edge-path{fill:none;stroke:#30363d;stroke-width:1.5}
+.edge-label{fill:#555;font-size:9.5px;font-family:system-ui}
+#prompt-area{
+  border-top:1px solid var(--border);padding:12px 20px;display:flex;
+  align-items:flex-start;gap:12px;background:var(--surface);flex-shrink:0;
+}
+#prompt-text{
+  flex:1;font-size:12px;line-height:1.55;color:var(--text2);
+  font-family:'SF Mono','Fira Code',monospace;min-height:40px;max-height:80px;overflow-y:auto;
+}
+#copy-btn{
+  padding:7px 14px;background:#238636;color:#fff;border:none;border-radius:6px;
+  cursor:pointer;font-size:12px;white-space:nowrap;flex-shrink:0;
+}
+#copy-btn:hover{background:#2ea043}
+#copy-btn.copied{background:#1a7f37}
+.section-label{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--text2);letter-spacing:.5px;margin:12px 0 6px}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <h1>AI Agent Architecture Explorer</h1>
+    <select id="preset-select">
+      <option value="">Preset: Custom</option>
+      <option value="new">I'm new to all of this</option>
+      <option value="know-chatbots">I understand chatbots</option>
+      <option value="know-agents">I understand basic agents</option>
+      <option value="multi-agent">Teach me multi-agent</option>
+    </select>
+    <button id="reset-btn">Reset Layout</button>
+  </header>
+  <div class="legend">
+    <div class="legend-group">
+      <span class="legend-dot" style="background:var(--cat-foundation)"></span>Foundation
+      <span class="legend-dot" style="background:var(--cat-component)"></span>Component
+      <span class="legend-dot" style="background:var(--cat-pattern)"></span>Pattern
+      <span class="legend-dot" style="background:var(--cat-system)"></span>System
+      <span class="legend-dot" style="background:var(--cat-role)"></span>Role
+    </div>
+    <div class="legend-group" style="margin-left:auto">
+      <span class="legend-sq" style="border-color:var(--green)"></span>Know
+      <span class="legend-sq" style="border-color:var(--yellow)"></span>Fuzzy
+      <span class="legend-sq" style="border-color:var(--red)"></span>Unknown
+      <span style="color:var(--text2);font-style:italic;margin-left:4px">click nodes to cycle</span>
+    </div>
+  </div>
+  <main>
+    <div id="map-wrap">
+      <svg id="edge-svg"><defs>
+        <marker id="ah" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="7" markerHeight="5" orient="auto">
+          <polygon points="0 0,10 3.5,0 7" fill="#444"/>
+        </marker>
+      </defs></svg>
+    </div>
+    <div id="detail" class="empty">
+      <div id="detail-content">Click a concept on the map to explore it</div>
+    </div>
+  </main>
+  <div id="prompt-area">
+    <div id="prompt-text">Adjust your knowledge levels on the map, then copy this prompt to get a personalized explanation.</div>
+    <button id="copy-btn">Copy</button>
+  </div>
+</div>
+
+<script>
+// ==================== DATA ====================
+const CAT_COLORS = {
+  foundation: '#3b82f6', component: '#14b8a6', pattern: '#8b5cf6',
+  system: '#f59e0b', role: '#ec4899'
+};
+
+const CONCEPTS = [
+  {
+    id:'llm', label:'LLM', category:'foundation', rx:0.50, ry:0.07,
+    desc:'The reasoning engine at the core of every agent system. Takes text in, produces text out via next-token prediction. No memory between calls, no tools, no autonomy -- just pattern completion. Everything else is scaffolding built around this single capability.',
+    code:`response = llm.complete(prompt)\n# No loop. No tools. No memory.\n# Just text in, text out.`,
+    when:'Always present. Every system here has an LLM at its core. The question is what you build around it.'
+  },
+  {
+    id:'chatbot', label:'Chatbot', category:'foundation', rx:0.25, ry:0.20,
+    desc:'An LLM wrapped in a conversation loop. Maintains message history within a session so it can reference earlier messages. Still just prompt-in, text-out -- no tools, no planning, no real autonomy. It responds but never acts.',
+    code:`def chatbot(message, history=[]):\n    history.append({"role": "user", "content": message})\n    response = llm.complete(history)\n    history.append({"role": "assistant", "content": response})\n    return response\n# Conversation loop, but no tools or planning.`,
+    when:'Simple Q&A, customer support, casual conversation. When the LLM just needs to talk, not act.'
+  },
+  {
+    id:'agent', label:'Agent', category:'foundation', rx:0.68, ry:0.20,
+    desc:'An LLM in an action loop. The critical difference from a chatbot: it can USE TOOLS and DECIDE when to stop. It observes the world, reasons about what to do, acts, then observes the result. This observe-think-act loop is what makes it an agent.',
+    code:`def agent(goal, tools, max_steps=10):\n    memory = []\n    for step in range(max_steps):\n        action = llm.decide(goal, memory, tools)\n        if action.type == "final_answer":\n            return action.content\n        result = tools.execute(action.tool, action.args)\n        memory.append({"action": action, "result": result})\n    return "Reached step limit"\n# The key: observe -> think -> act -> loop`,
+    when:'When the LLM needs to interact with the world: search, run code, query databases, call APIs. Most useful AI applications are agents.'
+  },
+  {
+    id:'tools', label:'Tool Use', category:'component', rx:0.48, ry:0.36,
+    desc:"The agent's hands. Functions the LLM can call to interact with the world -- search the web, run code, query a database, call an API. The LLM outputs a structured tool call (name + arguments), the system executes it, and feeds the result back.",
+    code:`# LLM outputs structured tool calls\naction = llm.complete(\n    messages,\n    tools=[{\n        "name": "search",\n        "params": {"query": "string"}\n    }]\n)\n# action: {"tool": "search", "args": {"query": "..."}}\nresult = tools["search"](query="...")\n# Feed result back to LLM for next decision`,
+    when:'Whenever an agent needs to interact with external systems. Tool design is critical -- clear names, typed parameters, useful error messages.'
+  },
+  {
+    id:'memory', label:'Memory', category:'component', rx:0.68, ry:0.36,
+    desc:'State that persists across turns. Short-term memory is conversation history (what just happened). Long-term memory uses vector databases or summaries to recall relevant information from past sessions. Without memory, every turn starts from scratch.',
+    code:`class Memory:\n    def __init__(self):\n        self.short_term = []        # conversation history\n        self.long_term = VectorDB() # semantic search\n\n    def add(self, observation):\n        self.short_term.append(observation)\n        self.long_term.store(observation)\n\n    def recall(self, query, k=5):\n        return self.long_term.search(query, k)`,
+    when:'Short-term: always (conversation history). Long-term: when the agent needs to remember across sessions or handle large context.'
+  },
+  {
+    id:'planning', label:'Planning', category:'component', rx:0.88, ry:0.36,
+    desc:'Breaking a complex goal into steps before acting. Can be explicit (generate a plan first, then execute each step) or implicit (the LLM figures out the next step each turn). Explicit planning helps with complex, multi-step tasks where order matters.',
+    code:`def plan_and_execute(goal):\n    # Explicit: make the plan first\n    plan = llm.decompose(goal)\n    # ["1. Research X", "2. Analyze Y", "3. Draft Z"]\n\n    results = {}\n    for step in plan:\n        results[step] = execute(step, context=results)\n    return synthesize(results)\n# Implicit: LLM just picks the next action each turn`,
+    when:'Complex multi-step tasks where the order of operations matters. Skip for simple single-tool queries.'
+  },
+  {
+    id:'routing', label:'Routing', category:'pattern', rx:0.12, ry:0.55,
+    desc:'Classify the input and send it to the right handler. No loop -- just smart dispatch. Like a switch statement powered by an LLM. Each route gets a specialized prompt, model, or even a different agent. The simplest of the four patterns.',
+    code:`def route(input):\n    category = llm.classify(input, [\n        "code_question",\n        "math_problem",\n        "creative_writing",\n        "general_chat"\n    ])\n    handlers = {\n        "code_question":    code_agent,\n        "math_problem":     math_agent,\n        "creative_writing": writing_agent,\n        "general_chat":     chatbot\n    }\n    return handlers[category].run(input)\n# No loop. Just classify and dispatch.`,
+    when:'Clear categories of input that need different handling. Customer support triage, multi-domain assistants, model selection based on task complexity.'
+  },
+  {
+    id:'orchestration', label:'Orchestration', category:'pattern', rx:0.37, ry:0.55,
+    desc:'A central controller that breaks a task into steps and executes them in sequence or parallel. The orchestrator holds all state, makes all decisions, and assembles the final result. Think: a conductor directing an orchestra. More structured than a free agent loop.',
+    code:`def orchestrate(task):\n    plan = llm.decompose(task)\n    context = {}\n    for step in plan:\n        if step.parallel:\n            results = parallel_run(step.subtasks, context)\n        else:\n            results = execute(step, context)\n        context.update(results)\n    return llm.synthesize(context)\n# Central controller holds all state.`,
+    when:'Multi-step tasks where you know the workflow shape. Research-then-write, extract-transform-load, multi-stage analysis.'
+  },
+  {
+    id:'delegation', label:'Delegation', category:'pattern', rx:0.62, ry:0.55,
+    desc:'A supervisor agent assigns sub-tasks to specialized worker agents. Each worker has its own tools, prompts, and expertise. The supervisor plans, assigns, reviews results, and may reassign on failure. This is the core multi-agent pattern.',
+    code:`class Supervisor:\n    def __init__(self, workers):\n        self.workers = workers\n\n    def handle(self, task):\n        subtasks = llm.decompose(task)\n        results = {}\n        for sub in subtasks:\n            worker = self.select(sub)\n            result = worker.run(sub)\n            if not self.approve(result):\n                result = worker.run(\n                    sub, feedback=self.critique(result)\n                )\n            results[sub.name] = result\n        return self.combine(results)`,
+    when:'Tasks needing diverse expertise or parallel independent work. Code review (security + style + logic agents), research (multiple source specialists).'
+  },
+  {
+    id:'reflection', label:'Reflection', category:'pattern', rx:0.87, ry:0.55,
+    desc:'The agent evaluates its own output and iterates. A critic (which may be the same LLM with a different prompt) reviews the work, identifies problems, and the agent revises. This generate-critique-revise loop is how agents self-improve within a single task.',
+    code:`def reflect(task, max_rounds=3):\n    draft = agent.generate(task)\n    for i in range(max_rounds):\n        critique = critic.evaluate(draft, [\n            "correctness",\n            "completeness",\n            "clarity"\n        ])\n        if critique.passes:\n            return draft\n        draft = agent.revise(draft, critique.feedback)\n    return draft\n# Same LLM, different prompt for the critic.`,
+    when:'Quality-sensitive tasks where first drafts are not good enough. Code generation, writing, problem solving. Adds latency per round.'
+  },
+  {
+    id:'single', label:'Single-Agent', category:'system', rx:0.25, ry:0.74,
+    desc:'One agent with multiple tools. Simple, predictable, easy to debug. The agent handles everything itself. This is the right starting point for most applications. Only add more agents when a single agent demonstrably hits its limits.',
+    code:`# One agent, multiple tools\nagent = Agent(\n    llm=model,\n    tools=[search, calculator, code_runner],\n    memory=ConversationMemory()\n)\nresult = agent.run(\n    "Analyze this dataset and create a report"\n)\n# Simple. Predictable. Start here.`,
+    when:'Most tasks. Start with single-agent. Only go multi-agent when you have a clear reason: diverse expertise, parallelism, or quality requirements.'
+  },
+  {
+    id:'multi', label:'Multi-Agent', category:'system', rx:0.62, ry:0.74,
+    desc:'Multiple agents collaborating. Adds coordination overhead but enables specialization and parallelism. Common topologies: supervisor/worker (hierarchical), pipeline (sequential), debate (adversarial). More complex to build and debug.',
+    code:`# Multiple specialized agents\nresearcher = Agent(tools=[search, scrape])\nanalyst = Agent(tools=[calculator, chart])\nwriter = Agent(tools=[file_writer])\n\nsupervisor = Supervisor(\n    workers=[researcher, analyst, writer],\n    strategy="sequential"\n)\nresult = supervisor.run(\n    "Research AI trends and write a report"\n)`,
+    when:'Complex tasks benefiting from diverse expertise or parallel work. When single-agent context window is too small, or when quality requires adversarial evaluation.'
+  },
+  {
+    id:'supervisor', label:'Supervisor', category:'role', rx:0.42, ry:0.90,
+    desc:'The coordinating agent in a multi-agent system. Plans work, assigns tasks to workers, reviews results, handles failures. Has its own LLM and makes strategic decisions. Does not do the "leaf" work itself -- it manages.',
+    code:`class Supervisor(Agent):\n    def run(self, task):\n        plan = self.plan(task)\n        for subtask in plan:\n            worker = self.assign(subtask)\n            result = worker.run(subtask)\n            self.review(result)\n        return self.compile()\n# The supervisor is itself an agent\n# with planning and review abilities.`,
+    when:'Any multi-agent system that needs coordination. The supervisor pattern is useful when workers are independent and their output needs assembly.'
+  },
+  {
+    id:'worker', label:'Worker', category:'role', rx:0.62, ry:0.90,
+    desc:'A specialized agent that executes specific tasks. Has tools and prompts optimized for one type of work (research, code, writing, analysis). Reports results back to the supervisor. Does not coordinate with other workers directly.',
+    code:`class Worker(Agent):\n    def __init__(self, specialty, tools):\n        self.specialty = specialty\n        self.tools = tools\n\n    def run(self, task):\n        return self.agent_loop(task)\n# Workers don't coordinate.\n# They just execute their specialty.`,
+    when:'Within a multi-agent system, when you need focused expertise. Each worker should have a clear, narrow specialty and the right tools for it.'
+  },
+  {
+    id:'evaluator', label:'Evaluator', category:'role', rx:0.82, ry:0.90,
+    desc:'A critic agent that judges quality. Used in reflection loops. Scores output against criteria, identifies specific problems, and suggests improvements. Can be a separate agent or the same LLM with a critic system prompt.',
+    code:`class Evaluator:\n    def evaluate(self, output, criteria):\n        scores = {}\n        for c in criteria:\n            scores[c] = llm.score(\n                f"Rate {c}: {output}"\n            )\n        passes = all(\n            s > threshold for s in scores.values()\n        )\n        feedback = None\n        if not passes:\n            feedback = llm.complete(\n                f"Suggest improvements: {output}"\n            )\n        return {"passes": passes, "feedback": feedback}`,
+    when:'In reflection loops where quality matters. The evaluator prompt should specify clear, measurable criteria -- not vague "is this good?" questions.'
+  }
+];
+
+const EDGES = [
+  {from:'llm',to:'chatbot',label:'powers'},
+  {from:'llm',to:'agent',label:'powers'},
+  {from:'chatbot',to:'agent',label:'add tools + loop'},
+  {from:'agent',to:'tools',label:'uses'},
+  {from:'agent',to:'memory',label:'uses'},
+  {from:'agent',to:'planning',label:'uses'},
+  {from:'orchestration',to:'planning',label:'implements'},
+  {from:'delegation',to:'supervisor',label:'creates'},
+  {from:'delegation',to:'worker',label:'creates'},
+  {from:'reflection',to:'evaluator',label:'creates'},
+  {from:'single',to:'agent',label:'is one'},
+  {from:'multi',to:'delegation',label:'typically uses'},
+  {from:'multi',to:'supervisor',label:'contains'},
+  {from:'multi',to:'worker',label:'contains'},
+];
+
+const PRESETS = {
+  'new':            {llm:'unknown',chatbot:'unknown',agent:'unknown',tools:'unknown',memory:'unknown',planning:'unknown',routing:'unknown',orchestration:'unknown',delegation:'unknown',reflection:'unknown',single:'unknown',multi:'unknown',supervisor:'unknown',worker:'unknown',evaluator:'unknown'},
+  'know-chatbots':  {llm:'know',chatbot:'know',agent:'fuzzy',tools:'fuzzy',memory:'fuzzy',planning:'unknown',routing:'unknown',orchestration:'unknown',delegation:'unknown',reflection:'unknown',single:'unknown',multi:'unknown',supervisor:'unknown',worker:'unknown',evaluator:'unknown'},
+  'know-agents':    {llm:'know',chatbot:'know',agent:'know',tools:'know',memory:'know',planning:'fuzzy',routing:'fuzzy',orchestration:'fuzzy',delegation:'fuzzy',reflection:'fuzzy',single:'fuzzy',multi:'unknown',supervisor:'unknown',worker:'unknown',evaluator:'unknown'},
+  'multi-agent':    {llm:'know',chatbot:'know',agent:'know',tools:'know',memory:'know',planning:'know',routing:'know',orchestration:'know',delegation:'fuzzy',reflection:'fuzzy',single:'know',multi:'fuzzy',supervisor:'fuzzy',worker:'fuzzy',evaluator:'fuzzy'},
+};
+
+// ==================== STATE ====================
+const state = {
+  selected: null,
+  dragging: null,
+  dragOff: {x:0,y:0},
+  nodes: {}
+};
+
+// ==================== INIT ====================
+const mapWrap = document.getElementById('map-wrap');
+const edgeSvg = document.getElementById('edge-svg');
+const detail = document.getElementById('detail');
+const detailContent = document.getElementById('detail-content');
+const promptText = document.getElementById('prompt-text');
+const copyBtn = document.getElementById('copy-btn');
+const presetSel = document.getElementById('preset-select');
+const resetBtn = document.getElementById('reset-btn');
+
+function init() {
+  CONCEPTS.forEach(c => {
+    state.nodes[c.id] = { rx: c.rx, ry: c.ry, knowledge: 'fuzzy' };
+  });
+  createNodeElements();
+  layoutNodes();
+  renderEdges();
+  renderPrompt();
+
+  window.addEventListener('resize', () => { layoutNodes(); renderEdges(); });
+  presetSel.addEventListener('change', applyPreset);
+  resetBtn.addEventListener('click', resetLayout);
+  copyBtn.addEventListener('click', copyPrompt);
+}
+
+function createNodeElements() {
+  CONCEPTS.forEach((c, i) => {
+    const el = document.createElement('div');
+    el.className = 'node';
+    el.dataset.id = c.id;
+    el.dataset.k = 'fuzzy';
+    el.innerHTML = c.label + '<span class="k-dot"></span>';
+    const catColor = CAT_COLORS[c.category];
+    el.style.background = hexToRgba(catColor, 0.18);
+    el.style.animationDelay = (c.ry * 400) + 'ms';
+
+    el.addEventListener('mousedown', e => startDrag(c.id, e));
+    el.addEventListener('click', e => {
+      if (!state.wasDragged) selectNode(c.id);
+    });
+
+    const dot = el.querySelector('.k-dot');
+    dot.addEventListener('click', e => { e.stopPropagation(); cycleKnowledge(c.id); });
+    dot.addEventListener('mousedown', e => e.stopPropagation());
+
+    mapWrap.appendChild(el);
+  });
+
+  document.addEventListener('mousemove', onDrag);
+  document.addEventListener('mouseup', endDrag);
+}
+
+function layoutNodes() {
+  const W = mapWrap.offsetWidth;
+  const H = mapWrap.offsetHeight;
+  CONCEPTS.forEach(c => {
+    const n = state.nodes[c.id];
+    const el = mapWrap.querySelector(`[data-id="${c.id}"]`);
+    const px = n.rx * (W - 140) + 20;
+    const py = n.ry * (H - 50) + 10;
+    el.style.left = px + 'px';
+    el.style.top = py + 'px';
+    n.px = px; n.py = py;
+    n.w = el.offsetWidth;
+    n.h = el.offsetHeight;
+  });
+}
+
+// ==================== EDGES ====================
+function renderEdges() {
+  const W = mapWrap.offsetWidth;
+  const H = mapWrap.offsetHeight;
+  edgeSvg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+
+  const paths = edgeSvg.querySelectorAll('.edge-g');
+  paths.forEach(p => p.remove());
+
+  EDGES.forEach((edge, i) => {
+    const a = state.nodes[edge.from];
+    const b = state.nodes[edge.to];
+    if (!a || !b) return;
+
+    const ax = a.px + a.w/2, ay = a.py + a.h/2;
+    const bx = b.px + b.w/2, by = b.py + b.h/2;
+
+    const [sx, sy] = rectEdge(ax, ay, a.w/2+6, a.h/2+6, bx, by);
+    const [ex, ey] = rectEdge(bx, by, b.w/2+6, b.h/2+6, ax, ay);
+
+    const dx = ex - sx, dy = ey - sy;
+    const len = Math.sqrt(dx*dx + dy*dy);
+    const nx = -dy/len, ny = dx/len;
+    const curveAmt = 18 * (i % 2 === 0 ? 1 : -1);
+    const mx = (sx+ex)/2 + nx*curveAmt;
+    const my = (sy+ey)/2 + ny*curveAmt;
+
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.classList.add('edge-g');
+
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.classList.add('edge-path');
+    path.setAttribute('d', `M ${sx} ${sy} Q ${mx} ${my} ${ex} ${ey}`);
+    path.setAttribute('marker-end', 'url(#ah)');
+    g.appendChild(path);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg','text');
+    text.classList.add('edge-label');
+    const lx = (sx + 2*mx + ex) / 4;
+    const ly = (sy + 2*my + ey) / 4;
+    text.setAttribute('x', lx);
+    text.setAttribute('y', ly);
+    text.setAttribute('text-anchor', 'middle');
+    text.textContent = edge.label;
+    g.appendChild(text);
+
+    edgeSvg.appendChild(g);
+  });
+}
+
+function rectEdge(cx, cy, hw, hh, tx, ty) {
+  const dx = tx - cx, dy = ty - cy;
+  if (dx === 0 && dy === 0) return [cx, cy];
+  const sx = dx !== 0 ? hw / Math.abs(dx) : 1e9;
+  const sy = dy !== 0 ? hh / Math.abs(dy) : 1e9;
+  const s = Math.min(sx, sy);
+  return [cx + dx * s, cy + dy * s];
+}
+
+// ==================== DRAG ====================
+function startDrag(id, e) {
+  if (e.target.classList.contains('k-dot')) return;
+  state.dragging = id;
+  state.wasDragged = false;
+  const el = mapWrap.querySelector(`[data-id="${id}"]`);
+  el.classList.add('dragging');
+  const rect = el.getBoundingClientRect();
+  state.dragOff = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  e.preventDefault();
+}
+
+function onDrag(e) {
+  if (!state.dragging) return;
+  state.wasDragged = true;
+  const W = mapWrap.offsetWidth;
+  const H = mapWrap.offsetHeight;
+  const wrapRect = mapWrap.getBoundingClientRect();
+  const n = state.nodes[state.dragging];
+  const el = mapWrap.querySelector(`[data-id="${state.dragging}"]`);
+
+  const px = e.clientX - wrapRect.left - state.dragOff.x;
+  const py = e.clientY - wrapRect.top - state.dragOff.y;
+  n.px = Math.max(0, Math.min(W - n.w, px));
+  n.py = Math.max(0, Math.min(H - n.h, py));
+  n.rx = n.px / (W - 140);
+  n.ry = n.py / (H - 50);
+  el.style.left = n.px + 'px';
+  el.style.top = n.py + 'px';
+  renderEdges();
+}
+
+function endDrag() {
+  if (state.dragging) {
+    const el = mapWrap.querySelector(`[data-id="${state.dragging}"]`);
+    if (el) el.classList.remove('dragging');
+  }
+  state.dragging = null;
+}
+
+// ==================== SELECTION ====================
+function selectNode(id) {
+  state.selected = id;
+  mapWrap.querySelectorAll('.node').forEach(el => el.classList.remove('selected'));
+  const el = mapWrap.querySelector(`[data-id="${id}"]`);
+  if (el) el.classList.add('selected');
+  renderDetail();
+}
+
+function renderDetail() {
+  if (!state.selected) {
+    detail.className = 'empty';
+    detailContent.textContent = 'Click a concept on the map to explore it';
+    return;
+  }
+  detail.className = '';
+  const c = CONCEPTS.find(x => x.id === state.selected);
+  const n = state.nodes[c.id];
+  const catColor = CAT_COLORS[c.category];
+
+  detailContent.innerHTML = `
+    <h2>${c.label}</h2>
+    <span class="cat-badge" style="background:${hexToRgba(catColor,0.2)};color:${catColor}">${c.category}</span>
+    <div class="section-label">What it is</div>
+    <div class="desc">${c.desc}</div>
+    <div class="section-label">Code pattern</div>
+    <div class="code-block">${highlightPython(c.code)}</div>
+    <div class="section-label">When to use</div>
+    <div class="when-box">${c.when}</div>
+    <div class="section-label">Your knowledge level</div>
+    <div class="k-toggle">
+      <button data-v="know" class="${n.knowledge==='know'?'active':''}" onclick="setKnowledge('${c.id}','know')">Know</button>
+      <button data-v="fuzzy" class="${n.knowledge==='fuzzy'?'active':''}" onclick="setKnowledge('${c.id}','fuzzy')">Fuzzy</button>
+      <button data-v="unknown" class="${n.knowledge==='unknown'?'active':''}" onclick="setKnowledge('${c.id}','unknown')">Unknown</button>
+    </div>
+  `;
+}
+
+// ==================== KNOWLEDGE ====================
+function cycleKnowledge(id) {
+  const n = state.nodes[id];
+  const order = ['know','fuzzy','unknown'];
+  n.knowledge = order[(order.indexOf(n.knowledge) + 1) % 3];
+  updateNodeAppearance(id);
+  if (state.selected === id) renderDetail();
+  renderPrompt();
+  presetSel.value = '';
+}
+
+function setKnowledge(id, level) {
+  state.nodes[id].knowledge = level;
+  updateNodeAppearance(id);
+  renderDetail();
+  renderPrompt();
+  presetSel.value = '';
+}
+
+function updateNodeAppearance(id) {
+  const el = mapWrap.querySelector(`[data-id="${id}"]`);
+  if (el) el.dataset.k = state.nodes[id].knowledge;
+}
+
+// ==================== PRESETS ====================
+function applyPreset() {
+  const key = presetSel.value;
+  if (!key || !PRESETS[key]) return;
+  const p = PRESETS[key];
+  Object.keys(p).forEach(id => {
+    state.nodes[id].knowledge = p[id];
+    updateNodeAppearance(id);
+  });
+  if (state.selected) renderDetail();
+  renderPrompt();
+}
+
+function resetLayout() {
+  CONCEPTS.forEach(c => {
+    state.nodes[c.id].rx = c.rx;
+    state.nodes[c.id].ry = c.ry;
+  });
+  layoutNodes();
+  renderEdges();
+}
+
+// ==================== PROMPT ====================
+function renderPrompt() {
+  const know = [], fuzzy = [], unknown = [];
+  CONCEPTS.forEach(c => {
+    const k = state.nodes[c.id].knowledge;
+    if (k === 'know') know.push(c.label);
+    else if (k === 'fuzzy') fuzzy.push(c.label);
+    else unknown.push(c.label);
+  });
+
+  if (know.length === CONCEPTS.length) {
+    promptText.textContent = "You've marked everything as known. Adjust some concepts to 'fuzzy' or 'unknown' to generate a learning prompt.";
+    return;
+  }
+  if (unknown.length === CONCEPTS.length) {
+    promptText.textContent = `I'm learning how AI agents work from scratch. Please explain the complete architecture: what an LLM is, how agents differ from chatbots, the four core patterns (routing, orchestration, delegation, reflection), when to use single vs multi-agent systems, and how each pattern translates to code. Use pseudocode examples. Build concepts progressively.`;
+    return;
+  }
+
+  const parts = [];
+  parts.push("I'm learning how AI agents work.");
+  if (know.length > 0) parts.push(`I already understand: ${know.join(', ')}.`);
+  if (unknown.length > 0) parts.push(`I have no idea about: ${unknown.join(', ')}.`);
+  if (fuzzy.length > 0) parts.push(`I'm fuzzy on: ${fuzzy.join(', ')}.`);
+  parts.push("Please explain the concepts I don't know, building on what I already understand.");
+  if (fuzzy.length > 0) parts.push("Clarify the fuzzy concepts with concrete examples.");
+  parts.push("Use pseudocode to show how each pattern works in practice.");
+
+  if (state.selected) {
+    const c = CONCEPTS.find(x => x.id === state.selected);
+    const k = state.nodes[c.id].knowledge;
+    if (k !== 'know') {
+      parts.push(`Focus especially on ${c.label} and how it connects to the other concepts.`);
+    }
+  }
+
+  promptText.textContent = parts.join(' ');
+}
+
+function copyPrompt() {
+  navigator.clipboard.writeText(promptText.textContent).then(() => {
+    copyBtn.textContent = 'Copied!';
+    copyBtn.classList.add('copied');
+    setTimeout(() => { copyBtn.textContent = 'Copy'; copyBtn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ==================== HELPERS ====================
+function hexToRgba(hex, a) {
+  const r = parseInt(hex.slice(1,3),16);
+  const g = parseInt(hex.slice(3,5),16);
+  const b = parseInt(hex.slice(5,7),16);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function highlightPython(code) {
+  return code.split('\n').map(line => {
+    const ci = line.indexOf('#');
+    if (ci >= 0) {
+      const before = hlCode(line.substring(0, ci));
+      const comment = '<span class="cm">' + escHtml(line.substring(ci)) + '</span>';
+      return before + comment;
+    }
+    return hlCode(line);
+  }).join('\n');
+}
+
+function hlCode(text) {
+  let s = escHtml(text);
+  s = s.replace(/("(?:[^"\\]|\\.)*")/g, '<span class="st">$1</span>');
+  s = s.replace(/\b(def|for|if|while|return|class|not|and|or|in|True|False|else|elif|None|self|from|import|as|with)\b/g, '<span class="kw">$1</span>');
+  return s;
+}
+
+function escHtml(t) {
+  return t.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ==================== GO ====================
+init();
+</script>
+</body>
+</html>
