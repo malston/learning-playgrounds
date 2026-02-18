@@ -1,4 +1,4 @@
-# AI Agent Architecture
+# LLM Inference Infrastructure
 
 ## Input
 
@@ -16,6 +16,9 @@ cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude
 ```
 
 ## Full Transcript
+
+> Note: This session was initiated from the `ai-agent-architecture` directory
+> and the startup context reflects that working directory.
 
 ```text
 ✻

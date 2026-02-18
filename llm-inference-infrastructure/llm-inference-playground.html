@@ -454,8 +454,8 @@ nav .logo { color: var(--accent); font-weight: 700; font-size: 14px; margin-righ
     <div class="ctrl">
       <label>Concurrent Users</label>
       <div class="slider-wrap">
-        <input type="range" id="v-users" min="1" max="200" value="50">
-        <span class="slider-val" id="v-users-val">50</span>
+        <input type="range" id="v-users" min="1" max="200" value="50" aria-label="Concurrent users">
+        <span class="slider-val" id="v-users-val" aria-live="polite">50</span>
       </div>
     </div>
     <div class="ctrl">
@@ -582,8 +582,8 @@ nav .logo { color: var(--accent); font-weight: 700; font-size: 14px; margin-righ
     <div class="ctrl">
       <label>Requests / Day</label>
       <div class="slider-wrap">
-        <input type="range" id="c-reqs" min="100" max="1000000" value="50000" step="100">
-        <span class="slider-val" id="c-reqs-val">50,000</span>
+        <input type="range" id="c-reqs" min="100" max="1000000" value="50000" step="100" aria-label="Requests per day">
+        <span class="slider-val" id="c-reqs-val" aria-live="polite">50,000</span>
       </div>
     </div>
     <div class="ctrl">
@@ -599,15 +599,15 @@ nav .logo { color: var(--accent); font-weight: 700; font-size: 14px; margin-righ
     <div class="ctrl">
       <label>Usage Hours / Day</label>
       <div class="slider-wrap">
-        <input type="range" id="c-hours" min="4" max="24" value="24" step="1">
-        <span class="slider-val" id="c-hours-val">24</span>
+        <input type="range" id="c-hours" min="4" max="24" value="24" step="1" aria-label="Usage hours per day">
+        <span class="slider-val" id="c-hours-val" aria-live="polite">24</span>
       </div>
     </div>
     <div class="ctrl">
       <label>Compliance Required</label>
       <div class="toggle-wrap">
-        <input type="checkbox" id="c-compliance">
-        <span class="toggle-label">On-prem / regulated data</span>
+        <input type="checkbox" id="c-compliance" aria-labelledby="c-compliance-label">
+        <span class="toggle-label" id="c-compliance-label">On-prem / regulated data</span>
       </div>
     </div>
   </div>
@@ -661,6 +661,10 @@ nav .logo { color: var(--accent); font-weight: 700; font-size: 14px; margin-righ
 // DATA & CONSTANTS
 // ============================================================
 
+// throughputPerGPU: approximate output tokens/sec per model instance on H100 80GB,
+// assuming continuous batching at moderate load (~32 concurrent sequences).
+// Larger models need multi-GPU tensor parallelism to fit, but throughput per
+// instance stays roughly constant (see renderCost for details).
 const MODELS = {
   '7B': {
     params: 7e9, layers: 32, hiddenDim: 4096,
@@ -716,20 +720,22 @@ const GPUS = [
   { name: 'B200 192GB', vram: 192, note: 'Datacenter' }
 ];
 
+// Ballpark H100 80GB pricing (USD), Feb 2025 cloud averages.
+// On-demand/reserved rates reflect major cloud providers (AWS, GCP, Azure).
 const COST_RATES = {
-  onDemand: 3.50,
-  reserved1yr: 2.10,
-  reserved3yr: 1.50,
-  ownUpfrontPerGPU: 40000,
-  ownOpexPerGPUHr: 0.50
+  onDemand: 3.50,       // $/GPU-hour on-demand
+  reserved1yr: 2.10,    // $/GPU-hour 1-year reserved
+  reserved3yr: 1.50,    // $/GPU-hour 3-year reserved
+  ownUpfrontPerGPU: 40000, // $ capital cost per GPU (server + networking)
+  ownOpexPerGPUHr: 0.50    // $/GPU-hour operating cost (power, cooling, staff)
 };
 
 const GPU_VRAM = 80; // H100 80GB reference
 
 const PRESETS = {
   starter: {
-    vModel: '7B', vPrec: 'INT4', vUsers: 1, vCtx: '4096',
-    qModel: '7B', pModel: '7B', pPrec: 'INT4', pGpus: '1',
+    vModel: '7B', vPrec: 'FP16', vUsers: 1, vCtx: '4096',
+    qModel: '7B', pModel: '7B', pPrec: 'FP16', pGpus: '1',
     cReqs: 100, cModel: '7B', cHours: 8, cCompliance: false,
     mPrec: 'FP8'
   },
@@ -1233,8 +1239,10 @@ function renderCost() {
   const totalWeightGB = calcWeightMem(model.params, prec.bytes);
   const gpusPerSet = Math.max(1, gpusNeeded(totalWeightGB, GPU_VRAM));
 
-  // Throughput: tokens/sec for the model across its GPU set
-  const throughputPerSet = model.throughputPerGPU * gpusPerSet;
+  // Throughput: tokens/sec per model instance (GPU set).
+  // Multi-GPU sets use tensor/pipeline parallelism to fit the model,
+  // not to multiply throughput -- so throughput stays ~constant per instance.
+  const throughputPerSet = model.throughputPerGPU;
   const avgTokensPerReq = 1000; // 500 input + 500 output
   const totalTokensPerDay = reqs * avgTokensPerReq;
   const maxTokensPerDayPerSet = throughputPerSet * 86400 * 0.75; // 75% utilization
@@ -1500,11 +1508,22 @@ function applyPreset(name) {
 
 function copyText(id) {
   const text = $(id).textContent;
+  const btn = $(id).parentElement.querySelector('.copy-btn');
+
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+    if (btn) { btn.textContent = 'Copy not supported'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
+    return;
+  }
+
   navigator.clipboard.writeText(text).then(() => {
-    const btn = $(id).parentElement.querySelector('.copy-btn');
+    if (!btn) return;
     btn.textContent = 'Copied!';
     btn.classList.add('copied');
     setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  }).catch(() => {
+    if (!btn) return;
+    btn.textContent = 'Copy failed';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
   });
 }
 
