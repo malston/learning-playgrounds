@@ -31,4 +31,4 @@ Each topic lives in its own directory with three files:
 ## Playgrounds
 
 - **[ai-agent-architecture](ai-agent-architecture/)** -- Interactive concept map covering AI agent patterns: routing, orchestration, delegation, and reflection. Click nodes to explore pseudocode, use cases, and connections between concepts.
-- **[llm-inference-infrastructure](llm-inference-infrastructure/)** -- Self-contained HTML playground covering 5 interactive sections: VRAM calculator, quantization tradeoffs, parallelism strategy visualizer, buy vs rent decision tool, and MoE vs dense comparison. Live math formulas, GPU hardware recommendations, and copyable configuration summaries for each section. 4 presets (Starter/Team/Production/Enterprise) and inline tooltips on key terms.
+- **[llm-inference-infrastructure](llm-inference-infrastructure/)** -- Self-contained HTML playground covering 5 interactive sections: VRAM calculator, quantization tradeoffs, parallelism strategy visualizer, buy vs rent decision tool, and MoE vs dense comparison. Live math formulas, GPU hardware recommendations, and copyable configuration summaries for each section.
