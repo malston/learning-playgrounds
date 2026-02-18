@@ -1,0 +1,1550 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LLM Inference Infrastructure Playground</title>
+<style>
+:root {
+  --bg-page: #08080e;
+  --bg-section: #0e0e1a;
+  --bg-card: #161625;
+  --bg-card-alt: #1c1c30;
+  --bg-input: #1a1a2e;
+  --bg-hover: #222238;
+  --text: #e2e8f0;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --accent: #818cf8;
+  --accent-dim: #6366f1;
+  --accent-glow: rgba(99, 102, 241, 0.15);
+  --green: #4ade80;
+  --green-dim: rgba(74, 222, 128, 0.15);
+  --yellow: #fbbf24;
+  --yellow-dim: rgba(251, 191, 36, 0.15);
+  --red: #f87171;
+  --red-dim: rgba(248, 113, 113, 0.15);
+  --orange: #fb923c;
+  --blue: #60a5fa;
+  --border: #252540;
+  --radius: 8px;
+  --font: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; scroll-padding-top: 56px; }
+
+body {
+  font-family: var(--font);
+  background: var(--bg-page);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* --- NAV --- */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  display: flex; align-items: center; gap: 4px;
+  padding: 10px 24px;
+  background: rgba(8, 8, 14, 0.85);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+}
+nav a {
+  color: var(--text-secondary); text-decoration: none;
+  padding: 6px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+  transition: all 0.15s;
+}
+nav a:hover { color: var(--text); background: var(--bg-hover); }
+nav .logo { color: var(--accent); font-weight: 700; font-size: 14px; margin-right: auto; letter-spacing: -0.02em; }
+
+/* --- HEADER --- */
+.hero {
+  padding: 48px 24px 24px;
+  max-width: 960px; margin: 0 auto;
+  text-align: center;
+}
+.hero h1 { font-size: 32px; font-weight: 700; letter-spacing: -0.03em; margin-bottom: 8px; }
+.hero h1 span { color: var(--accent); }
+.hero p { color: var(--text-secondary); max-width: 600px; margin: 0 auto 20px; font-size: 15px; }
+.presets {
+  display: flex; gap: 8px; justify-content: center; flex-wrap: wrap;
+}
+.presets button {
+  background: var(--bg-card); color: var(--text-secondary); border: 1px solid var(--border);
+  padding: 7px 16px; border-radius: 20px; font-size: 13px; cursor: pointer;
+  font-family: var(--font); transition: all 0.15s;
+}
+.presets button:hover { color: var(--text); border-color: var(--accent-dim); background: var(--accent-glow); }
+.presets button.active { color: var(--accent); border-color: var(--accent-dim); background: var(--accent-glow); }
+
+/* --- SECTIONS --- */
+.section {
+  max-width: 960px; margin: 0 auto;
+  padding: 48px 24px;
+  border-bottom: 1px solid var(--border);
+}
+.section:last-child { border-bottom: none; }
+.section-head {
+  margin-bottom: 24px;
+}
+.section-head h2 {
+  font-size: 22px; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 6px;
+}
+.section-head h2 .num { color: var(--accent); font-family: var(--mono); font-size: 18px; margin-right: 8px; }
+.section-head p { color: var(--text-secondary); font-size: 14px; }
+
+/* --- CONTROLS --- */
+.controls {
+  display: flex; gap: 16px; flex-wrap: wrap;
+  margin-bottom: 24px;
+  padding: 16px;
+  background: var(--bg-card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+}
+.ctrl { display: flex; flex-direction: column; gap: 5px; min-width: 140px; flex: 1; }
+.ctrl label {
+  font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+.ctrl select, .ctrl input[type="number"] {
+  background: var(--bg-input); color: var(--text); border: 1px solid var(--border);
+  padding: 8px 10px; border-radius: 6px; font-family: var(--mono); font-size: 13px;
+  appearance: auto; cursor: pointer;
+}
+.ctrl select:hover, .ctrl input:hover { border-color: var(--accent-dim); }
+.ctrl select:focus, .ctrl input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+
+.slider-wrap {
+  display: flex; align-items: center; gap: 10px;
+}
+.slider-wrap input[type="range"] {
+  flex: 1; height: 4px; -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 2px; outline: none;
+}
+.slider-wrap input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 16px; height: 16px;
+  background: var(--accent); border-radius: 50%; cursor: pointer;
+}
+.slider-val {
+  font-family: var(--mono); font-size: 14px; font-weight: 600;
+  color: var(--accent); min-width: 50px; text-align: right;
+}
+
+.toggle-wrap { display: flex; align-items: center; gap: 8px; padding-top: 4px; }
+.toggle-wrap input[type="checkbox"] {
+  width: 36px; height: 20px; -webkit-appearance: none; appearance: none;
+  background: var(--border); border-radius: 10px; position: relative; cursor: pointer;
+  transition: background 0.2s;
+}
+.toggle-wrap input[type="checkbox"]::after {
+  content: ''; position: absolute; top: 2px; left: 2px;
+  width: 16px; height: 16px; background: var(--text-muted);
+  border-radius: 50%; transition: all 0.2s;
+}
+.toggle-wrap input[type="checkbox"]:checked { background: var(--accent-dim); }
+.toggle-wrap input[type="checkbox"]:checked::after { left: 18px; background: var(--text); }
+.toggle-label { font-size: 13px; color: var(--text-secondary); }
+
+/* --- OUTPUT AREAS --- */
+.output { margin-bottom: 20px; }
+
+.result-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px;
+}
+.card h3 { font-size: 13px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 12px; }
+
+.big-num {
+  font-family: var(--mono); font-size: 32px; font-weight: 700; letter-spacing: -0.03em;
+  line-height: 1;
+}
+.big-num .unit { font-size: 16px; color: var(--text-secondary); font-weight: 500; margin-left: 4px; }
+
+/* --- STACKED BAR --- */
+.bar-container { margin-bottom: 16px; }
+.bar-label-row {
+  display: flex; justify-content: space-between; font-size: 12px; color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.stacked-bar {
+  display: flex; height: 36px; border-radius: 6px; overflow: hidden;
+  background: var(--bg-input);
+}
+.stacked-bar .seg {
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px; font-weight: 600; color: rgba(255,255,255,0.9);
+  transition: width 0.3s ease;
+  min-width: 0; overflow: hidden; white-space: nowrap;
+}
+.seg-weights { background: var(--accent-dim); }
+.seg-kv { background: #7c3aed; }
+.seg-overhead { background: #4338ca; }
+.bar-legend {
+  display: flex; gap: 16px; margin-top: 8px; font-size: 12px;
+}
+.bar-legend span { display: flex; align-items: center; gap: 5px; color: var(--text-secondary); }
+.bar-legend .dot {
+  width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0;
+}
+
+/* --- FORMULA --- */
+.formula-box {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px;
+  font-family: var(--mono); font-size: 12px; line-height: 1.8;
+  color: var(--text-secondary); overflow-x: auto;
+}
+.formula-box .hl { color: var(--accent); font-weight: 600; }
+.formula-box .result { color: var(--text); font-weight: 700; font-size: 13px; }
+
+/* --- GPU TABLE --- */
+.gpu-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.gpu-table th {
+  text-align: left; padding: 8px 10px; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.gpu-table td { padding: 8px 10px; border-bottom: 1px solid var(--border); color: var(--text-secondary); }
+.gpu-table tr.fits td { color: var(--green); }
+.gpu-table tr.partial td { color: var(--yellow); }
+.gpu-table tr.no td { color: var(--text-muted); }
+.gpu-table .gpu-name { font-weight: 600; color: var(--text); }
+.gpu-table .badge {
+  display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.badge-yes { background: var(--green-dim); color: var(--green); }
+.badge-multi { background: var(--yellow-dim); color: var(--yellow); }
+.badge-no { background: var(--red-dim); color: var(--red); }
+
+/* --- QUANT BARS --- */
+.quant-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+}
+.quant-col {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+}
+.quant-col .bar-v {
+  width: 100%; height: 200px; border-radius: 6px;
+  background: var(--bg-input); position: relative; overflow: hidden;
+}
+.quant-col .bar-v .fill {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  border-radius: 6px; transition: height 0.3s ease;
+  display: flex; align-items: flex-end; justify-content: center;
+  padding-bottom: 8px; font-family: var(--mono); font-size: 13px; font-weight: 700;
+}
+.quant-col .prec-label { font-weight: 700; font-size: 14px; }
+.quant-col .quality-badge {
+  padding: 4px 10px; border-radius: 4px; font-size: 11px; font-weight: 600;
+}
+.quant-col .speed-label { font-size: 12px; color: var(--text-muted); font-family: var(--mono); }
+
+/* --- BITS VISUALIZATION --- */
+.bits-viz {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 16px; margin-top: 16px;
+}
+.bits-viz h4 { font-size: 13px; font-weight: 600; color: var(--text-muted); margin-bottom: 12px; }
+.bits-row {
+  display: flex; align-items: center; gap: 10px; margin-bottom: 10px;
+  font-family: var(--mono); font-size: 12px;
+}
+.bits-row .prec-tag { min-width: 50px; font-weight: 600; color: var(--text); }
+.bits-row .bits {
+  display: flex; gap: 1px;
+}
+.bits-row .bit {
+  width: 18px; height: 22px; display: flex; align-items: center; justify-content: center;
+  border-radius: 2px; font-size: 10px; font-weight: 700;
+}
+.bit-sign { background: #7c3aed; color: white; }
+.bit-exp { background: var(--accent-dim); color: white; }
+.bit-man { background: #4338ca; color: rgba(255,255,255,0.8); }
+.bit-val { background: var(--green); color: #000; }
+.bits-row .decoded { color: var(--text-secondary); margin-left: 8px; }
+.bits-row .error { color: var(--yellow); font-size: 11px; }
+
+/* --- PARALLELISM DIAGRAM --- */
+.parallel-diagram {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px; min-height: 200px;
+}
+.parallel-diagram h4 { font-size: 13px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em; margin-bottom: 16px; }
+.gpu-row {
+  display: flex; gap: 8px; margin-bottom: 8px; align-items: stretch;
+}
+.gpu-box {
+  flex: 1; padding: 10px 8px; border-radius: 6px; text-align: center;
+  font-size: 11px; font-weight: 600; min-height: 50px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 3px; border: 1px solid transparent;
+}
+.gpu-box .gpu-id { font-family: var(--mono); font-size: 10px; opacity: 0.7; }
+.gpu-box .gpu-layers { font-family: var(--mono); font-size: 12px; }
+
+.tp-color { background: rgba(99, 102, 241, 0.2); border-color: var(--accent-dim); color: var(--accent); }
+.pp-stage-0 { background: rgba(99, 102, 241, 0.2); border-color: var(--accent-dim); color: var(--accent); }
+.pp-stage-1 { background: rgba(124, 58, 237, 0.2); border-color: #7c3aed; color: #a78bfa; }
+.pp-stage-2 { background: rgba(67, 56, 202, 0.2); border-color: #4338ca; color: #818cf8; }
+.pp-stage-3 { background: rgba(79, 70, 229, 0.2); border-color: #4f46e5; color: #a5b4fc; }
+.dp-color { background: rgba(74, 222, 128, 0.15); border-color: rgba(74, 222, 128, 0.4); color: var(--green); }
+
+.arrow-row {
+  display: flex; align-items: center; justify-content: center; padding: 4px 0;
+  color: var(--text-muted); font-size: 20px; letter-spacing: 4px;
+}
+.comm-label {
+  text-align: center; font-size: 11px; color: var(--text-muted);
+  padding: 2px 0 8px; font-style: italic;
+}
+.strat-note {
+  margin-top: 12px; padding: 12px; background: var(--accent-glow);
+  border-radius: 6px; font-size: 13px; color: var(--text-secondary); line-height: 1.5;
+}
+.strat-note strong { color: var(--accent); }
+
+/* --- COST TABLE --- */
+.cost-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.cost-table th {
+  text-align: left; padding: 10px 12px; font-size: 11px; font-weight: 600;
+  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border);
+}
+.cost-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.cost-table tr.recommended { background: var(--accent-glow); }
+.cost-table tr.recommended td { color: var(--accent); font-weight: 600; }
+.cost-table .cost-val { font-family: var(--mono); font-weight: 600; }
+.rec-tag {
+  display: inline-block; padding: 2px 8px; border-radius: 4px;
+  font-size: 10px; font-weight: 700; background: var(--accent-dim); color: white;
+  margin-left: 6px; vertical-align: middle;
+}
+
+/* --- MOE COMPARISON --- */
+.moe-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+.moe-card {
+  background: var(--bg-card); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 20px;
+}
+.moe-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 16px; }
+.moe-card .stat { margin-bottom: 12px; }
+.moe-card .stat-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-muted); margin-bottom: 2px; }
+.moe-card .stat-val { font-family: var(--mono); font-size: 20px; font-weight: 700; }
+.expert-grid {
+  display: grid; grid-template-columns: repeat(16, 1fr); gap: 3px;
+  margin-top: 8px;
+}
+.expert-box {
+  aspect-ratio: 1; border-radius: 3px; transition: all 0.2s;
+}
+.expert-active { background: var(--accent); box-shadow: 0 0 8px var(--accent-glow); }
+.expert-inactive { background: var(--bg-input); border: 1px solid var(--border); }
+.router-viz {
+  margin-top: 16px; padding: 12px; background: var(--bg-card-alt);
+  border-radius: 6px; font-size: 12px; color: var(--text-secondary);
+  line-height: 1.8; font-family: var(--mono);
+}
+
+/* --- PROMPT SUMMARY --- */
+.summary {
+  background: var(--bg-card-alt); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 14px 16px; position: relative;
+  margin-top: 16px;
+}
+.summary-label {
+  font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em;
+  color: var(--text-muted); font-weight: 600; margin-bottom: 8px;
+}
+.summary-text {
+  font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+}
+.copy-btn {
+  position: absolute; top: 12px; right: 12px;
+  background: var(--bg-hover); color: var(--text-secondary); border: 1px solid var(--border);
+  padding: 4px 12px; border-radius: 4px; font-size: 12px; cursor: pointer;
+  font-family: var(--font); transition: all 0.15s;
+}
+.copy-btn:hover { color: var(--text); border-color: var(--accent-dim); }
+.copy-btn.copied { color: var(--green); border-color: var(--green); }
+
+/* --- TOOLTIPS --- */
+.tip {
+  border-bottom: 1px dotted var(--text-muted); cursor: help; position: relative;
+}
+.tip:hover::after {
+  content: attr(data-tip);
+  position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: #1e1e32; color: var(--text); padding: 8px 12px; border-radius: 6px;
+  font-size: 12px; line-height: 1.4; width: max-content; max-width: 300px;
+  white-space: normal; z-index: 200; pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5); border: 1px solid var(--border);
+  font-family: var(--font); font-weight: 400;
+}
+
+/* --- RESPONSIVE --- */
+@media (max-width: 768px) {
+  .controls { flex-direction: column; }
+  .result-grid { grid-template-columns: 1fr; }
+  .quant-grid { grid-template-columns: repeat(2, 1fr); }
+  .moe-grid { grid-template-columns: 1fr; }
+  nav { overflow-x: auto; }
+}
+</style>
+</head>
+<body>
+
+<nav>
+  <span class="logo">LLM Infra</span>
+  <a href="#vram">VRAM</a>
+  <a href="#quant">Quantization</a>
+  <a href="#parallel">Parallelism</a>
+  <a href="#cost">Buy vs Rent</a>
+  <a href="#moe">MoE vs Dense</a>
+</nav>
+
+<div class="hero">
+  <h1>LLM Inference <span>Infrastructure</span></h1>
+  <p>Interactive playground for sizing hardware, choosing precision, planning parallelism, and making deployment decisions.</p>
+  <div class="presets" id="presets">
+    <button onclick="applyPreset('starter')">Starter</button>
+    <button onclick="applyPreset('team')">Team</button>
+    <button onclick="applyPreset('production')" class="active">Production</button>
+    <button onclick="applyPreset('enterprise')">Enterprise</button>
+  </div>
+</div>
+
+<!-- ==================== SECTION 1: VRAM CALCULATOR ==================== -->
+<section class="section" id="vram">
+  <div class="section-head">
+    <h2><span class="num">01</span>VRAM Calculator</h2>
+    <p>Estimate total GPU memory needed for model weights, <span class="tip" data-tip="Stores previously computed attention keys and values so they don't need to be recomputed for each new token during generation.">KV cache</span>, and runtime overhead.</p>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Model Size</label>
+      <select id="v-model">
+        <option value="7B">7B</option>
+        <option value="13B">13B</option>
+        <option value="70B" selected>70B</option>
+        <option value="405B">405B</option>
+        <option value="745B MoE">745B MoE</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Precision</label>
+      <select id="v-prec">
+        <option value="FP32">FP32 (32-bit)</option>
+        <option value="FP16">BF16 / FP16</option>
+        <option value="FP8" selected>FP8</option>
+        <option value="INT4">INT4</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Concurrent Users</label>
+      <div class="slider-wrap">
+        <input type="range" id="v-users" min="1" max="200" value="50" aria-label="Concurrent users">
+        <span class="slider-val" id="v-users-val" aria-live="polite">50</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>Context Window</label>
+      <select id="v-ctx">
+        <option value="2048">2K</option>
+        <option value="4096">4K</option>
+        <option value="8192">8K</option>
+        <option value="16384">16K</option>
+        <option value="32768" selected>32K</option>
+        <option value="65536">64K</option>
+        <option value="131072">128K</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="output">
+    <div id="vram-total-card" style="margin-bottom:16px"></div>
+    <div id="vram-bar"></div>
+    <div class="result-grid" style="margin-top:16px">
+      <div id="vram-math" class="card"></div>
+      <div id="vram-gpus" class="card"></div>
+    </div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-label">Configuration Summary</div>
+    <div class="summary-text" id="vram-summary"></div>
+    <button class="copy-btn" onclick="copyText('vram-summary')">Copy</button>
+  </div>
+</section>
+
+<!-- ==================== SECTION 2: QUANTIZATION EXPLORER ==================== -->
+<section class="section" id="quant">
+  <div class="section-head">
+    <h2><span class="num">02</span>Quantization Trade-off Explorer</h2>
+    <p>See how <span class="tip" data-tip="Reducing the numerical precision of model weights (e.g., FP32 to INT4) to decrease memory usage and increase inference speed, with some accuracy tradeoff.">quantization</span> affects memory, quality, and speed for a given model size.</p>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Model Size</label>
+      <select id="q-model">
+        <option value="7B">7B</option>
+        <option value="13B">13B</option>
+        <option value="70B" selected>70B</option>
+        <option value="405B">405B</option>
+        <option value="745B MoE">745B MoE</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="output">
+    <div id="quant-bars"></div>
+    <div id="quant-bits"></div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-label">Configuration Summary</div>
+    <div class="summary-text" id="quant-summary"></div>
+    <button class="copy-btn" onclick="copyText('quant-summary')">Copy</button>
+  </div>
+</section>
+
+<!-- ==================== SECTION 3: PARALLELISM VISUALIZER ==================== -->
+<section class="section" id="parallel">
+  <div class="section-head">
+    <h2><span class="num">03</span>Parallelism Strategy Visualizer</h2>
+    <p>Understand <span class="tip" data-tip="Splitting each layer's computation across multiple GPUs. Requires high-bandwidth interconnects (NVLink) since GPUs communicate at every layer.">tensor</span>, <span class="tip" data-tip="Assigning different groups of layers to different GPUs. Data flows through GPUs in sequence. Introduces pipeline bubbles but needs less inter-GPU bandwidth.">pipeline</span>, and <span class="tip" data-tip="Running full copies of the model on separate GPU sets to handle more concurrent requests. No inter-GPU communication needed for inference.">data</span> parallelism and when to use each.</p>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Model Size</label>
+      <select id="p-model">
+        <option value="7B">7B</option>
+        <option value="13B">13B</option>
+        <option value="70B" selected>70B</option>
+        <option value="405B">405B</option>
+        <option value="745B MoE">745B MoE</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Precision</label>
+      <select id="p-prec">
+        <option value="FP16">BF16 / FP16</option>
+        <option value="FP8" selected>FP8</option>
+        <option value="INT4">INT4</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Total GPUs (H100 80GB)</label>
+      <select id="p-gpus">
+        <option value="1">1</option>
+        <option value="2">2</option>
+        <option value="4">4</option>
+        <option value="8" selected>8</option>
+        <option value="16">16</option>
+        <option value="32">32</option>
+        <option value="64">64</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="output">
+    <div id="parallel-diagram"></div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-label">Configuration Summary</div>
+    <div class="summary-text" id="parallel-summary"></div>
+    <button class="copy-btn" onclick="copyText('parallel-summary')">Copy</button>
+  </div>
+</section>
+
+<!-- ==================== SECTION 4: BUY VS RENT ==================== -->
+<section class="section" id="cost">
+  <div class="section-head">
+    <h2><span class="num">04</span>Buy vs. Rent Decision Tool</h2>
+    <p>Compare on-demand, reserved, and owned infrastructure costs for your inference workload.</p>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Requests / Day</label>
+      <div class="slider-wrap">
+        <input type="range" id="c-reqs" min="100" max="1000000" value="50000" step="100" aria-label="Requests per day">
+        <span class="slider-val" id="c-reqs-val" aria-live="polite">50,000</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>Model Size</label>
+      <select id="c-model">
+        <option value="7B">7B</option>
+        <option value="13B">13B</option>
+        <option value="70B" selected>70B</option>
+        <option value="405B">405B</option>
+        <option value="745B MoE">745B MoE</option>
+      </select>
+    </div>
+    <div class="ctrl">
+      <label>Usage Hours / Day</label>
+      <div class="slider-wrap">
+        <input type="range" id="c-hours" min="4" max="24" value="24" step="1" aria-label="Usage hours per day">
+        <span class="slider-val" id="c-hours-val" aria-live="polite">24</span>
+      </div>
+    </div>
+    <div class="ctrl">
+      <label>Compliance Required</label>
+      <div class="toggle-wrap">
+        <input type="checkbox" id="c-compliance" aria-labelledby="c-compliance-label">
+        <span class="toggle-label" id="c-compliance-label">On-prem / regulated data</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="output">
+    <div id="cost-output"></div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-label">Configuration Summary</div>
+    <div class="summary-text" id="cost-summary"></div>
+    <button class="copy-btn" onclick="copyText('cost-summary')">Copy</button>
+  </div>
+</section>
+
+<!-- ==================== SECTION 5: MOE VS DENSE ==================== -->
+<section class="section" id="moe">
+  <div class="section-head">
+    <h2><span class="num">05</span>MoE vs. Dense Comparison</h2>
+    <p>Compare a dense model against a <span class="tip" data-tip="Mixture of Experts: an architecture where a learned router selects a small subset of 'expert' sub-networks for each token, reducing compute cost while maintaining total model capacity.">Mixture-of-Experts</span> model to understand the compute vs. memory tradeoff.</p>
+  </div>
+
+  <div class="controls">
+    <div class="ctrl">
+      <label>Precision</label>
+      <select id="m-prec">
+        <option value="FP16">BF16 / FP16</option>
+        <option value="FP8" selected>FP8</option>
+        <option value="INT4">INT4</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="output">
+    <div id="moe-output"></div>
+  </div>
+
+  <div class="summary">
+    <div class="summary-label">Configuration Summary</div>
+    <div class="summary-text" id="moe-summary"></div>
+    <button class="copy-btn" onclick="copyText('moe-summary')">Copy</button>
+  </div>
+</section>
+
+<footer style="text-align:center; padding:40px 24px; color:var(--text-muted); font-size:12px;">
+  Estimates are approximate and for educational purposes. Real deployments depend on serving framework, batching strategy, and hardware configuration.
+</footer>
+
+<script>
+// ============================================================
+// DATA & CONSTANTS
+// ============================================================
+
+// throughputPerGPU: approximate output tokens/sec per model instance on H100 80GB,
+// assuming continuous batching at moderate load (~32 concurrent sequences).
+// Larger models need multi-GPU tensor parallelism to fit, but throughput per
+// instance stays roughly constant (see renderCost for details).
+const MODELS = {
+  '7B': {
+    params: 7e9, layers: 32, hiddenDim: 4096,
+    numHeads: 32, kvHeads: 32, headDim: 128,
+    isMoE: false, label: '7B Dense',
+    example: 'Llama 2 7B, Mistral 7B',
+    throughputPerGPU: 2000
+  },
+  '13B': {
+    params: 13e9, layers: 40, hiddenDim: 5120,
+    numHeads: 40, kvHeads: 40, headDim: 128,
+    isMoE: false, label: '13B Dense',
+    example: 'Llama 2 13B',
+    throughputPerGPU: 1000
+  },
+  '70B': {
+    params: 70e9, layers: 80, hiddenDim: 8192,
+    numHeads: 64, kvHeads: 8, headDim: 128,
+    isMoE: false, label: '70B Dense',
+    example: 'Llama 2/3 70B',
+    throughputPerGPU: 60
+  },
+  '405B': {
+    params: 405e9, layers: 126, hiddenDim: 16384,
+    numHeads: 128, kvHeads: 8, headDim: 128,
+    isMoE: false, label: '405B Dense',
+    example: 'Llama 3.1 405B',
+    throughputPerGPU: 12
+  },
+  '745B MoE': {
+    params: 745e9, activeParams: 52e9, layers: 64, hiddenDim: 8192,
+    numHeads: 64, kvHeads: 8, headDim: 128,
+    isMoE: true, totalExperts: 128, activeExperts: 2,
+    label: '745B MoE',
+    example: 'DeepSeek-class MoE',
+    throughputPerGPU: 18
+  }
+};
+
+const PRECISIONS = {
+  'FP32': { bytes: 4, kvBytes: 4, label: 'FP32', quality: 'baseline', qualityLabel: 'Baseline (reference)', speedFactor: 1, color: 'var(--text-muted)' },
+  'FP16': { bytes: 2, kvBytes: 2, label: 'BF16/FP16', quality: 'safe', qualityLabel: 'Safe -- negligible quality loss', speedFactor: 2, color: 'var(--green)' },
+  'FP8':  { bytes: 1, kvBytes: 1, label: 'FP8', quality: 'safe', qualityLabel: 'Safe -- minimal loss on most tasks', speedFactor: 3.5, color: 'var(--blue)' },
+  'INT4': { bytes: 0.5, kvBytes: 2, label: 'INT4', quality: 'caution', qualityLabel: 'Caution -- noticeable on complex reasoning', speedFactor: 5, color: 'var(--yellow)' }
+};
+
+const GPUS = [
+  { name: 'RTX 4090',   vram: 24,  note: 'Consumer' },
+  { name: 'A100 40GB',  vram: 40,  note: 'Datacenter' },
+  { name: 'A100 80GB',  vram: 80,  note: 'Datacenter' },
+  { name: 'H100 80GB',  vram: 80,  note: 'Datacenter' },
+  { name: 'H200 141GB', vram: 141, note: 'Datacenter' },
+  { name: 'B200 192GB', vram: 192, note: 'Datacenter' }
+];
+
+// Ballpark H100 80GB pricing (USD), Feb 2025 cloud averages.
+// On-demand/reserved rates reflect major cloud providers (AWS, GCP, Azure).
+const COST_RATES = {
+  onDemand: 3.50,       // $/GPU-hour on-demand
+  reserved1yr: 2.10,    // $/GPU-hour 1-year reserved
+  reserved3yr: 1.50,    // $/GPU-hour 3-year reserved
+  ownUpfrontPerGPU: 40000, // $ capital cost per GPU (server + networking)
+  ownOpexPerGPUHr: 0.50    // $/GPU-hour operating cost (power, cooling, staff)
+};
+
+const GPU_VRAM = 80; // H100 80GB reference
+
+const PRESETS = {
+  starter: {
+    vModel: '7B', vPrec: 'FP16', vUsers: 1, vCtx: '4096',
+    qModel: '7B', pModel: '7B', pPrec: 'FP16', pGpus: '1',
+    cReqs: 100, cModel: '7B', cHours: 8, cCompliance: false,
+    mPrec: 'FP8'
+  },
+  team: {
+    vModel: '13B', vPrec: 'FP16', vUsers: 10, vCtx: '8192',
+    qModel: '13B', pModel: '13B', pPrec: 'FP16', pGpus: '1',
+    cReqs: 1000, cModel: '13B', cHours: 12, cCompliance: false,
+    mPrec: 'FP16'
+  },
+  production: {
+    vModel: '70B', vPrec: 'FP8', vUsers: 50, vCtx: '32768',
+    qModel: '70B', pModel: '70B', pPrec: 'FP8', pGpus: '8',
+    cReqs: 50000, cModel: '70B', cHours: 24, cCompliance: false,
+    mPrec: 'FP8'
+  },
+  enterprise: {
+    vModel: '405B', vPrec: 'FP16', vUsers: 100, vCtx: '131072',
+    qModel: '405B', pModel: '405B', pPrec: 'FP16', pGpus: '32',
+    cReqs: 500000, cModel: '405B', cHours: 24, cCompliance: true,
+    mPrec: 'FP16'
+  }
+};
+
+// ============================================================
+// STATE
+// ============================================================
+
+const state = {
+  vModel: '70B', vPrec: 'FP8', vUsers: 50, vCtx: '32768',
+  qModel: '70B',
+  pModel: '70B', pPrec: 'FP8', pGpus: '8',
+  cReqs: 50000, cModel: '70B', cHours: 24, cCompliance: false,
+  mPrec: 'FP8'
+};
+
+// ============================================================
+// UTILITY FUNCTIONS
+// ============================================================
+
+function fmt(gb) {
+  if (gb >= 1000) return (gb / 1000).toFixed(1) + ' TB';
+  if (gb >= 100) return Math.round(gb) + '';
+  if (gb >= 10) return gb.toFixed(1);
+  if (gb >= 1) return gb.toFixed(2);
+  return gb.toFixed(3);
+}
+
+function fmtGB(gb) { return fmt(gb) + ' GB'; }
+
+function fmtBytes(b) {
+  if (b >= 1e6) return (b / (1024*1024)).toFixed(2) + ' MB';
+  if (b >= 1024) return (b / 1024).toFixed(1) + ' KB';
+  return b + ' B';
+}
+
+function fmtNum(n) {
+  if (n >= 1e12) return (n / 1e12).toFixed(1) + 'T';
+  if (n >= 1e9) return (n / 1e9).toFixed(0) + 'B';
+  if (n >= 1e6) return (n / 1e6).toFixed(0) + 'M';
+  if (n >= 1e3) return n.toLocaleString();
+  return n.toString();
+}
+
+function fmtMoney(n) {
+  if (n >= 1e6) return '$' + (n / 1e6).toFixed(1) + 'M';
+  if (n >= 1e3) return '$' + (n / 1e3).toFixed(1) + 'K';
+  return '$' + Math.round(n);
+}
+
+function fmtComma(n) { return Number(n).toLocaleString(); }
+
+function $(id) { return document.getElementById(id); }
+
+// ============================================================
+// CALCULATION FUNCTIONS
+// ============================================================
+
+function calcWeightMem(params, bytesPerParam) {
+  return (params * bytesPerParam) / (1024 ** 3);
+}
+
+function calcKVCachePerToken(model, kvBytesPerParam) {
+  return 2 * model.layers * model.kvHeads * model.headDim * kvBytesPerParam;
+}
+
+function calcKVCacheTotal(model, kvBytesPerParam, contextLen, users) {
+  const perToken = calcKVCachePerToken(model, kvBytesPerParam);
+  return (perToken * contextLen * users) / (1024 ** 3);
+}
+
+function calcTotal(model, prec, contextLen, users) {
+  const weightGB = calcWeightMem(model.params, prec.bytes);
+  const kvGB = calcKVCacheTotal(model, prec.kvBytes, contextLen, users);
+  const overheadGB = (weightGB + kvGB) * 0.15;
+  return { weightGB, kvGB, overheadGB, totalGB: weightGB + kvGB + overheadGB };
+}
+
+function gpusNeeded(totalGB, perGPU) {
+  return Math.ceil(totalGB / perGPU);
+}
+
+function recommendStrategy(modelVRAM, gpuCount) {
+  const minGPUs = gpusNeeded(modelVRAM, GPU_VRAM);
+  if (minGPUs <= 1) {
+    if (gpuCount === 1) return { tp: 1, pp: 1, dp: 1, type: 'none' };
+    return { tp: 1, pp: 1, dp: gpuCount, type: 'data' };
+  }
+  if (minGPUs <= 8) {
+    const tp = Math.min(Math.max(minGPUs, 2), Math.min(8, gpuCount));
+    const remaining = Math.floor(gpuCount / tp);
+    if (remaining <= 1) return { tp, pp: 1, dp: 1, type: 'tensor' };
+    return { tp, pp: 1, dp: remaining, type: 'tensor+data' };
+  }
+  const tp = Math.min(8, gpuCount);
+  const pp = Math.ceil(minGPUs / tp);
+  const perSet = tp * pp;
+  const dp = Math.max(1, Math.floor(gpuCount / perSet));
+  if (dp > 1) return { tp, pp, dp, type: 'tensor+pipeline+data' };
+  return { tp, pp, dp: 1, type: 'tensor+pipeline' };
+}
+
+// ============================================================
+// RENDER: VRAM CALCULATOR
+// ============================================================
+
+function renderVRAM() {
+  const model = MODELS[state.vModel];
+  const prec = PRECISIONS[state.vPrec];
+  const ctx = parseInt(state.vCtx);
+  const users = state.vUsers;
+
+  const { weightGB, kvGB, overheadGB, totalGB } = calcTotal(model, prec, ctx, users);
+
+  // Total card
+  $('vram-total-card').innerHTML = `
+    <div class="card" style="display:flex;align-items:baseline;gap:16px;">
+      <div>
+        <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:4px;">Total VRAM Required</div>
+        <div class="big-num">${fmt(totalGB)}<span class="unit">GB</span></div>
+      </div>
+      <div style="font-size:13px;color:var(--text-secondary);">
+        ${model.label} at ${prec.label} &middot; ${fmtComma(ctx)} token context &middot; ${users} concurrent user${users > 1 ? 's' : ''}
+      </div>
+    </div>
+  `;
+
+  // Stacked bar
+  const maxGB = totalGB;
+  $('vram-bar').innerHTML = `
+    <div class="bar-container">
+      <div class="bar-label-row">
+        <span>Weights: ${fmtGB(weightGB)}</span>
+        <span>KV Cache: ${fmtGB(kvGB)}</span>
+        <span>Overhead: ${fmtGB(overheadGB)}</span>
+      </div>
+      <div class="stacked-bar">
+        <div class="seg seg-weights" style="width:${(weightGB/maxGB*100).toFixed(1)}%">${weightGB > maxGB * 0.08 ? fmtGB(weightGB) : ''}</div>
+        <div class="seg seg-kv" style="width:${(kvGB/maxGB*100).toFixed(1)}%">${kvGB > maxGB * 0.08 ? fmtGB(kvGB) : ''}</div>
+        <div class="seg seg-overhead" style="width:${(overheadGB/maxGB*100).toFixed(1)}%">${overheadGB > maxGB * 0.08 ? fmtGB(overheadGB) : ''}</div>
+      </div>
+      <div class="bar-legend">
+        <span><span class="dot" style="background:var(--accent-dim)"></span> Weights</span>
+        <span><span class="dot" style="background:#7c3aed"></span> KV Cache</span>
+        <span><span class="dot" style="background:#4338ca"></span> Overhead (15%)</span>
+      </div>
+    </div>
+  `;
+
+  // Math breakdown
+  const kvPerToken = calcKVCachePerToken(model, prec.kvBytes);
+  const kvNote = state.vPrec === 'INT4' ? ' (KV cache stored in FP16 -- weights are quantized but activations need higher precision)' : '';
+
+  $('vram-math').innerHTML = `
+    <h3>Formula Breakdown</h3>
+    <div class="formula-box">
+      <div><span class="hl">Weight Memory</span> = ${fmtNum(model.params)} params &times; ${prec.bytes} bytes = <span class="result">${fmtGB(weightGB)}</span></div>
+      <br>
+      <div><span class="hl">KV Cache / token</span> = 2 &times; ${model.layers} layers &times; ${model.kvHeads} KV heads &times; ${model.headDim} dim &times; ${prec.kvBytes} bytes</div>
+      <div style="padding-left:20px;">= <span class="result">${fmtBytes(kvPerToken)}</span> per token${kvNote}</div>
+      <br>
+      <div><span class="hl">Total KV Cache</span> = ${fmtBytes(kvPerToken)}/token &times; ${fmtComma(ctx)} tokens &times; ${users} users = <span class="result">${fmtGB(kvGB)}</span></div>
+      <br>
+      <div><span class="hl">Overhead (15%)</span> = ${fmtGB(overheadGB)} <span style="color:var(--text-muted)">(CUDA context, activations, framework buffers)</span></div>
+      <br>
+      <div style="border-top:1px solid var(--border);padding-top:8px;margin-top:4px;"><span class="hl">Total</span> = ${fmtGB(weightGB)} + ${fmtGB(kvGB)} + ${fmtGB(overheadGB)} = <span class="result" style="font-size:15px;">${fmtGB(totalGB)}</span></div>
+    </div>
+  `;
+
+  // GPU table
+  let gpuRows = GPUS.map(gpu => {
+    const count = gpusNeeded(totalGB, gpu.vram);
+    const nodes = Math.ceil(count / 8);
+    let badge, cls;
+    if (count === 1) {
+      badge = `<span class="badge badge-yes">1 GPU</span>`;
+      cls = 'fits';
+    } else if (count <= 8) {
+      badge = `<span class="badge badge-multi">${count} GPUs &middot; 1 node</span>`;
+      cls = 'partial';
+    } else {
+      badge = `<span class="badge badge-no">${count} GPUs &middot; ${nodes} nodes</span>`;
+      cls = 'no';
+    }
+    return `<tr class="${cls}">
+      <td class="gpu-name">${gpu.name}</td>
+      <td>${gpu.vram} GB</td>
+      <td>${gpu.note}</td>
+      <td>${badge}</td>
+    </tr>`;
+  }).join('');
+
+  $('vram-gpus').innerHTML = `
+    <h3>Hardware Options</h3>
+    <table class="gpu-table">
+      <tr><th>GPU</th><th>VRAM</th><th>Type</th><th>Fit</th></tr>
+      ${gpuRows}
+    </table>
+  `;
+
+  // Summary
+  const h100Count = gpusNeeded(totalGB, 80);
+  const h100Nodes = Math.ceil(h100Count / 8);
+  const fitDesc = h100Count === 1 ? 'fits on a single H100 80GB'
+    : h100Count <= 8 ? `requires ${h100Count}x H100 80GB GPUs on a single node with tensor parallelism`
+    : `requires ${h100Count}x H100 80GB GPUs across ${h100Nodes} nodes with tensor + pipeline parallelism`;
+
+  $('vram-summary').textContent =
+    `Deploying ${model.label} (${model.example}) in ${prec.label} with ${fmtComma(ctx)}-token context serving ${users} concurrent users requires approximately ${fmt(totalGB)} GB of VRAM. ` +
+    `Breakdown: ${fmtGB(weightGB)} model weights, ${fmtGB(kvGB)} KV cache, ${fmtGB(overheadGB)} overhead. ` +
+    `This ${fitDesc}.`;
+}
+
+// ============================================================
+// RENDER: QUANTIZATION EXPLORER
+// ============================================================
+
+function renderQuant() {
+  const model = MODELS[state.qModel];
+  const precKeys = ['FP32', 'FP16', 'FP8', 'INT4'];
+  const mems = precKeys.map(k => calcWeightMem(model.params, PRECISIONS[k].bytes));
+  const maxMem = mems[0];
+
+  const qualityColors = { baseline: 'var(--text-muted)', safe: 'var(--green)', caution: 'var(--yellow)' };
+  const qualityBgs = { baseline: 'var(--bg-hover)', safe: 'var(--green-dim)', caution: 'var(--yellow-dim)' };
+
+  let barsHTML = '<div class="quant-grid">';
+  precKeys.forEach((k, i) => {
+    const p = PRECISIONS[k];
+    const mem = mems[i];
+    const pct = (mem / maxMem * 100).toFixed(1);
+    const saving = i === 0 ? '' : `${Math.round((1 - mem / maxMem) * 100)}% smaller`;
+    barsHTML += `
+      <div class="quant-col">
+        <div class="prec-label">${p.label}</div>
+        <div class="bar-v">
+          <div class="fill" style="height:${pct}%; background:${p.color};">
+            ${fmtGB(mem)}
+          </div>
+        </div>
+        <div class="speed-label">${p.speedFactor}x speed</div>
+        <div class="quality-badge" style="background:${qualityBgs[p.quality]};color:${qualityColors[p.quality]};">
+          ${p.qualityLabel}
+        </div>
+        <div style="font-size:11px;color:var(--text-muted);margin-top:2px;">${saving}</div>
+      </div>
+    `;
+  });
+  barsHTML += '</div>';
+
+  // Byte-level visualization
+  const bitsHTML = `
+    <div class="bits-viz">
+      <h4>How precision affects a single weight value: 0.7834</h4>
+      <div class="bits-row">
+        <span class="prec-tag">FP32</span>
+        <div class="bits">
+          <div class="bit bit-sign" title="Sign">0</div>
+          ${repeat(8, i => `<div class="bit bit-exp" title="Exponent">${'01111110'[i]}</div>`)}
+          ${repeat(10, i => `<div class="bit bit-man" title="Mantissa">${'1001000101'[i]}</div>`)}
+          <div style="color:var(--text-muted);font-size:11px;display:flex;align-items:center;padding:0 4px;">...</div>
+        </div>
+        <span class="decoded">= 0.78340 <span class="error">(exact)</span></span>
+      </div>
+      <div class="bits-row">
+        <span class="prec-tag" style="color:var(--green)">FP16</span>
+        <div class="bits">
+          <div class="bit bit-sign">0</div>
+          ${repeat(5, i => `<div class="bit bit-exp">${'01110'[i]}</div>`)}
+          ${repeat(10, i => `<div class="bit bit-man">${'1001000110'[i]}</div>`)}
+        </div>
+        <span class="decoded">= 0.78320 <span class="error">(&Delta; 0.03%)</span></span>
+      </div>
+      <div class="bits-row">
+        <span class="prec-tag" style="color:var(--blue)">FP8</span>
+        <div class="bits">
+          <div class="bit bit-sign">0</div>
+          ${repeat(4, i => `<div class="bit bit-exp">${'0110'[i]}</div>`)}
+          ${repeat(3, i => `<div class="bit bit-man">${'100'[i]}</div>`)}
+        </div>
+        <span class="decoded">= 0.7500 <span class="error">(&Delta; 4.3%)</span></span>
+      </div>
+      <div class="bits-row">
+        <span class="prec-tag" style="color:var(--yellow)">INT4</span>
+        <div class="bits">
+          ${repeat(4, i => `<div class="bit bit-val">${'0110'[i]}</div>`)}
+        </div>
+        <span class="decoded">= 0.715 <span class="error">(&Delta; 8.7%)</span> <span style="color:var(--text-muted)">(value 6, scale=0.119)</span></span>
+      </div>
+      <div style="margin-top:10px;font-size:11px;color:var(--text-muted);line-height:1.5;">
+        <span class="bit bit-sign" style="display:inline-block;width:14px;height:14px;font-size:8px;vertical-align:middle;border-radius:2px;">S</span> Sign
+        &nbsp;&nbsp;
+        <span class="bit bit-exp" style="display:inline-block;width:14px;height:14px;font-size:8px;vertical-align:middle;border-radius:2px;">E</span> Exponent
+        &nbsp;&nbsp;
+        <span class="bit bit-man" style="display:inline-block;width:14px;height:14px;font-size:8px;vertical-align:middle;border-radius:2px;">M</span> Mantissa
+        &nbsp;&nbsp;
+        <span class="bit bit-val" style="display:inline-block;width:14px;height:14px;font-size:8px;vertical-align:middle;border-radius:2px;">V</span> Quantized value
+      </div>
+    </div>
+  `;
+
+  $('quant-bars').innerHTML = barsHTML;
+  $('quant-bits').innerHTML = bitsHTML;
+
+  // Summary
+  const fp16Mem = mems[1];
+  const int4Mem = mems[3];
+  $('quant-summary').textContent =
+    `For the ${model.label} model: FP32 requires ${fmtGB(mems[0])} (baseline). ` +
+    `BF16/FP16 cuts this to ${fmtGB(fp16Mem)} with negligible quality loss -- the standard choice for most deployments. ` +
+    `FP8 further reduces to ${fmtGB(mems[2])} and is safe for most inference tasks. ` +
+    `INT4 reaches ${fmtGB(int4Mem)} (${Math.round((1 - int4Mem/mems[0]) * 100)}% reduction) but may show degradation on complex reasoning tasks.`;
+}
+
+function repeat(n, fn) {
+  return Array.from({length: n}, (_, i) => fn(i)).join('');
+}
+
+// ============================================================
+// RENDER: PARALLELISM VISUALIZER
+// ============================================================
+
+function renderParallel() {
+  const model = MODELS[state.pModel];
+  const prec = PRECISIONS[state.pPrec];
+  const gpuCount = parseInt(state.pGpus);
+  const totalGB = calcWeightMem(model.params, prec.bytes);
+  const strat = recommendStrategy(totalGB, gpuCount);
+
+  const container = $('parallel-diagram');
+  let html = '';
+
+  const minGPUs = gpusNeeded(totalGB, GPU_VRAM);
+  const enoughGPUs = gpuCount >= minGPUs;
+  const modelFitsOne = minGPUs <= 1;
+
+  if (!enoughGPUs) {
+    html = `
+      <div class="parallel-diagram">
+        <h4>Insufficient GPUs</h4>
+        <div class="strat-note" style="border-left: 3px solid var(--red);">
+          <strong style="color:var(--red)">Model requires ${minGPUs} GPUs</strong> to fit ${fmtGB(totalGB)} of weights in memory (${gpuCount} selected).
+          Increase GPU count to at least ${minGPUs}.
+        </div>
+      </div>
+    `;
+    container.innerHTML = html;
+    renderParallelSummary(model, prec, gpuCount, strat, totalGB, false);
+    return;
+  }
+
+  html += '<div class="parallel-diagram">';
+
+  if (strat.type === 'none') {
+    html += '<h4>No Parallelism Needed</h4>';
+    html += '<div class="gpu-row"><div class="gpu-box tp-color" style="max-width:200px;">';
+    html += `<div class="gpu-id">GPU 0</div><div class="gpu-layers">All ${model.layers} layers</div>`;
+    html += `<div style="font-size:10px;margin-top:2px;">${fmtGB(totalGB)}</div>`;
+    html += '</div></div>';
+    html += `<div class="strat-note">The entire ${model.label} model in ${prec.label} (${fmtGB(totalGB)}) fits within a single H100 80GB GPU. No parallelism required.</div>`;
+
+  } else if (strat.type === 'data') {
+    html += `<h4>Data Parallelism (DP=${strat.dp})</h4>`;
+    html += '<div class="gpu-row">';
+    for (let d = 0; d < strat.dp; d++) {
+      html += `<div class="gpu-box dp-color">
+        <div class="gpu-id">GPU ${d}</div>
+        <div class="gpu-layers">Full copy</div>
+        <div style="font-size:10px;">${fmtGB(totalGB)}</div>
+        <div style="font-size:10px;margin-top:2px;">Req batch ${d + 1}</div>
+      </div>`;
+    }
+    html += '</div>';
+    html += `<div class="strat-note">
+      Model fits on a single GPU. <strong>Data parallelism</strong> replicates the model across ${strat.dp} GPUs, with each copy handling different requests.
+      This multiplies throughput by ~${strat.dp}x with no inter-GPU communication.
+    </div>`;
+
+  } else if (strat.type === 'tensor' || strat.type === 'tensor+data') {
+    const layersPerGPU = Math.ceil(model.layers / 1);
+    html += `<h4>Tensor Parallelism (TP=${strat.tp}${strat.dp > 1 ? ', DP=' + strat.dp : ''})</h4>`;
+
+    for (let d = 0; d < Math.min(strat.dp, 2); d++) {
+      if (strat.dp > 1) html += `<div style="font-size:11px;color:var(--text-muted);margin:8px 0 4px;">Replica ${d + 1}:</div>`;
+      html += '<div class="gpu-row">';
+      for (let t = 0; t < strat.tp; t++) {
+        const gpuIdx = d * strat.tp + t;
+        html += `<div class="gpu-box tp-color">
+          <div class="gpu-id">GPU ${gpuIdx}</div>
+          <div class="gpu-layers">Shard ${t + 1}/${strat.tp}</div>
+          <div style="font-size:10px;">${fmtGB(totalGB / strat.tp)}</div>
+        </div>`;
+      }
+      html += '</div>';
+      html += '<div class="comm-label">All-Reduce after every layer (NVLink)</div>';
+    }
+    if (strat.dp > 2) html += `<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:4px;">... and ${strat.dp - 2} more replicas</div>`;
+
+    html += `<div class="strat-note">
+      <strong>Tensor parallelism</strong> splits each layer's weight matrices across ${strat.tp} GPUs within a single node.
+      Every layer requires an all-reduce operation (summing partial results across GPUs via NVLink at ~900 GB/s on H100).
+      ${strat.dp > 1 ? `<strong>Data parallelism</strong> adds ${strat.dp} independent replicas for ${strat.dp}x throughput.` : ''}
+    </div>`;
+
+  } else {
+    // tensor + pipeline (+ optional data)
+    html += `<h4>Tensor + Pipeline Parallelism (TP=${strat.tp}, PP=${strat.pp}${strat.dp > 1 ? ', DP=' + strat.dp : ''})</h4>`;
+
+    const layersPerStage = Math.ceil(model.layers / strat.pp);
+    const stageColors = ['pp-stage-0', 'pp-stage-1', 'pp-stage-2', 'pp-stage-3'];
+
+    for (let d = 0; d < Math.min(strat.dp, 2); d++) {
+      if (strat.dp > 1) html += `<div style="font-size:11px;color:var(--text-muted);margin:8px 0 4px;">Replica ${d + 1}:</div>`;
+
+      for (let p = 0; p < strat.pp; p++) {
+        const startLayer = p * layersPerStage + 1;
+        const endLayer = Math.min((p + 1) * layersPerStage, model.layers);
+        const nodeIdx = d * strat.pp + p;
+        html += `<div style="font-size:10px;color:var(--text-muted);margin:4px 0 2px;">Node ${nodeIdx} &middot; Stage ${p + 1} &middot; Layers ${startLayer}-${endLayer}</div>`;
+        html += '<div class="gpu-row">';
+        for (let t = 0; t < strat.tp; t++) {
+          const gpuIdx = (d * strat.pp + p) * strat.tp + t;
+          html += `<div class="gpu-box ${stageColors[p % 4]}">
+            <div class="gpu-id">GPU ${gpuIdx}</div>
+            <div class="gpu-layers">Shard ${t + 1}/${strat.tp}</div>
+          </div>`;
+        }
+        html += '</div>';
+        if (p < strat.pp - 1) {
+          html += '<div class="arrow-row">&darr;&darr;&darr;</div>';
+          html += '<div class="comm-label">Pipeline transfer (InfiniBand between nodes)</div>';
+        }
+      }
+    }
+    if (strat.dp > 2) html += `<div style="text-align:center;color:var(--text-muted);font-size:12px;padding:4px;">... and ${strat.dp - 2} more replicas</div>`;
+
+    html += `<div class="strat-note">
+      <strong>Tensor parallelism (TP=${strat.tp})</strong> splits layers across GPUs within each node via NVLink.
+      <strong>Pipeline parallelism (PP=${strat.pp})</strong> distributes layer groups across ${strat.pp} nodes connected via InfiniBand.
+      Pipeline introduces "bubbles" (idle time while waiting for previous stages) -- typically 10-20% overhead.
+      ${strat.dp > 1 ? `<strong>Data parallelism (DP=${strat.dp})</strong> adds ${strat.dp} independent replicas for throughput.` : ''}
+    </div>`;
+  }
+
+  html += '</div>';
+  container.innerHTML = html;
+  renderParallelSummary(model, prec, gpuCount, strat, totalGB, enoughGPUs);
+}
+
+function renderParallelSummary(model, prec, gpuCount, strat, totalGB, enough) {
+  if (!enough) {
+    $('parallel-summary').textContent =
+      `${model.label} in ${prec.label} requires ${fmtGB(totalGB)} for weights alone, which needs at least ${gpusNeeded(totalGB, GPU_VRAM)} H100 80GB GPUs. ${gpuCount} GPUs is insufficient.`;
+    return;
+  }
+  const parts = [];
+  if (strat.tp > 1) parts.push(`tensor parallelism across ${strat.tp} GPUs per node`);
+  if (strat.pp > 1) parts.push(`pipeline parallelism across ${strat.pp} stages (nodes)`);
+  if (strat.dp > 1) parts.push(`data parallelism with ${strat.dp} replicas`);
+  const stratDesc = parts.length === 0 ? 'no parallelism' : parts.join(', ');
+
+  $('parallel-summary').textContent =
+    `Serving ${model.label} in ${prec.label} (${fmtGB(totalGB)} weights) on ${gpuCount}x H100 80GB: use ${stratDesc}. ` +
+    `Total GPUs used: ${strat.tp * strat.pp * strat.dp}. ` +
+    (strat.tp > 1 ? `Tensor parallelism requires NVLink (900 GB/s intra-node). ` : '') +
+    (strat.pp > 1 ? `Pipeline parallelism requires InfiniBand (400 Gb/s inter-node) and introduces pipeline bubble overhead (~10-20%). ` : '') +
+    (strat.dp > 1 ? `Data parallelism multiplies throughput with no communication overhead. ` : '');
+}
+
+// ============================================================
+// RENDER: BUY VS RENT
+// ============================================================
+
+function renderCost() {
+  const model = MODELS[state.cModel];
+  const prec = PRECISIONS['FP8']; // Assume FP8 for cost calcs
+  const reqs = state.cReqs;
+  const hoursPerDay = state.cHours;
+  const compliance = state.cCompliance;
+
+  // Estimate GPUs needed
+  const totalWeightGB = calcWeightMem(model.params, prec.bytes);
+  const gpusPerSet = Math.max(1, gpusNeeded(totalWeightGB, GPU_VRAM));
+
+  // Throughput: tokens/sec per model instance (GPU set).
+  // Multi-GPU sets use tensor/pipeline parallelism to fit the model,
+  // not to multiply throughput -- so throughput stays ~constant per instance.
+  const throughputPerSet = model.throughputPerGPU;
+  const avgTokensPerReq = 1000; // 500 input + 500 output
+  const totalTokensPerDay = reqs * avgTokensPerReq;
+  const maxTokensPerDayPerSet = throughputPerSet * 86400 * 0.75; // 75% utilization
+  const gpuSetsNeeded = Math.max(1, Math.ceil(totalTokensPerDay / maxTokensPerDayPerSet));
+  const totalGPUs = gpuSetsNeeded * gpusPerSet;
+
+  // Costs
+  const monthlyOnDemand = totalGPUs * hoursPerDay * 30 * COST_RATES.onDemand;
+  const monthlyReserved1 = totalGPUs * 24 * 30 * COST_RATES.reserved1yr;
+  const monthlyReserved3 = totalGPUs * 24 * 30 * COST_RATES.reserved3yr;
+  const monthlyOwnHW = (totalGPUs * COST_RATES.ownUpfrontPerGPU) / 36;
+  const monthlyOwnOpex = totalGPUs * 24 * 30 * COST_RATES.ownOpexPerGPUHr;
+  const monthlyOwn = monthlyOwnHW + monthlyOwnOpex;
+
+  // Find cheapest
+  const costs = [
+    { name: 'On-Demand Cloud', monthly: monthlyOnDemand, note: `Pay for ${hoursPerDay}h/day usage` },
+    { name: 'Reserved (1-year)', monthly: monthlyReserved1, note: 'Committed 24/7, 1-year term' },
+    { name: 'Reserved (3-year)', monthly: monthlyReserved3, note: 'Committed 24/7, 3-year term' },
+    { name: 'Own Hardware', monthly: monthlyOwn, note: `$${fmtComma(totalGPUs * COST_RATES.ownUpfrontPerGPU)} upfront, amortized over 3yr` }
+  ];
+
+  let cheapestIdx = 0;
+  costs.forEach((c, i) => { if (c.monthly < costs[cheapestIdx].monthly) cheapestIdx = i; });
+  if (compliance) cheapestIdx = 3; // Force own if compliance
+
+  let html = `<div class="card">
+    <h3>Infrastructure Sizing</h3>
+    <div class="formula-box" style="margin-bottom:16px;">
+      <div><span class="hl">Model</span>: ${model.label} in FP8 &rarr; ${gpusPerSet} GPU${gpusPerSet > 1 ? 's' : ''} per serving instance</div>
+      <div><span class="hl">Throughput</span>: ~${fmtComma(throughputPerSet)} tok/s per instance (batched, 75% utilization)</div>
+      <div><span class="hl">Demand</span>: ${fmtComma(reqs)} req/day &times; ${fmtComma(avgTokensPerReq)} tok/req = ${fmtNum(totalTokensPerDay)} tokens/day</div>
+      <div><span class="hl">Instances needed</span>: ${gpuSetsNeeded} &rarr; <span class="result">${totalGPUs} total H100 GPUs</span></div>
+    </div>
+    <h3>Monthly Cost Comparison</h3>
+    <table class="cost-table">
+      <tr><th>Option</th><th>Monthly</th><th>Annual</th><th>Notes</th></tr>
+  `;
+
+  costs.forEach((c, i) => {
+    const isRec = i === cheapestIdx;
+    html += `<tr class="${isRec ? 'recommended' : ''}">
+      <td>${c.name}${isRec ? '<span class="rec-tag">Best</span>' : ''}</td>
+      <td class="cost-val">${fmtMoney(c.monthly)}</td>
+      <td class="cost-val">${fmtMoney(c.monthly * 12)}</td>
+      <td style="color:var(--text-muted);font-size:12px;">${c.note}</td>
+    </tr>`;
+  });
+
+  html += '</table>';
+
+  // Breakeven note
+  if (hoursPerDay < 24) {
+    const breakEvenHours = Math.round((monthlyReserved3) / (totalGPUs * 30 * COST_RATES.onDemand));
+    html += `<div class="strat-note" style="margin-top:16px;">
+      <strong>Breakeven:</strong> On-demand is cheaper when running &lt;${breakEvenHours}h/day.
+      At ${hoursPerDay}h/day usage, ${costs[cheapestIdx].name.toLowerCase()} is the most cost-effective option.
+      ${compliance ? '<br><strong>Compliance note:</strong> Regulated data requirements make on-prem (owned) hardware the only viable option regardless of cost.' : ''}
+    </div>`;
+  } else {
+    html += `<div class="strat-note" style="margin-top:16px;">
+      Running 24/7 at this scale, ${costs[cheapestIdx].name.toLowerCase()} provides the best per-GPU-hour rate.
+      ${compliance ? '<br><strong>Compliance note:</strong> Regulated data requirements favor on-prem owned hardware.' : ''}
+    </div>`;
+  }
+
+  html += '</div>';
+  $('cost-output').innerHTML = html;
+
+  // Summary
+  $('cost-summary').textContent =
+    `Serving ${model.label} at ${fmtComma(reqs)} requests/day requires ${totalGPUs} H100 80GB GPUs (${gpuSetsNeeded} instance${gpuSetsNeeded > 1 ? 's' : ''} of ${gpusPerSet} GPUs). ` +
+    `At ${hoursPerDay}h/day usage: on-demand ${fmtMoney(monthlyOnDemand)}/mo, 1yr reserved ${fmtMoney(monthlyReserved1)}/mo, 3yr reserved ${fmtMoney(monthlyReserved3)}/mo, owned ${fmtMoney(monthlyOwn)}/mo. ` +
+    `Recommended: ${costs[cheapestIdx].name}${compliance ? ' (compliance requires on-prem)' : ''}.`;
+}
+
+// ============================================================
+// RENDER: MOE VS DENSE
+// ============================================================
+
+function renderMoE() {
+  const prec = PRECISIONS[state.mPrec];
+  const dense = MODELS['70B'];
+  const moe = MODELS['745B MoE'];
+
+  const denseWeightGB = calcWeightMem(dense.params, prec.bytes);
+  const moeWeightGB = calcWeightMem(moe.params, prec.bytes);
+  const moeActiveGB = calcWeightMem(moe.activeParams, prec.bytes);
+
+  const denseGPUs = gpusNeeded(denseWeightGB, GPU_VRAM);
+  const moeGPUs = gpusNeeded(moeWeightGB, GPU_VRAM);
+
+  // Expert grid for MoE
+  const totalExperts = moe.totalExperts;
+  const activeExperts = moe.activeExperts;
+  let expertBoxes = '';
+  for (let i = 0; i < Math.min(totalExperts, 64); i++) {
+    const isActive = i < activeExperts;
+    expertBoxes += `<div class="expert-box ${isActive ? 'expert-active' : 'expert-inactive'}"></div>`;
+  }
+  if (totalExperts > 64) {
+    expertBoxes += `<div style="grid-column:1/-1;text-align:center;font-size:10px;color:var(--text-muted);padding:4px;">...and ${totalExperts - 64} more experts</div>`;
+  }
+
+  $('moe-output').innerHTML = `
+    <div class="moe-grid">
+      <div class="moe-card">
+        <h3 style="color:var(--accent);">Dense 70B</h3>
+        <div class="stat">
+          <div class="stat-label">Total Parameters</div>
+          <div class="stat-val">70B</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Active Parameters / Token</div>
+          <div class="stat-val" style="color:var(--orange);">70B <span style="font-size:12px;color:var(--text-muted);">(100%)</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Memory (${prec.label} weights)</div>
+          <div class="stat-val">${fmtGB(denseWeightGB)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">GPUs Required (H100 80GB)</div>
+          <div class="stat-val">${denseGPUs}</div>
+        </div>
+        <div class="router-viz">
+          Token &rarr; Layer 1 (<strong>all params</strong>) &rarr; Layer 2 &rarr; ... &rarr; Layer ${dense.layers} &rarr; Output<br>
+          <span style="color:var(--orange);">Every parameter participates in every token's computation.</span>
+        </div>
+      </div>
+
+      <div class="moe-card">
+        <h3 style="color:var(--green);">MoE 745B</h3>
+        <div class="stat">
+          <div class="stat-label">Total Parameters</div>
+          <div class="stat-val">745B</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Active Parameters / Token</div>
+          <div class="stat-val" style="color:var(--green);">52B <span style="font-size:12px;color:var(--text-muted);">(7%)</span></div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">Memory (${prec.label} weights)</div>
+          <div class="stat-val">${fmtGB(moeWeightGB)}</div>
+        </div>
+        <div class="stat">
+          <div class="stat-label">GPUs Required (H100 80GB)</div>
+          <div class="stat-val">${moeGPUs}</div>
+        </div>
+        <div style="margin:8px 0 4px;">
+          <div class="stat-label">Expert Selection (${activeExperts} of ${totalExperts} per layer)</div>
+          <div class="expert-grid" style="margin-top:6px;">
+            ${expertBoxes}
+          </div>
+          <div style="font-size:10px;color:var(--text-muted);margin-top:4px;">
+            <span style="color:var(--accent);">&#9632;</span> Active experts &nbsp;
+            <span style="color:var(--text-muted);">&#9633;</span> Inactive experts
+          </div>
+        </div>
+        <div class="router-viz">
+          Token &rarr; Router scores all ${totalExperts} experts &rarr; Top-${activeExperts} selected &rarr; Weighted sum of expert outputs &rarr; Output<br>
+          <span style="color:var(--green);">Only ${activeExperts}/${totalExperts} expert FFN blocks compute per token. Attention layers are shared.</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px;">
+      <h3>Tradeoff Summary</h3>
+      <table class="gpu-table">
+        <tr><th>Metric</th><th>Dense 70B</th><th>MoE 745B</th><th>Implication</th></tr>
+        <tr>
+          <td>Compute per token</td>
+          <td style="color:var(--orange);">70B params</td>
+          <td style="color:var(--green);">52B params</td>
+          <td style="color:var(--text-muted);">MoE uses ~26% less compute despite 10x more total params</td>
+        </tr>
+        <tr>
+          <td>Memory required</td>
+          <td style="color:var(--green);">${fmtGB(denseWeightGB)}</td>
+          <td style="color:var(--orange);">${fmtGB(moeWeightGB)}</td>
+          <td style="color:var(--text-muted);">All experts must be loaded even though most are idle</td>
+        </tr>
+        <tr>
+          <td>Quality</td>
+          <td>Strong for size</td>
+          <td style="color:var(--green);">Often matches larger dense models</td>
+          <td style="color:var(--text-muted);">Experts specialize, giving more capacity per compute FLOP</td>
+        </tr>
+        <tr>
+          <td>Hardware</td>
+          <td>${denseGPUs} GPU${denseGPUs > 1 ? 's' : ''}</td>
+          <td>${moeGPUs} GPUs</td>
+          <td style="color:var(--text-muted);">MoE needs more memory bandwidth, less compute</td>
+        </tr>
+      </table>
+    </div>
+  `;
+
+  // Summary
+  $('moe-summary').textContent =
+    `Dense 70B: all 70B parameters active per token, requires ${fmtGB(denseWeightGB)} memory (${denseGPUs} H100 GPUs in ${prec.label}). ` +
+    `MoE 745B: only 52B of 745B parameters active per token (7%), but requires ${fmtGB(moeWeightGB)} memory (${moeGPUs} GPUs) since all experts must be loaded. ` +
+    `MoE trades memory for compute efficiency -- 10x more total parameters but ~26% less compute per token than the dense model. ` +
+    `The router selects ${moe.activeExperts} of ${moe.totalExperts} experts per layer, allowing specialization.`;
+}
+
+// ============================================================
+// EVENT HANDLING
+// ============================================================
+
+function bindControls() {
+  // VRAM
+  $('v-model').onchange = e => { state.vModel = e.target.value; renderVRAM(); };
+  $('v-prec').onchange = e => { state.vPrec = e.target.value; renderVRAM(); };
+  $('v-users').oninput = e => { state.vUsers = parseInt(e.target.value); $('v-users-val').textContent = e.target.value; renderVRAM(); };
+  $('v-ctx').onchange = e => { state.vCtx = e.target.value; renderVRAM(); };
+
+  // Quantization
+  $('q-model').onchange = e => { state.qModel = e.target.value; renderQuant(); };
+
+  // Parallelism
+  $('p-model').onchange = e => { state.pModel = e.target.value; renderParallel(); };
+  $('p-prec').onchange = e => { state.pPrec = e.target.value; renderParallel(); };
+  $('p-gpus').onchange = e => { state.pGpus = e.target.value; renderParallel(); };
+
+  // Cost
+  $('c-reqs').oninput = e => { state.cReqs = parseInt(e.target.value); $('c-reqs-val').textContent = fmtComma(e.target.value); renderCost(); };
+  $('c-model').onchange = e => { state.cModel = e.target.value; renderCost(); };
+  $('c-hours').oninput = e => { state.cHours = parseInt(e.target.value); $('c-hours-val').textContent = e.target.value; renderCost(); };
+  $('c-compliance').onchange = e => { state.cCompliance = e.target.checked; renderCost(); };
+
+  // MoE
+  $('m-prec').onchange = e => { state.mPrec = e.target.value; renderMoE(); };
+}
+
+function applyPreset(name) {
+  const p = PRESETS[name];
+  if (!p) return;
+
+  state.vModel = p.vModel; state.vPrec = p.vPrec; state.vUsers = p.vUsers; state.vCtx = p.vCtx;
+  state.qModel = p.qModel;
+  state.pModel = p.pModel; state.pPrec = p.pPrec; state.pGpus = p.pGpus;
+  state.cReqs = p.cReqs; state.cModel = p.cModel; state.cHours = p.cHours; state.cCompliance = p.cCompliance;
+  state.mPrec = p.mPrec;
+
+  // Sync UI
+  $('v-model').value = p.vModel; $('v-prec').value = p.vPrec;
+  $('v-users').value = p.vUsers; $('v-users-val').textContent = p.vUsers;
+  $('v-ctx').value = p.vCtx;
+  $('q-model').value = p.qModel;
+  $('p-model').value = p.pModel; $('p-prec').value = p.pPrec; $('p-gpus').value = p.pGpus;
+  $('c-reqs').value = p.cReqs; $('c-reqs-val').textContent = fmtComma(p.cReqs);
+  $('c-model').value = p.cModel;
+  $('c-hours').value = p.cHours; $('c-hours-val').textContent = p.cHours;
+  $('c-compliance').checked = p.cCompliance;
+  $('m-prec').value = p.mPrec;
+
+  // Highlight active preset button
+  document.querySelectorAll('#presets button').forEach(b => b.classList.remove('active'));
+  document.querySelector(`#presets button[onclick*="${name}"]`).classList.add('active');
+
+  renderAll();
+}
+
+function copyText(id) {
+  const text = $(id).textContent;
+  const btn = $(id).parentElement.querySelector('.copy-btn');
+
+  if (!navigator.clipboard || typeof navigator.clipboard.writeText !== 'function') {
+    if (btn) { btn.textContent = 'Copy not supported'; setTimeout(() => { btn.textContent = 'Copy'; }, 1500); }
+    return;
+  }
+
+  navigator.clipboard.writeText(text).then(() => {
+    if (!btn) return;
+    btn.textContent = 'Copied!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+  }).catch(() => {
+    if (!btn) return;
+    btn.textContent = 'Copy failed';
+    setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+  });
+}
+
+// ============================================================
+// INITIALIZATION
+// ============================================================
+
+function renderAll() {
+  renderVRAM();
+  renderQuant();
+  renderParallel();
+  renderCost();
+  renderMoE();
+}
+
+function init() {
+  bindControls();
+  renderAll();
+}
+
+init();
+</script>
+</body>
+</html>
