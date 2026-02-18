@@ -10,7 +10,7 @@ See [results.md](results.md)
 
 ## Try It Out
 
-CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions --chrome -p < prompt.md
+cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
 
 ## Full Transcript
 
