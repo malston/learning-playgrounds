@@ -8,7 +8,7 @@ Interactive concept map with 15 nodes across 5 categories:
 - Systems: Single-Agent vs Multi-Agent (when to use which)
 - Roles: Supervisor, Worker, Evaluator (who does what in multi-agent systems)
 
-  How to use it:
+**How to use it:**
 
 - Click any node to see its description, real pseudocode, when to use it, and its connections
 - Click the colored dot on a node to cycle knowledge level (Know / Fuzzy / Unknown)
