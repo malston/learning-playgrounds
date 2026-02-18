@@ -10,7 +10,7 @@ See [results.md](results.md)
 
 ## Try It Out
 
-CLAUDE_CODE_MAX_OUTPUT_TOKENS=50000 claude --dangerously-skip-permissions --chrome -p < prompt.md
+CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions --chrome -p < prompt.md
 
 ## Full Transcript
 
