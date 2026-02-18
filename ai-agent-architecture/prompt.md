@@ -1,4 +1,4 @@
-# AI Agent Architecture Prompt
+# Prompt
 
 Teach me how AI agents actually work. Not the buzzwords. The architecture. How routing, orchestration, and delegation actually fit together. For example:
 
