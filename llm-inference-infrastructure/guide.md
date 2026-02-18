@@ -43,7 +43,7 @@ These terms appear throughout the playground. Each is also available as a hover 
 - **Pipeline Parallelism (PP)** -- Assigns different groups of layers to different GPUs (or nodes). Data flows through GPUs in sequence. Requires less interconnect bandwidth than TP but introduces "pipeline bubbles" -- periods where some GPUs idle while waiting for upstream stages to finish (typically 10-20% overhead).
 - **Data Parallelism (DP)** -- Runs complete copies of the model on separate GPU sets. Each copy handles different requests independently. Multiplies throughput linearly with no inter-GPU communication during inference.
 - **NVLink** -- A high-bandwidth interconnect within a single server node. H100 NVLink provides ~900 GB/s between GPUs. Required for efficient tensor parallelism.
-- **InfiniBand** -- A high-speed network interconnect between server nodes. Provides ~400 Gb/s. Used for pipeline parallelism across nodes.
+- **InfiniBand** -- A high-speed network interconnect between server nodes. Provides ~50 GB/s (~400 Gb/s). Used for pipeline parallelism across nodes.
 - **Node** -- A single server, typically containing 8 GPUs connected by NVLink. Multiple nodes are connected via InfiniBand.
 
 ### Model Architecture
@@ -263,7 +263,7 @@ MoE is the architecture behind models like DeepSeek and Mixtral. Understanding t
 
 ### Try this
 
-Toggle precision between FP16 and INT4. Notice that the MoE model's memory goes from ~745 GB to ~372 GB -- still requiring multiple GPUs, but the savings make it practical on fewer nodes.
+Toggle precision between FP16 and INT4. Notice that the MoE model's memory goes from ~1,490 GB to ~372 GB -- still requiring multiple GPUs, but the savings make it practical on fewer nodes.
 
 ---
 
