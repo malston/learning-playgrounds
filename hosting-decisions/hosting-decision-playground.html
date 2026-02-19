@@ -1,0 +1,2142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Web Application Hosting Decision Playground</title>
+<style>
+/* ============================================
+   VARIABLES & RESET
+   ============================================ */
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --surface3: #243049;
+  --border: #1f2d45;
+  --accent: #38bdf8;
+  --accent2: #a78bfa;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --code-bg: #0d1117;
+  --danger: #f43f5e;
+  --green: #34d399;
+  --yellow: #fbbf24;
+  --red: #f43f5e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+h1, h2, h3, h4 { font-weight: 700; line-height: 1.2; }
+
+/* ============================================
+   HEADER
+   ============================================ */
+.site-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header h1 {
+  font-size: clamp(28px, 5vw, 44px);
+  letter-spacing: -0.03em;
+}
+
+.title-gradient {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.site-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 640px;
+  margin-top: 12px;
+}
+
+/* ============================================
+   STICKY NAV
+   ============================================ */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 14, 23, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+
+.section-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  padding: 12px 16px;
+  cursor: pointer;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ============================================
+   MAIN LAYOUT
+   ============================================ */
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 24px 80px;
+}
+
+.section {
+  padding: 48px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.section:last-child { border-bottom: none; }
+
+.section h2 {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 32px;
+  max-width: 640px;
+}
+
+/* ============================================
+   TOOLTIP
+   ============================================ */
+.tooltip {
+  position: relative;
+  cursor: help;
+  border-bottom: 1px dashed var(--text-muted);
+}
+
+.tooltip::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface3);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: normal;
+  width: max-content;
+  max-width: 280px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s;
+  z-index: 50;
+  border: 1px solid var(--border);
+}
+
+.tooltip:hover::after,
+.tooltip:focus::after,
+.tooltip:focus-within::after { opacity: 1; }
+
+/* ============================================
+   1. COMPATIBILITY MATRIX
+   ============================================ */
+.strategy-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+
+.strategy-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.strategy-tab:hover { border-color: var(--accent); color: var(--text); }
+.strategy-tab.active { background: var(--accent); color: #0a0e17; border-color: var(--accent); font-weight: 600; }
+
+.compat-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 12px;
+}
+
+.compat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.compat-card:hover { border-color: var(--accent); transform: translateY(-1px); }
+
+.compat-card .platform-name {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.compat-card .compat-status {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.compat-card[data-compat="full"] { border-left: 3px solid var(--green); }
+.compat-card[data-compat="full"] .compat-status { background: rgba(52,211,153,0.15); color: var(--green); }
+
+.compat-card[data-compat="workaround"] { border-left: 3px solid var(--yellow); }
+.compat-card[data-compat="workaround"] .compat-status { background: rgba(251,191,36,0.15); color: var(--yellow); }
+
+.compat-card[data-compat="none"] { border-left: 3px solid var(--red); opacity: 0.7; }
+.compat-card[data-compat="none"] .compat-status { background: rgba(244,63,94,0.15); color: var(--red); }
+
+.compat-detail {
+  margin-top: 24px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  display: none;
+}
+
+.compat-detail.visible { display: block; }
+
+.compat-detail h4 { font-size: 16px; margin-bottom: 8px; }
+.compat-detail p { color: var(--text-dim); font-size: 13px; }
+
+.insight-banner {
+  background: rgba(251,191,36,0.08);
+  border: 1px solid rgba(251,191,36,0.25);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.insight-banner strong { color: var(--yellow); }
+
+/* ============================================
+   2. COST CALCULATOR
+   ============================================ */
+.calc-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  margin-bottom: 32px;
+}
+
+@media (max-width: 700px) { .calc-controls { grid-template-columns: 1fr; } }
+
+.control-group {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.control-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.control-group .value-display {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+  margin-bottom: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+input[type="range"] {
+  width: 100%;
+  -webkit-appearance: none;
+  background: var(--surface3);
+  height: 6px;
+  border-radius: 3px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+  border: 2px solid var(--bg);
+}
+
+select {
+  width: 100%;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: inherit;
+  cursor: pointer;
+}
+
+select:focus { outline: 1px solid var(--accent); }
+
+.cost-chart {
+  margin-bottom: 24px;
+}
+
+.cost-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 10px;
+  font-size: 13px;
+}
+
+.cost-bar-label {
+  width: 140px;
+  text-align: right;
+  font-weight: 600;
+  flex-shrink: 0;
+  color: var(--text-dim);
+}
+
+.cost-bar-track {
+  flex: 1;
+  height: 28px;
+  background: var(--surface);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.cost-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.3s ease;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #0a0e17;
+  min-width: fit-content;
+  white-space: nowrap;
+}
+
+.cost-bar-amount {
+  width: 80px;
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.crossover-insights {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.crossover-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.crossover-card h4 {
+  font-size: 13px;
+  color: var(--accent4);
+  margin-bottom: 6px;
+}
+
+.crossover-card p {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.pricing-cliff {
+  background: rgba(244,63,94,0.08);
+  border: 1px solid rgba(244,63,94,0.25);
+  border-radius: 8px;
+  padding: 16px 20px;
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.pricing-cliff strong { color: var(--danger); }
+
+/* ============================================
+   3. LOCK-IN VISUALIZER
+   ============================================ */
+.lockin-platform-tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.lockin-tab {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-dim);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-family: inherit;
+  transition: all 0.2s;
+}
+
+.lockin-tab:hover { border-color: var(--accent2); color: var(--text); }
+.lockin-tab.active { background: var(--accent2); color: #0a0e17; border-color: var(--accent2); font-weight: 600; }
+
+.lockin-features {
+  display: grid;
+  gap: 12px;
+}
+
+.lockin-row {
+  display: grid;
+  grid-template-columns: 200px 100px 1fr;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+}
+
+@media (max-width: 700px) {
+  .lockin-row { grid-template-columns: 1fr; gap: 8px; }
+}
+
+.lockin-feature-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.lockin-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.lockin-badge.easy { background: rgba(52,211,153,0.15); color: var(--green); }
+.lockin-badge.moderate { background: rgba(251,191,36,0.15); color: var(--yellow); }
+.lockin-badge.hard { background: rgba(244,63,94,0.15); color: var(--red); }
+
+.lockin-desc {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.lockin-summary {
+  margin-top: 20px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.lockin-summary strong { color: var(--text); }
+
+/* ============================================
+   4. HOSTING SELECTOR WIZARD
+   ============================================ */
+.wizard-container {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 32px;
+}
+
+.wizard-progress {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 28px;
+}
+
+.wizard-progress-step {
+  flex: 1;
+  height: 4px;
+  background: var(--surface3);
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+
+.wizard-progress-step.done { background: var(--accent); }
+.wizard-progress-step.current { background: var(--accent2); }
+
+.wizard-question {
+  display: none;
+}
+
+.wizard-question.active { display: block; }
+
+.wizard-question h3 {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.wizard-question .step-indicator {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.wizard-options {
+  display: grid;
+  gap: 10px;
+}
+
+.wizard-option {
+  background: var(--surface2);
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--text);
+  text-align: left;
+  width: 100%;
+}
+
+.wizard-option:hover { border-color: var(--accent); background: var(--surface3); }
+.wizard-option.selected { border-color: var(--accent); background: rgba(56,189,248,0.08); }
+
+.wizard-option .option-label { font-weight: 600; }
+.wizard-option .option-desc { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+
+.wizard-nav {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 24px;
+}
+
+.wizard-btn {
+  background: var(--surface3);
+  border: 1px solid var(--border);
+  color: var(--text);
+  padding: 10px 24px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.wizard-btn:hover { background: var(--accent); color: #0a0e17; border-color: var(--accent); }
+.wizard-btn:disabled { opacity: 0.3; cursor: not-allowed; }
+.wizard-btn:disabled:hover { background: var(--surface3); color: var(--text); border-color: var(--border); }
+
+.wizard-result {
+  display: none;
+}
+
+.wizard-result.visible { display: block; }
+
+.recommendation-card {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.recommendation-card.primary {
+  border-color: var(--accent);
+  border-width: 2px;
+}
+
+.recommendation-card .rec-rank {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.recommendation-card.alt .rec-rank { color: var(--text-muted); }
+
+.recommendation-card .rec-platform {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 10px;
+}
+
+.recommendation-card .rec-reason {
+  font-size: 13px;
+  color: var(--text-dim);
+  margin-bottom: 12px;
+}
+
+.rec-warning {
+  background: rgba(251,191,36,0.08);
+  border-left: 3px solid var(--yellow);
+  padding: 10px 14px;
+  font-size: 12px;
+  color: var(--text-dim);
+  border-radius: 0 6px 6px 0;
+  margin-top: 8px;
+}
+
+.rec-warning strong { color: var(--yellow); }
+
+.rec-mistake {
+  background: rgba(244,63,94,0.08);
+  border: 1px solid rgba(244,63,94,0.25);
+  border-radius: 8px;
+  padding: 16px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.rec-mistake strong { color: var(--danger); }
+
+.wizard-restart {
+  margin-top: 16px;
+  background: none;
+  border: 1px solid var(--border);
+  color: var(--text-muted);
+  padding: 8px 20px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 13px;
+}
+
+.wizard-restart:hover { color: var(--text); border-color: var(--text-muted); }
+
+/* ============================================
+   5. OPERATIONAL COMPLEXITY SPECTRUM
+   ============================================ */
+.spectrum-track {
+  position: relative;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  padding: 40px 20px 20px;
+  margin-bottom: 24px;
+  overflow-x: auto;
+}
+
+.spectrum-labels {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  font-size: 12px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.spectrum-bar {
+  height: 6px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent4), var(--danger));
+  border-radius: 3px;
+  margin-bottom: 24px;
+  position: relative;
+}
+
+.spectrum-platforms {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  min-width: 700px;
+}
+
+.spectrum-platform {
+  text-align: center;
+  flex: 1;
+  cursor: pointer;
+  padding: 8px 4px;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.spectrum-platform:hover { background: var(--surface2); }
+.spectrum-platform.active { background: var(--surface3); }
+
+.spectrum-platform .sp-name {
+  font-size: 12px;
+  font-weight: 700;
+  margin-bottom: 2px;
+}
+
+.spectrum-platform .sp-tag {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.spectrum-detail {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  display: none;
+}
+
+.spectrum-detail.visible { display: block; }
+
+.spectrum-detail h4 { font-size: 16px; margin-bottom: 16px; }
+
+.spectrum-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 700px) { .spectrum-detail-grid { grid-template-columns: 1fr; } }
+
+.spectrum-detail-col h5 {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.spectrum-detail-col ul {
+  list-style: none;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.spectrum-detail-col ul li {
+  padding: 3px 0;
+  padding-left: 14px;
+  position: relative;
+}
+
+.spectrum-detail-col ul li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 10px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+
+.col-benefit li::before { background: var(--green); }
+.col-tradeoff li::before { background: var(--yellow); }
+.col-team li::before { background: var(--accent); }
+
+.spectrum-insight {
+  margin-top: 20px;
+  background: rgba(56,189,248,0.06);
+  border: 1px solid rgba(56,189,248,0.2);
+  border-radius: 8px;
+  padding: 16px 20px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.spectrum-insight strong { color: var(--accent); }
+
+/* ============================================
+   6. VERCEL VS CLOUDFLARE
+   ============================================ */
+.vs-header {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.vs-platform-name {
+  font-size: 24px;
+  font-weight: 700;
+}
+
+.vs-badge {
+  font-size: 14px;
+  color: var(--text-muted);
+  background: var(--surface3);
+  padding: 4px 12px;
+  border-radius: 4px;
+}
+
+.vs-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  margin-bottom: 24px;
+}
+
+.vs-table th, .vs-table td {
+  padding: 14px 16px;
+  text-align: left;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border);
+}
+
+.vs-table th {
+  background: var(--surface2);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+}
+
+.vs-table th:first-child { border-radius: 8px 0 0 0; }
+.vs-table th:last-child { border-radius: 0 8px 0 0; }
+
+.vs-table td:first-child {
+  font-weight: 600;
+  color: var(--text);
+  width: 180px;
+}
+
+.vs-table tr:last-child td { border-bottom: none; }
+
+.vs-table .advantage { color: var(--green); font-weight: 600; }
+.vs-table .neutral { color: var(--text-dim); }
+.vs-table .disadvantage { color: var(--yellow); }
+
+.vs-controls {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+@media (max-width: 700px) { .vs-controls { grid-template-columns: 1fr; } }
+
+.vs-control {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.vs-control label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 8px;
+}
+
+.vs-verdict {
+  background: var(--surface);
+  border: 2px solid var(--accent);
+  border-radius: 10px;
+  padding: 24px;
+}
+
+.vs-verdict h4 {
+  font-size: 16px;
+  margin-bottom: 8px;
+}
+
+.vs-verdict .verdict-platform {
+  font-size: 28px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.vs-verdict .verdict-reason {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+footer {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--text-muted);
+  border-top: 1px solid var(--border);
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<header class="site-header">
+  <h1><span class="title-gradient">Hosting Decision</span> Playground</h1>
+  <p>You've picked your framework and rendering strategy. Now figure out where to deploy -- with real cost numbers, honest lock-in analysis, and no marketing fluff.</p>
+</header>
+
+<!-- NAV -->
+<nav class="section-nav">
+  <div class="section-nav-inner">
+    <button class="nav-btn active" onclick="scrollToSection('compatibility')">Compatibility</button>
+    <button class="nav-btn" onclick="scrollToSection('cost')">Cost Calculator</button>
+    <button class="nav-btn" onclick="scrollToSection('lockin')">Lock-in</button>
+    <button class="nav-btn" onclick="scrollToSection('wizard')">Selector</button>
+    <button class="nav-btn" onclick="scrollToSection('spectrum')">Ops Spectrum</button>
+    <button class="nav-btn" onclick="scrollToSection('versus')">Vercel vs Cloudflare</button>
+  </div>
+</nav>
+
+<main>
+
+<!-- ==============================
+     1. COMPATIBILITY MATRIX
+     ============================== -->
+<section id="compatibility" class="section">
+  <h2>Rendering Strategy &rarr; Hosting Compatibility</h2>
+  <p class="section-subtitle">Not all platforms support all rendering strategies. Start here to eliminate incompatible options before comparing cost or features.</p>
+
+  <div class="strategy-tabs" id="strategyTabs"></div>
+  <div class="compat-grid" id="compatGrid"></div>
+  <div class="compat-detail" id="compatDetail"></div>
+  <div class="insight-banner">
+    <strong>Watch out:</strong> Cloudflare Workers uses V8 isolates, not Node.js. Code depending on Node built-ins (fs, path, net) or npm packages that use them will fail without modification. This catches teams moving from Vercel or Railway.
+  </div>
+</section>
+
+<!-- ==============================
+     2. COST REALITY CALCULATOR
+     ============================== -->
+<section id="cost" class="section">
+  <h2>Cost Reality Calculator</h2>
+  <p class="section-subtitle">Directional estimates based on published pricing tiers. Actual costs vary -- check each platform's current pricing page before committing.</p>
+
+  <div class="calc-controls">
+    <div class="control-group">
+      <label for="reqSlider">Monthly Requests</label>
+      <div class="value-display" id="reqDisplay">100,000</div>
+      <input type="range" id="reqSlider" min="0" max="4" step="1" value="1" oninput="updateCost()">
+      <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
+        <span>10K</span><span>100K</span><span>1M</span><span>5M</span><span>10M</span>
+      </div>
+    </div>
+    <div class="control-group">
+      <label for="costStrategy">Rendering Strategy</label>
+      <select id="costStrategy" onchange="updateCost()">
+        <option value="ssg">SSG (static only)</option>
+        <option value="csr">CSR (static shell + client JS)</option>
+        <option value="ssr" selected>SSR (Node.js)</option>
+        <option value="edge">Edge SSR</option>
+        <option value="mixed">Mixed (SSG + SSR)</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="ssrSlider">SSR Ratio (% hitting compute)</label>
+      <div class="value-display" id="ssrDisplay">50%</div>
+      <input type="range" id="ssrSlider" min="0" max="100" step="5" value="50" oninput="updateCost()">
+    </div>
+    <div class="control-group">
+      <label for="teamSlider">Team Size</label>
+      <div class="value-display" id="teamDisplay">3</div>
+      <input type="range" id="teamSlider" min="1" max="20" step="1" value="3" oninput="updateCost()">
+    </div>
+  </div>
+
+  <div class="cost-chart" id="costChart"></div>
+
+  <div id="pricingCliff" class="pricing-cliff" style="display:none;"></div>
+
+  <div class="crossover-insights" id="crossoverInsights"></div>
+</section>
+
+<!-- ==============================
+     3. LOCK-IN EXPOSURE VISUALIZER
+     ============================== -->
+<section id="lockin" class="section">
+  <h2>Lock-in Exposure</h2>
+  <p class="section-subtitle">If you adopt these features today, here's what migration looks like in 18 months. Lock-in isn't inherently bad -- but it should be a conscious choice.</p>
+
+  <div class="lockin-platform-tabs" id="lockinTabs"></div>
+  <div class="lockin-features" id="lockinFeatures"></div>
+  <div class="lockin-summary" id="lockinSummary"></div>
+</section>
+
+<!-- ==============================
+     4. HOSTING SELECTOR WIZARD
+     ============================== -->
+<section id="wizard" class="section">
+  <h2>Hosting Selector</h2>
+  <p class="section-subtitle">Answer 6 questions. Get a ranked recommendation with reasoning and warnings.</p>
+
+  <div class="wizard-container" id="wizardContainer">
+    <div class="wizard-progress" id="wizardProgress"></div>
+    <div id="wizardQuestions"></div>
+    <div class="wizard-nav">
+      <button class="wizard-btn" id="wizardBack" onclick="wizardPrev()" disabled>&larr; Back</button>
+      <button class="wizard-btn" id="wizardNext" onclick="wizardNext()" disabled>Next &rarr;</button>
+    </div>
+  </div>
+  <div class="wizard-result" id="wizardResult"></div>
+</section>
+
+<!-- ==============================
+     5. OPERATIONAL COMPLEXITY SPECTRUM
+     ============================== -->
+<section id="spectrum" class="section">
+  <h2>Operational Complexity Spectrum</h2>
+  <p class="section-subtitle">Where each platform sits on the zero-ops to full-control axis. Click a platform for details.</p>
+
+  <div class="spectrum-track">
+    <div class="spectrum-labels">
+      <span>Zero-ops</span>
+      <span>Full control</span>
+    </div>
+    <div class="spectrum-bar"></div>
+    <div class="spectrum-platforms" id="spectrumPlatforms"></div>
+  </div>
+  <div class="spectrum-detail" id="spectrumDetail"></div>
+  <div class="spectrum-insight">
+    <strong>Neither extreme is free.</strong> Zero-ops costs dollars at scale and lock-in over time. Full control costs engineering time and operational risk. The right position depends on your team, not your preferences.
+  </div>
+</section>
+
+<!-- ==============================
+     6. VERCEL VS CLOUDFLARE
+     ============================== -->
+<section id="versus" class="section">
+  <h2>Vercel vs Cloudflare</h2>
+  <p class="section-subtitle">These two dominate the modern hosting conversation. Adjust your context below for a tailored verdict.</p>
+
+  <div class="vs-header">
+    <span class="vs-platform-name" style="color:var(--accent)">Vercel</span>
+    <span class="vs-badge">vs</span>
+    <span class="vs-platform-name" style="color:var(--accent4)">Cloudflare</span>
+  </div>
+
+  <table class="vs-table">
+    <thead>
+      <tr>
+        <th>Factor</th>
+        <th>Vercel</th>
+        <th>Cloudflare</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Next.js DX</td>
+        <td class="advantage">Native, first-class</td>
+        <td class="neutral">Good, not identical</td>
+      </tr>
+      <tr>
+        <td>Cost at 1M req/mo</td>
+        <td class="disadvantage">$$</td>
+        <td class="advantage">$</td>
+      </tr>
+      <tr>
+        <td>Cost at 10M req/mo</td>
+        <td class="disadvantage">$$$+</td>
+        <td class="advantage">$</td>
+      </tr>
+      <tr>
+        <td>Runtime</td>
+        <td class="neutral">Node.js (familiar)</td>
+        <td class="disadvantage"><span class="tooltip" tabindex="0" data-tip="V8 isolates run JavaScript but lack Node.js built-in modules like fs, path, net. npm packages using these will not work without modification.">V8 isolates (not Node)</span></td>
+      </tr>
+      <tr>
+        <td><span class="tooltip" tabindex="0" data-tip="Time for the first request to a function after it has been idle. V8 isolates start nearly instantly; Node.js containers take longer.">Cold starts</span></td>
+        <td class="disadvantage">Occasional</td>
+        <td class="advantage">Near-zero (isolates)</td>
+      </tr>
+      <tr>
+        <td>Global edge</td>
+        <td class="neutral">~30 regions</td>
+        <td class="advantage">300+ locations</td>
+      </tr>
+      <tr>
+        <td>Lock-in surface</td>
+        <td class="neutral">Moderate (ISR, Image Optimization)</td>
+        <td class="neutral">Moderate (KV, Durable Objects)</td>
+      </tr>
+      <tr>
+        <td>Observability</td>
+        <td class="advantage">Built-in analytics</td>
+        <td class="disadvantage">Workers Analytics or third-party</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="vs-controls">
+    <div class="vs-control">
+      <label>Your Framework</label>
+      <select id="vsFramework" onchange="updateVsVerdict()">
+        <option value="nextjs">Next.js</option>
+        <option value="remix">Remix</option>
+        <option value="astro">Astro</option>
+        <option value="sveltekit">SvelteKit</option>
+        <option value="nuxt">Nuxt</option>
+        <option value="static">Static / Vite</option>
+      </select>
+    </div>
+    <div class="vs-control">
+      <label>Monthly Requests</label>
+      <select id="vsScale" onchange="updateVsVerdict()">
+        <option value="low">Under 100K</option>
+        <option value="mid" selected>100K - 1M</option>
+        <option value="high">1M - 10M</option>
+        <option value="massive">10M+</option>
+      </select>
+    </div>
+    <div class="vs-control">
+      <label>Budget Priority</label>
+      <select id="vsBudget" onchange="updateVsVerdict()">
+        <option value="dx">Best DX, cost secondary</option>
+        <option value="balanced" selected>Balanced</option>
+        <option value="cost">Lowest cost, DX secondary</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="vs-verdict" id="vsVerdict"></div>
+</section>
+
+</main>
+
+<footer>
+  Estimates are directional, not invoices. Check each platform's published pricing for current rates.
+</footer>
+
+<script>
+/* ============================================
+   DATA
+   ============================================ */
+
+const REQUEST_TIERS = [10000, 100000, 1000000, 5000000, 10000000];
+
+const STRATEGIES = [
+  { key: 'ssg', label: 'SSG', desc: 'Static Site Generation' },
+  { key: 'csr', label: 'CSR', desc: 'Client-Side Rendering' },
+  { key: 'ssr', label: 'SSR (Node.js)', desc: 'Server-Side Rendering' },
+  { key: 'edge', label: 'Edge SSR', desc: 'Edge Server-Side Rendering' },
+  { key: 'islands', label: 'Islands (Astro)', desc: 'Island Architecture' }
+];
+
+const PLATFORMS = [
+  'GitHub Pages', 'Vercel', 'Netlify', 'Cloudflare Pages', 'Railway',
+  'Render', 'Fly.io', 'AWS (Lambda+CF)', 'VPS'
+];
+
+// compat[strategy][platform] = { status: 'full'|'workaround'|'none', reason: string }
+const COMPAT = {
+  ssg: {
+    'GitHub Pages':    { status: 'full', reason: 'Static files served directly from CDN. GitHub Pages is purpose-built for this.' },
+    'Vercel':          { status: 'full', reason: 'Deploys static output to their CDN. Zero configuration for most SSG frameworks.' },
+    'Netlify':         { status: 'full', reason: 'Core use case. Git-connected deploys with CDN distribution.' },
+    'Cloudflare Pages':{ status: 'full', reason: 'Free static hosting on Cloudflare\'s 300+ location CDN. Generous free tier.' },
+    'Railway':         { status: 'full', reason: 'Can serve static files via a container, though it\'s over-provisioning for pure static.' },
+    'Render':          { status: 'full', reason: 'Static site service available. CDN-backed, free tier available.' },
+    'Fly.io':          { status: 'full', reason: 'Can serve static via container, but you\'re paying for VM time to serve flat files.' },
+    'AWS (Lambda+CF)': { status: 'full', reason: 'S3 + CloudFront is the canonical static hosting setup on AWS.' },
+    'VPS':             { status: 'full', reason: 'nginx or Caddy serving files. Simple and cheap, but you manage the server.' }
+  },
+  csr: {
+    'GitHub Pages':    { status: 'full', reason: 'SPA served as static files. Configure 404 redirect to index.html for client routing.' },
+    'Vercel':          { status: 'full', reason: 'Serves the static shell, client JS handles routing. SPA rewrites are built in.' },
+    'Netlify':         { status: 'full', reason: 'SPA redirect rules via _redirects file or netlify.toml.' },
+    'Cloudflare Pages':{ status: 'full', reason: 'Static hosting with SPA mode. Set "Not Found" behavior to serve index.html.' },
+    'Railway':         { status: 'full', reason: 'Serves the static shell from a container.' },
+    'Render':          { status: 'full', reason: 'Static site with rewrite rules for SPA routing.' },
+    'Fly.io':          { status: 'full', reason: 'Container-based, but works. Overhead for pure CSR.' },
+    'AWS (Lambda+CF)': { status: 'full', reason: 'S3 + CloudFront with custom error page routing to index.html.' },
+    'VPS':             { status: 'full', reason: 'nginx try_files directive handles SPA routing.' }
+  },
+  ssr: {
+    'GitHub Pages':    { status: 'none', reason: 'GitHub Pages is static-only. No server-side compute available.' },
+    'Vercel':          { status: 'full', reason: 'Serverless functions handle SSR. First-class Next.js support with automatic code splitting.' },
+    'Netlify':         { status: 'workaround', reason: 'Netlify Functions support SSR, but framework adapters vary in maturity. Remix and Astro work well; custom SSR needs more setup.' },
+    'Cloudflare Pages':{ status: 'workaround', reason: 'Workers runtime is NOT Node.js. Your SSR code must be compatible with V8 isolates. No fs, no native modules, limited npm ecosystem.' },
+    'Railway':         { status: 'full', reason: 'Full Node.js container. Run any SSR framework with no runtime limitations.' },
+    'Render':          { status: 'full', reason: 'Web service with Node.js runtime. Straightforward deployment with Dockerfiles or buildpacks.' },
+    'Fly.io':          { status: 'full', reason: 'Full Linux VM with Docker. Complete Node.js compatibility, multi-region possible.' },
+    'AWS (Lambda+CF)': { status: 'full', reason: 'Lambda handles SSR, CloudFront caches static assets. Requires packaging setup (OpenNext for Next.js).' },
+    'VPS':             { status: 'full', reason: 'Full Node.js environment. You manage process lifecycle, scaling, and TLS.' }
+  },
+  edge: {
+    'GitHub Pages':    { status: 'none', reason: 'No edge compute. Static files only.' },
+    'Vercel':          { status: 'full', reason: 'Edge Functions run in V8 isolates at the CDN layer. Low latency, limited Node.js API.' },
+    'Netlify':         { status: 'full', reason: 'Netlify Edge Functions use Deno. Good for middleware and lightweight SSR.' },
+    'Cloudflare Pages':{ status: 'full', reason: 'Workers are edge-native. 300+ locations, near-zero cold starts. The gold standard for edge compute.' },
+    'Railway':         { status: 'none', reason: 'Container-based, single-region deployment. No edge compute layer.' },
+    'Render':          { status: 'none', reason: 'Web services run in a single region. No built-in edge compute.' },
+    'Fly.io':          { status: 'workaround', reason: 'Multi-region VM deployment gets you closer to the edge, but it\'s VMs not isolates. Higher latency than true edge.' },
+    'AWS (Lambda+CF)': { status: 'workaround', reason: 'Lambda@Edge and CloudFront Functions exist but are limited: smaller payloads, slower deployments, higher cost than purpose-built edge platforms.' },
+    'VPS':             { status: 'none', reason: 'Single-location server. Deploy to multiple regions manually for edge-like behavior.' }
+  },
+  islands: {
+    'GitHub Pages':    { status: 'full', reason: 'Astro in SSG mode outputs pure HTML. Perfect for static hosting.' },
+    'Vercel':          { status: 'full', reason: 'Supports Astro\'s SSR mode with serverless functions for dynamic islands.' },
+    'Netlify':         { status: 'full', reason: 'Astro adapter available. SSG mode works out of the box; SSR mode via Functions.' },
+    'Cloudflare Pages':{ status: 'workaround', reason: 'Astro\'s Cloudflare adapter exists, but SSR islands must avoid Node.js-specific APIs. Pure SSG mode works perfectly.' },
+    'Railway':         { status: 'full', reason: 'Container-based. Astro SSR works with the Node adapter, no limitations.' },
+    'Render':          { status: 'full', reason: 'Astro with Node adapter runs as a standard web service.' },
+    'Fly.io':          { status: 'full', reason: 'Docker container with Astro\'s Node adapter. Full compatibility.' },
+    'AWS (Lambda+CF)': { status: 'workaround', reason: 'Astro SSR on Lambda requires packaging. SSG mode is just S3 + CloudFront.' },
+    'VPS':             { status: 'full', reason: 'Node.js process running Astro. You handle deployment and process management.' }
+  }
+};
+
+// Lock-in data per platform
+const LOCKIN = {
+  vercel: {
+    name: 'Vercel',
+    summary: 'Vercel\'s lock-in centers on Next.js-specific features and their optimization pipeline. Edge Middleware is portable, but ISR and Image Optimization are deeply integrated. For Next.js teams, the DX benefit often justifies the lock-in. For other frameworks, lock-in exposure is much lower.',
+    features: [
+      { name: 'Edge Middleware', difficulty: 'easy', desc: 'Standard Request/Response API. Portable to any edge platform with minimal changes.' },
+      { name: 'Image Optimization', difficulty: 'hard', desc: 'Proprietary API for on-demand image resizing and format conversion. No drop-in replacement -- you\'d need to set up imgproxy, Cloudinary, or similar.' },
+      { name: 'ISR', difficulty: 'hard', desc: 'Incremental Static Regeneration is a Next.js concept that Vercel handles natively. Replicating ISR on other platforms requires OpenNext or custom stale-while-revalidate logic.' },
+      { name: 'Analytics', difficulty: 'easy', desc: 'Proprietary but functionally replaceable with Plausible, PostHog, or any analytics service. No code-level dependency.' },
+      { name: 'Preview Deployments', difficulty: 'easy', desc: 'Netlify, Render, and Railway all offer comparable PR preview environments. Migration is configuration, not code.' },
+      { name: 'Cron Jobs', difficulty: 'moderate', desc: 'vercel.json cron triggers. Replaceable with any cron service or scheduled Lambda, but requires reconfiguring.' },
+      { name: 'KV / Blob / Postgres', difficulty: 'moderate', desc: 'Vercel storage is wrappers around Upstash (KV), Cloudflare R2 (Blob), and Neon (Postgres). Migrating means switching to those providers directly.' }
+    ]
+  },
+  cloudflare: {
+    name: 'Cloudflare',
+    summary: 'Cloudflare\'s lock-in is runtime-level: Workers are not Node.js, so your code may only run on their platform. KV and Durable Objects have no direct equivalents elsewhere. R2 is S3-compatible by design and intentionally portable.',
+    features: [
+      { name: 'Workers Runtime', difficulty: 'hard', desc: 'V8 isolates, not Node.js. Code using Workers-specific APIs (env bindings, waitUntil) needs rewriting for Node.js platforms.' },
+      { name: 'Workers KV', difficulty: 'hard', desc: 'Eventually-consistent key-value store at the edge. No direct equivalent. Migration means switching to Redis, DynamoDB, or a different KV model.' },
+      { name: 'Durable Objects', difficulty: 'hard', desc: 'Unique: stateful edge compute with strong consistency. Nothing else offers this. Migrating means rearchitecting state management.' },
+      { name: 'R2 Storage', difficulty: 'easy', desc: 'S3-compatible API by design. Intentionally portable. Migration to AWS S3 or any S3-compatible store is straightforward.' },
+      { name: 'D1 Database', difficulty: 'moderate', desc: 'SQLite-based edge database. Data is portable (it\'s SQL), but the deployment model is unique to Cloudflare.' },
+      { name: 'Pages', difficulty: 'easy', desc: 'Static hosting with git integration. Functionally equivalent to Netlify or Vercel for static sites.' }
+    ]
+  },
+  netlify: {
+    name: 'Netlify',
+    summary: 'Netlify\'s lock-in is concentrated in their proprietary add-ons (Forms, Identity, CMS). The core deployment and hosting capabilities have direct equivalents on other platforms. Migration difficulty is generally low.',
+    features: [
+      { name: 'Forms', difficulty: 'easy', desc: 'HTML-attribute-based form handling. Replace with Formspree, Basin, or a simple API endpoint. Migration is trivial.' },
+      { name: 'Identity', difficulty: 'moderate', desc: 'Built-in auth service. Replace with Auth0, Clerk, Supabase Auth. Requires code changes to auth flow.' },
+      { name: 'Edge Functions', difficulty: 'easy', desc: 'Deno-based edge compute. Similar to Vercel Edge Functions. Portable with minor runtime adjustments.' },
+      { name: 'Blobs', difficulty: 'easy', desc: 'Key-value storage for deploy artifacts. Replace with S3, R2, or any object store.' },
+      { name: 'Build Plugins', difficulty: 'moderate', desc: 'Netlify-specific build hooks. Replace with CI/CD pipeline steps in GitHub Actions or similar.' },
+      { name: 'Deploy Previews', difficulty: 'easy', desc: 'PR previews. Available on Vercel, Render, Railway. Configuration migration only.' }
+    ]
+  },
+  railway: {
+    name: 'Railway',
+    summary: 'Railway\'s lock-in is minimal by design. It runs standard containers with managed Postgres and Redis. Migration means setting up equivalent managed services elsewhere. The main "lock-in" is convenience -- Railway\'s DX is hard to replicate.',
+    features: [
+      { name: 'Managed Postgres', difficulty: 'easy', desc: 'Standard PostgreSQL. Export with pg_dump, import anywhere. Zero schema lock-in.' },
+      { name: 'Managed Redis', difficulty: 'easy', desc: 'Standard Redis. RDB export, import to any Redis host.' },
+      { name: 'Private Networking', difficulty: 'moderate', desc: 'Service-to-service networking within Railway. Replicate with VPC or Docker networking on other platforms.' },
+      { name: 'Nixpacks Builds', difficulty: 'easy', desc: 'Auto-detected build system. Equivalent to Render\'s buildpacks or writing a Dockerfile.' },
+      { name: 'Cron Services', difficulty: 'easy', desc: 'Cron-triggered services. Replaceable with any scheduler or cron service.' }
+    ]
+  }
+};
+
+// Spectrum data
+const SPECTRUM_DATA = [
+  {
+    name: 'GitHub Pages',
+    tag: 'Static only',
+    benefit: ['No server management', 'No cost for public repos', 'GitHub-integrated deploys'],
+    tradeoff: ['Static files only', 'No server-side compute', 'Limited build configuration'],
+    team: ['Personal projects', 'Documentation sites', 'Open-source landing pages']
+  },
+  {
+    name: 'Vercel',
+    tag: 'Best DX',
+    benefit: ['Zero-config for Next.js', 'Instant rollbacks', 'Preview deploys per commit', 'Edge + serverless built in'],
+    tradeoff: ['Cost scales per-seat and per-invocation', 'ISR and image optimization are proprietary', 'Enterprise pricing is opaque'],
+    team: ['Startups using Next.js', 'Teams prioritizing shipping speed', 'Small-medium teams (< 20 devs)']
+  },
+  {
+    name: 'Netlify',
+    tag: 'Good DX',
+    benefit: ['Git-connected deploys', 'Plugin ecosystem', 'Edge Functions', 'Generous free tier'],
+    tradeoff: ['Build minutes are limited on free/Pro', 'SSR support varies by framework', 'Add-ons (Forms, Identity) are proprietary'],
+    team: ['Jamstack teams', 'Marketing sites with CMS', 'Small teams wanting managed deploys']
+  },
+  {
+    name: 'Railway',
+    tag: 'Great balance',
+    benefit: ['Full container support', 'Managed Postgres + Redis', 'Simple pricing model', 'Excellent DX'],
+    tradeoff: ['Single-region deployment', 'No edge compute', 'Resource-based pricing can spike'],
+    team: ['Full-stack apps', 'Backend-heavy projects', 'Small teams wanting managed infra']
+  },
+  {
+    name: 'Render',
+    tag: 'Predictable',
+    benefit: ['Flat instance pricing', 'Background workers', 'Managed databases', 'Free static hosting'],
+    tradeoff: ['Cold starts on free tier', 'Less mature than Heroku (the predecessor it targets)', 'Single-region per service'],
+    team: ['Teams wanting Heroku-like simplicity', 'Budget-conscious startups', 'Standard web apps']
+  },
+  {
+    name: 'Fly.io',
+    tag: 'Edge VMs',
+    benefit: ['Multi-region deployment', 'Scales to zero (Machines API)', 'Full Linux containers', 'LiteFS for distributed SQLite'],
+    tradeoff: ['More operational complexity than PaaS', 'Pricing requires understanding Machines vs Apps', 'Fewer managed services than Railway'],
+    team: ['Teams needing multi-region', 'Latency-sensitive apps', 'Developers comfortable with infra']
+  },
+  {
+    name: 'AWS App Runner',
+    tag: 'Managed AWS',
+    benefit: ['Full AWS ecosystem access', 'Scales automatically', 'VPC integration', 'Predictable per-vCPU pricing'],
+    tradeoff: ['AWS complexity (IAM, VPC, etc.)', 'Less polished DX than PaaS options', 'Slower cold starts'],
+    team: ['Teams already on AWS', 'Enterprise with AWS contracts', 'Apps needing AWS services (SQS, DynamoDB)']
+  },
+  {
+    name: 'EC2 / VPS',
+    tag: 'Full control',
+    benefit: ['Complete control over stack', 'Flat monthly pricing', 'No usage-based surprises', 'Run anything'],
+    tradeoff: ['You manage OS updates, TLS, monitoring', 'Scaling is manual or self-built', 'No zero-downtime deploys without setup'],
+    team: ['Experienced ops teams', 'Cost-optimizing at scale', 'Specific compliance requirements']
+  }
+];
+
+// Wizard questions
+const WIZARD_QUESTIONS = [
+  {
+    question: 'What\'s your rendering strategy?',
+    options: [
+      { value: 'static', label: 'Static (SSG)', desc: 'Pre-built HTML at deploy time' },
+      { value: 'csr', label: 'CSR', desc: 'Static shell, client JavaScript handles everything' },
+      { value: 'ssr', label: 'SSR (Node.js)', desc: 'Server renders HTML per request' },
+      { value: 'edge', label: 'Edge SSR', desc: 'Server renders at the CDN edge layer' },
+      { value: 'mixed', label: 'Mixed', desc: 'Combination of static and server-rendered pages' }
+    ]
+  },
+  {
+    question: 'What\'s your expected monthly traffic?',
+    options: [
+      { value: 'low', label: 'Under 100K requests', desc: 'Personal project, early startup, internal tool' },
+      { value: 'mid', label: '100K - 1M requests', desc: 'Growing product with real users' },
+      { value: 'high', label: '1M - 10M requests', desc: 'Established product, significant traffic' },
+      { value: 'massive', label: '10M+ requests', desc: 'High-scale consumer or B2B application' }
+    ]
+  },
+  {
+    question: 'How important is zero-ops?',
+    options: [
+      { value: 'zero', label: 'Minimal infrastructure thinking', desc: 'I want to push code and forget about servers' },
+      { value: 'some', label: 'Comfortable with some config', desc: 'I can handle environment variables, build settings, basic monitoring' },
+      { value: 'full', label: 'I\'ll manage infra for cost control', desc: 'I\'m comfortable running my own servers and CI/CD' }
+    ]
+  },
+  {
+    question: 'Do you have compliance or data residency requirements?',
+    options: [
+      { value: 'none', label: 'No', desc: 'Standard SaaS deployment, no geographic constraints' },
+      { value: 'regional', label: 'Specific regions required', desc: 'Data must stay in certain jurisdictions (EU, US, etc.)' },
+      { value: 'private', label: 'On-prem or private cloud', desc: 'Data cannot leave your infrastructure' }
+    ]
+  },
+  {
+    question: 'What\'s your monthly hosting budget?',
+    options: [
+      { value: 'free', label: 'Under $20', desc: 'Free tier or minimal spend' },
+      { value: 'low', label: '$20 - $100', desc: 'Small team, early product' },
+      { value: 'mid', label: '$100 - $500', desc: 'Growing team, production workload' },
+      { value: 'flex', label: 'Scales with revenue', desc: 'Budget isn\'t fixed, but must be justifiable' }
+    ]
+  },
+  {
+    question: 'Do you need preview deployments per PR?',
+    options: [
+      { value: 'yes', label: 'Yes, it\'s core to our workflow', desc: 'Every PR gets a deploy preview for review' },
+      { value: 'nice', label: 'Nice to have', desc: 'Useful but not a dealbreaker' },
+      { value: 'no', label: 'No', desc: 'We test locally or in staging' }
+    ]
+  }
+];
+
+
+/* ============================================
+   1. COMPATIBILITY MATRIX
+   ============================================ */
+let activeStrategy = 'ssr';
+let activeCompatPlatform = null;
+
+function renderStrategyTabs() {
+  const container = document.getElementById('strategyTabs');
+  container.innerHTML = STRATEGIES.map(s =>
+    `<button class="strategy-tab ${s.key === activeStrategy ? 'active' : ''}" onclick="selectStrategy('${s.key}')">${s.label}</button>`
+  ).join('');
+}
+
+function selectStrategy(key) {
+  activeStrategy = key;
+  activeCompatPlatform = null;
+  renderStrategyTabs();
+  renderCompatGrid();
+}
+
+function renderCompatGrid() {
+  const grid = document.getElementById('compatGrid');
+  const data = COMPAT[activeStrategy];
+  grid.innerHTML = PLATFORMS.map(p => {
+    const c = data[p];
+    const statusLabel = { full: 'Compatible', workaround: 'Workaround', none: 'Incompatible' }[c.status];
+    return `<div class="compat-card" data-compat="${c.status}" role="button" tabindex="0"
+      onclick="showCompatDetail('${p}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showCompatDetail('${p}');}">
+      <div class="platform-name">${p}</div>
+      <span class="compat-status">${statusLabel}</span>
+    </div>`;
+  }).join('');
+
+  const detail = document.getElementById('compatDetail');
+  detail.classList.remove('visible');
+}
+
+function showCompatDetail(platform) {
+  const c = COMPAT[activeStrategy][platform];
+  const detail = document.getElementById('compatDetail');
+  const stratLabel = STRATEGIES.find(s => s.key === activeStrategy).label;
+  detail.innerHTML = `<h4>${platform} + ${stratLabel}</h4><p>${c.reason}</p>`;
+  detail.classList.add('visible');
+}
+
+
+/* ============================================
+   2. COST CALCULATOR
+   ============================================ */
+const PLATFORM_COLORS = {
+  'Vercel': '#38bdf8',
+  'Netlify': '#a78bfa',
+  'Cloudflare': '#fb923c',
+  'Railway': '#34d399',
+  'Render': '#f472b6',
+  'Fly.io': '#818cf8',
+  'AWS': '#fbbf24',
+  'VPS': '#94a3b8'
+};
+
+function calcCosts(requests, strategy, ssrRatio, teamSize) {
+  const ssrFraction = strategy === 'ssg' || strategy === 'csr' ? 0 : ssrRatio / 100;
+  const staticRequests = requests * (1 - ssrFraction);
+  const computeRequests = requests * ssrFraction;
+
+  // Vercel: Pro = $20/member/mo (free for solo), $0.60/100K invocations beyond 1M, ~$40/TB bandwidth beyond 1M requests
+  const vercelBase = teamSize > 1 ? 20 * teamSize : 0;
+  const vercelCompute = computeRequests > 1000000
+    ? ((computeRequests - 1000000) / 100000) * 0.60
+    : 0;
+  const vercelBandwidth = requests > 1000000
+    ? ((requests - 1000000) / 1000000) * 40
+    : 0;
+  const vercel = vercelBase + vercelCompute + vercelBandwidth;
+
+  // Netlify: Pro = $19/member/mo + $25 per 100GB bandwidth beyond 1TB + $0.50/100K invocations beyond 500K
+  const netlifyBase = teamSize > 1 ? 19 * teamSize : 0;
+  const netlifyBandwidthGB = (requests * 0.2) / 1000; // ~200KB avg
+  const netlifyOverage = netlifyBandwidthGB > 1000
+    ? ((netlifyBandwidthGB - 1000) / 100) * 25
+    : 0;
+  const netlifyCompute = computeRequests > 500000
+    ? ((computeRequests - 500000) / 100000) * 0.50
+    : 0;
+  const netlify = netlifyBase + netlifyOverage + netlifyCompute;
+
+  // Cloudflare: Workers free = 100K req/day. Paid = $5/mo + $0.50/million
+  const cfRequests = computeRequests;
+  const cfFreeDaily = 100000 * 30;
+  let cloudflare = 0;
+  if (cfRequests > cfFreeDaily) {
+    cloudflare = 5 + ((cfRequests - cfFreeDaily) / 1000000) * 0.50;
+  }
+
+  // Railway: $5/mo base + ~$10 per 1M SSR requests (estimated from resource pricing)
+  const railwayBase = 5;
+  const railwayCompute = computeRequests > 0
+    ? Math.max(0, (computeRequests / 1000000) * 10) // ~$10 per 1M SSR requests estimated
+    : 0;
+  const railway = railwayBase + railwayCompute;
+
+  // Render: $7/mo for Starter, $25/mo for Standard
+  const renderInstance = computeRequests > 500000 ? 25 : 7;
+  const renderInstances = Math.max(1, Math.ceil(computeRequests / 2000000));
+  const render = strategy === 'ssg' || strategy === 'csr' ? 0 : renderInstance * renderInstances;
+
+  // Fly.io: ~$3.50/mo per VM, ~$0.02/GB bandwidth
+  const flyVMs = Math.max(1, Math.ceil(computeRequests / 1000000));
+  const flyBase = strategy === 'ssg' || strategy === 'csr' ? 0 : flyVMs * 3.5;
+  const flyBandwidth = (requests * 0.2 / 1000) * 0.02; // $0.02/GB approx
+  const fly = flyBase + flyBandwidth;
+
+  // AWS Lambda + CloudFront: $0.20/1M requests + $0.0000166667/GB-sec compute
+  const lambdaRequests = computeRequests > 1000000
+    ? ((computeRequests - 1000000) / 1000000) * 0.20
+    : 0;
+  const lambdaCompute = (computeRequests * 0.05 / 1000) * 0.0000166667 * 1000; // ~50ms per request, 128MB
+  const cfDistribution = (requests / 10000) * 0.01;
+  const aws = lambdaRequests + lambdaCompute + cfDistribution;
+
+  // VPS: flat $6-48/mo depending on scale
+  let vps = 6;
+  if (requests > 1000000) vps = 12;
+  if (requests > 5000000) vps = 24;
+  if (requests > 10000000) vps = 48;
+
+  return {
+    'Vercel': Math.max(0, vercel),
+    'Netlify': Math.max(0, netlify),
+    'Cloudflare': Math.max(0, cloudflare),
+    'Railway': Math.max(0, railway),
+    'Render': Math.max(0, render),
+    'Fly.io': Math.max(0, fly),
+    'AWS': Math.max(0.50, aws),
+    'VPS': vps
+  };
+}
+
+function updateCost() {
+  const reqIdx = parseInt(document.getElementById('reqSlider').value);
+  const strategy = document.getElementById('costStrategy').value;
+  const ssrRatio = parseInt(document.getElementById('ssrSlider').value);
+  const teamSize = parseInt(document.getElementById('teamSlider').value);
+
+  if (isNaN(reqIdx) || reqIdx < 0 || reqIdx >= REQUEST_TIERS.length || isNaN(ssrRatio) || isNaN(teamSize)) {
+    return;
+  }
+
+  const requests = REQUEST_TIERS[reqIdx];
+  document.getElementById('reqDisplay').textContent = requests.toLocaleString();
+  document.getElementById('ssrDisplay').textContent = ssrRatio + '%';
+  document.getElementById('teamDisplay').textContent = teamSize;
+
+  // Force SSR ratio to 0 for static/CSR
+  const effectiveSSR = (strategy === 'ssg' || strategy === 'csr') ? 0 : ssrRatio;
+  if (strategy === 'ssg' || strategy === 'csr') {
+    document.getElementById('ssrSlider').value = 0;
+    document.getElementById('ssrDisplay').textContent = '0%';
+  }
+
+  const costs = calcCosts(requests, strategy, effectiveSSR, teamSize);
+  const maxCost = Math.max(...Object.values(costs), 1);
+
+  const chart = document.getElementById('costChart');
+  chart.innerHTML = Object.entries(costs).map(([platform, cost]) => {
+    const pct = Math.max(2, (cost / maxCost) * 100);
+    const color = PLATFORM_COLORS[platform];
+    const display = cost < 1 ? '$' + cost.toFixed(2) : '$' + Math.round(cost).toLocaleString();
+    return `<div class="cost-bar-row">
+      <div class="cost-bar-label">${platform}</div>
+      <div class="cost-bar-track">
+        <div class="cost-bar-fill" style="width:${pct}%;background:${color}">${cost > maxCost * 0.15 ? display : ''}</div>
+      </div>
+      <div class="cost-bar-amount" style="color:${color}">${display}</div>
+    </div>`;
+  }).join('');
+
+  // Crossover insights
+  const insights = [];
+  if (costs['Vercel'] > 20 && costs['Cloudflare'] < 1) {
+    insights.push({
+      title: 'Cloudflare is effectively free here',
+      desc: `Vercel costs $${Math.round(costs['Vercel'])}/mo while Cloudflare stays within its free tier at ${requests.toLocaleString()} requests. The gap only grows at scale.`
+    });
+  } else if (costs['Cloudflare'] >= 1 && costs['Vercel'] > costs['Cloudflare'] * 3 && costs['Vercel'] > 30) {
+    insights.push({
+      title: 'Vercel costs ' + Math.round(costs['Vercel'] / costs['Cloudflare']) + 'x Cloudflare',
+      desc: `At ${requests.toLocaleString()} requests, Vercel is $${Math.round(costs['Vercel'])}/mo vs Cloudflare's $${Math.round(costs['Cloudflare'])}/mo. The gap widens at scale.`
+    });
+  }
+  if (costs['VPS'] < costs['Railway'] && costs['Railway'] > 10) {
+    insights.push({
+      title: 'VPS beats Railway on raw cost',
+      desc: `A $${costs['VPS']}/mo VPS handles this traffic, while Railway costs $${Math.round(costs['Railway'])}/mo. The tradeoff is operational burden.`
+    });
+  }
+  if (costs['AWS'] < costs['Vercel'] * 0.5 && requests >= 1000000) {
+    insights.push({
+      title: 'AWS is significantly cheaper at scale',
+      desc: `At ${(requests/1000000).toFixed(0)}M requests, AWS Lambda + CloudFront costs roughly $${Math.round(costs['AWS'])}/mo vs Vercel's $${Math.round(costs['Vercel'])}/mo. Complexity cost not included.`
+    });
+  }
+
+  document.getElementById('crossoverInsights').innerHTML = insights.map(i =>
+    `<div class="crossover-card"><h4>${i.title}</h4><p>${i.desc}</p></div>`
+  ).join('');
+
+  // Pricing cliff warning
+  const cliff = document.getElementById('pricingCliff');
+  if (teamSize > 1 && requests >= 1000000) {
+    const proBase = 20 * teamSize;
+    cliff.style.display = 'block';
+    cliff.innerHTML = `<strong>Vercel pricing cliff:</strong> Pro plan base is $${proBase}/mo (${teamSize} seats &times; $20). Usage charges stack on top. At ${(requests/1000000).toFixed(0)}M+ requests with SSR, the jump from Hobby (free) to Pro to Enterprise is nonlinear. Request an Enterprise quote before you get a surprise invoice.`;
+  } else if (teamSize > 5) {
+    cliff.style.display = 'block';
+    cliff.innerHTML = `<strong>Per-seat pricing compounds fast:</strong> At ${teamSize} team members, Vercel Pro costs $${20 * teamSize}/mo before any usage. Netlify Pro is $${19 * teamSize}/mo. Cloudflare Pages has no per-seat cost on its paid plan.`;
+  } else {
+    cliff.style.display = 'none';
+  }
+}
+
+
+/* ============================================
+   3. LOCK-IN VISUALIZER
+   ============================================ */
+let activeLockin = 'vercel';
+
+function renderLockinTabs() {
+  const container = document.getElementById('lockinTabs');
+  container.innerHTML = Object.entries(LOCKIN).map(([key, data]) =>
+    `<button class="lockin-tab ${key === activeLockin ? 'active' : ''}" onclick="selectLockin('${key}')">${data.name}</button>`
+  ).join('');
+}
+
+function selectLockin(key) {
+  activeLockin = key;
+  renderLockinTabs();
+  renderLockinFeatures();
+}
+
+function renderLockinFeatures() {
+  const data = LOCKIN[activeLockin];
+  const container = document.getElementById('lockinFeatures');
+  const diffLabel = { easy: 'Easy', moderate: 'Moderate', hard: 'Significant' };
+
+  container.innerHTML = data.features.map(f =>
+    `<div class="lockin-row">
+      <div class="lockin-feature-name">${f.name}</div>
+      <span class="lockin-badge ${f.difficulty}">${diffLabel[f.difficulty]}</span>
+      <div class="lockin-desc">${f.desc}</div>
+    </div>`
+  ).join('');
+
+  document.getElementById('lockinSummary').innerHTML = `<strong>${data.name} summary:</strong> ${data.summary}`;
+}
+
+
+/* ============================================
+   4. HOSTING SELECTOR WIZARD
+   ============================================ */
+let wizardStep = 0;
+let wizardAnswers = {};
+
+function renderWizard() {
+  const progress = document.getElementById('wizardProgress');
+  progress.innerHTML = WIZARD_QUESTIONS.map((_, i) =>
+    `<div class="wizard-progress-step ${i < wizardStep ? 'done' : ''} ${i === wizardStep ? 'current' : ''}"></div>`
+  ).join('');
+
+  const container = document.getElementById('wizardQuestions');
+  container.innerHTML = WIZARD_QUESTIONS.map((q, i) =>
+    `<div class="wizard-question ${i === wizardStep ? 'active' : ''}">
+      <div class="step-indicator">Step ${i + 1} of ${WIZARD_QUESTIONS.length}</div>
+      <h3>${q.question}</h3>
+      <div class="wizard-options" style="margin-top:16px">
+        ${q.options.map(o =>
+          `<button class="wizard-option ${wizardAnswers[i] === o.value ? 'selected' : ''}"
+            onclick="wizardSelect(this, ${i}, '${o.value}')"
+            role="button" tabindex="0"
+            onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();wizardSelect(this,${i},'${o.value}');}">
+            <div class="option-label">${o.label}</div>
+            <div class="option-desc">${o.desc}</div>
+          </button>`
+        ).join('')}
+      </div>
+    </div>`
+  ).join('');
+
+  document.getElementById('wizardBack').disabled = wizardStep === 0;
+  document.getElementById('wizardNext').disabled = wizardAnswers[wizardStep] === undefined;
+
+  const nextBtn = document.getElementById('wizardNext');
+  nextBtn.textContent = wizardStep === WIZARD_QUESTIONS.length - 1 ? 'Get Recommendation' : 'Next \u2192';
+}
+
+function wizardSelect(el, step, value) {
+  wizardAnswers[step] = value;
+  el.closest('.wizard-options').querySelectorAll('.wizard-option').forEach(b => b.classList.remove('selected'));
+  el.classList.add('selected');
+  document.getElementById('wizardNext').disabled = false;
+}
+
+function wizardNext() {
+  if (wizardStep < WIZARD_QUESTIONS.length - 1) {
+    wizardStep++;
+    renderWizard();
+  } else {
+    showWizardResult();
+  }
+}
+
+function wizardPrev() {
+  if (wizardStep > 0) {
+    wizardStep--;
+    renderWizard();
+  }
+}
+
+function showWizardResult() {
+  document.getElementById('wizardContainer').style.display = 'none';
+  const result = document.getElementById('wizardResult');
+  result.classList.add('visible');
+
+  const a = wizardAnswers;
+  const rec = computeRecommendation(a);
+
+  result.innerHTML = rec.cards.map((c, i) =>
+    `<div class="recommendation-card ${i === 0 ? 'primary' : 'alt'}">
+      <div class="rec-rank">${i === 0 ? 'Top Recommendation' : 'Alternative ' + i}</div>
+      <div class="rec-platform">${c.platform}</div>
+      <div class="rec-reason">${c.reason}</div>
+      <div class="rec-warning"><strong>Watch out:</strong> ${c.warning}</div>
+    </div>`
+  ).join('') +
+  (rec.mistake ? `<div class="rec-mistake"><strong>Common mistake detected:</strong> ${rec.mistake}</div>` : '') +
+  `<button class="wizard-restart" onclick="resetWizard()">Start Over</button>`;
+}
+
+function resetWizard() {
+  wizardStep = 0;
+  wizardAnswers = {};
+  document.getElementById('wizardContainer').style.display = 'block';
+  document.getElementById('wizardResult').classList.remove('visible');
+  renderWizard();
+}
+
+function computeRecommendation(a) {
+  const cards = [];
+  let mistake = null;
+
+  // Strategy-based filtering
+  const isStatic = a[0] === 'static' || a[0] === 'csr';
+  const isEdge = a[0] === 'edge';
+  const isSSR = a[0] === 'ssr' || a[0] === 'mixed';
+
+  // Traffic
+  const traffic = a[1]; // low, mid, high, massive
+  // Ops preference
+  const ops = a[2]; // zero, some, full
+  // Compliance
+  const compliance = a[3]; // none, regional, private
+  // Budget
+  const budget = a[4]; // free, low, mid, flex
+  // Previews
+  const previews = a[5]; // yes, nice, no
+
+  // Private cloud requirement
+  if (compliance === 'private') {
+    cards.push({
+      platform: 'Self-hosted (VPS / On-prem)',
+      reason: 'On-prem or private cloud requirements eliminate all managed platforms. You need infrastructure you control.',
+      warning: 'Self-hosting means owning uptime, security patches, scaling, and disaster recovery. Budget for ops headcount, not just server costs.'
+    });
+    cards.push({
+      platform: 'AWS (EC2 + CloudFront)',
+      reason: 'AWS offers GovCloud and private VPC configurations that may satisfy compliance. More operational overhead but more control.',
+      warning: 'AWS compliance certifications (HIPAA, SOC2) require proper configuration. Being on AWS doesn\'t automatically make you compliant.'
+    });
+    if (ops === 'zero') {
+      mistake = 'You selected zero-ops preference but require private cloud/on-prem. These are fundamentally incompatible. Private infrastructure requires dedicated operations capability.';
+    }
+    return { cards, mistake };
+  }
+
+  // Static sites
+  if (isStatic) {
+    if (budget === 'free') {
+      cards.push({
+        platform: 'Cloudflare Pages',
+        reason: 'Unlimited bandwidth on the free tier. 300+ edge locations. For static sites, it\'s hard to justify paying anything else.',
+        warning: 'If you later add SSR, you\'re in Workers territory (not Node.js). Plan your migration path.'
+      });
+      cards.push({
+        platform: 'GitHub Pages',
+        reason: 'Zero configuration for public repos. Integrated with GitHub Actions for builds.',
+        warning: 'No custom headers, redirects, or server-side logic. You\'ll outgrow it if your needs get more complex.'
+      });
+      cards.push({
+        platform: 'Netlify',
+        reason: 'More features than GitHub Pages (redirects, forms, split testing) with a generous free tier.',
+        warning: 'Build minutes are limited. High-frequency deploys on free tier can hit caps.'
+      });
+    } else {
+      cards.push({
+        platform: 'Cloudflare Pages',
+        reason: 'Even on paid plans, Cloudflare Pages is the most cost-effective CDN for static content. No bandwidth charges.',
+        warning: 'Build configuration is more limited than Vercel or Netlify. Complex build pipelines may need external CI.'
+      });
+      cards.push({
+        platform: 'Vercel',
+        reason: 'Superior DX with instant previews and analytics. Overkill for pure static, but the workflow is unmatched.',
+        warning: 'Per-seat pricing adds up with team growth. You\'re paying for serverless capability you\'re not using.'
+      });
+    }
+    return { cards, mistake };
+  }
+
+  // Edge SSR
+  if (isEdge) {
+    cards.push({
+      platform: 'Cloudflare Workers + Pages',
+      reason: 'Purpose-built for edge compute. 300+ locations, near-zero cold starts, cheapest at scale. This is where edge SSR belongs.',
+      warning: 'Not Node.js. Your code and dependencies must be V8 isolate-compatible. Test thoroughly before committing.'
+    });
+    cards.push({
+      platform: 'Vercel',
+      reason: 'Edge Functions with a better DX if you\'re using Next.js. Fewer edge locations than Cloudflare but more framework integration.',
+      warning: 'Edge Functions have stricter size and runtime limits than serverless functions. Not all Next.js features work at the edge.'
+    });
+    cards.push({
+      platform: 'Netlify Edge Functions',
+      reason: 'Deno-based edge runtime. Good for middleware and lightweight SSR with Astro or SvelteKit.',
+      warning: 'Deno runtime means some npm packages need compatibility checks. Smaller edge network than Cloudflare.'
+    });
+    return { cards, mistake };
+  }
+
+  // SSR / Mixed
+  if (isSSR) {
+    if (ops === 'zero') {
+      if (traffic === 'massive') {
+        cards.push({
+          platform: 'Cloudflare Workers + Pages',
+          reason: 'At 10M+ requests, Cloudflare\'s pricing is dramatically lower than Vercel or Netlify. The DX gap is closing rapidly.',
+          warning: 'Runtime compatibility is the key risk. Audit your npm dependencies for Node.js built-in usage before committing.'
+        });
+        cards.push({
+          platform: 'Vercel (Enterprise)',
+          reason: 'If you\'re on Next.js and need zero-ops at massive scale, Vercel Enterprise has custom pricing. The DX is unmatched.',
+          warning: 'Enterprise pricing is negotiated, not published. You won\'t know the real cost until you talk to sales.'
+        });
+        mistake = 'At 10M+ monthly requests with zero-ops preference, you\'re likely looking at either Cloudflare (cheaper, runtime constraints) or Vercel Enterprise (easier, opaque pricing). Get quotes from both before deciding.';
+      } else if (traffic === 'high') {
+        cards.push({
+          platform: 'Vercel',
+          reason: 'Best DX for SSR/mixed rendering, especially with Next.js. Pro plan handles 1M-10M requests well.',
+          warning: 'Cost scales with team size and invocations. Monitor usage closely as you approach plan limits.'
+        });
+        cards.push({
+          platform: 'Cloudflare Workers',
+          reason: 'Significantly cheaper at this scale. Good if your framework has a Cloudflare adapter.',
+          warning: 'Runtime differences mean migration effort. Factor that into your cost comparison.'
+        });
+      } else {
+        cards.push({
+          platform: 'Vercel',
+          reason: 'The default choice for SSR with zero-ops. Especially strong for Next.js. Free and Pro tiers cover most use cases under 1M requests.',
+          warning: 'ISR and Image Optimization create lock-in. If you\'re not on Next.js, consider whether you\'re getting enough value from Vercel\'s DX to justify the platform tie-in.'
+        });
+        cards.push({
+          platform: 'Netlify',
+          reason: 'Good alternative to Vercel with a similar model. Better if you\'re using Astro, Remix, or SvelteKit.',
+          warning: 'SSR support quality varies by framework. Next.js works but isn\'t as tightly integrated as on Vercel.'
+        });
+        cards.push({
+          platform: 'Railway',
+          reason: 'Full Node.js container with managed databases. Great if your app needs a backend beyond just SSR.',
+          warning: 'No edge compute or CDN built in. Add Cloudflare as a CDN in front for static asset caching.'
+        });
+      }
+    } else if (ops === 'some') {
+      if (budget === 'free' || budget === 'low') {
+        cards.push({
+          platform: 'Railway',
+          reason: '$5/mo base with straightforward resource pricing. Full Node.js, managed Postgres, excellent DX for the price.',
+          warning: 'Single region. If latency to global users matters, you\'ll need to add a CDN layer yourself.'
+        });
+        cards.push({
+          platform: 'Render',
+          reason: 'Flat instance pricing you can reason about. Starter instance at $7/mo handles moderate SSR traffic.',
+          warning: 'Free tier has aggressive cold starts (spins down after 15 min). Paid tier is better but watch instance limits.'
+        });
+      } else {
+        cards.push({
+          platform: 'Fly.io',
+          reason: 'Multi-region VMs with scale-to-zero via Machines API. Best for SSR apps that need low global latency without full edge.',
+          warning: 'More operational surface than Railway or Render. You\'ll manage Dockerfiles, health checks, and scaling config.'
+        });
+        cards.push({
+          platform: 'Railway',
+          reason: 'Simpler than Fly.io, strong DX. Good if multi-region isn\'t critical.',
+          warning: 'Pricing can spike with sustained CPU usage. Monitor resource consumption as traffic grows.'
+        });
+      }
+    } else {
+      // Full ops
+      if (traffic === 'high' || traffic === 'massive') {
+        cards.push({
+          platform: 'VPS (Hetzner / DigitalOcean)',
+          reason: 'Flat monthly pricing. A $12-48/mo server handles millions of requests if your app is efficient. Cheapest option at scale.',
+          warning: 'You own everything: TLS certs, process management, monitoring, security patches, backups. Budget for ops time, not just server cost.'
+        });
+        cards.push({
+          platform: 'AWS (Lambda + CloudFront)',
+          reason: 'Pay-per-request with massive scale ceiling. Cheapest compute at very high volumes if you can handle AWS complexity.',
+          warning: 'AWS billing is notoriously complex. Set billing alerts from day one. Lambda cold starts affect SSR latency.'
+        });
+      } else {
+        cards.push({
+          platform: 'VPS (Hetzner / DigitalOcean)',
+          reason: 'A $6/mo VPS handles this traffic with room to spare. Total cost control with no usage surprises.',
+          warning: 'You\'re the ops team. If you don\'t enjoy server management, this will become a drag on your velocity.'
+        });
+        cards.push({
+          platform: 'Fly.io',
+          reason: 'More managed than a raw VPS, less managed than Railway. Good middle ground with multi-region support.',
+          warning: 'Machines API pricing requires understanding. Test your cost model before committing to production.'
+        });
+      }
+    }
+
+    // Common mistake detection
+    if (traffic === 'massive' && ops === 'zero' && budget === 'free') {
+      mistake = 'You want zero-ops at 10M+ requests on a free budget. This combination doesn\'t exist. At this scale, every platform charges real money. Budget $100-500+/mo minimum, or accept significant operational work to keep costs down with a VPS.';
+    }
+    if (ops === 'zero' && compliance === 'regional') {
+      mistake = 'Zero-ops platforms give you limited control over data residency. Vercel offers region selection on Enterprise. Cloudflare Workers run globally by default. Validate that your chosen platform can actually satisfy your compliance requirements before committing.';
+    }
+  }
+
+  if (previews === 'yes' && cards.length > 0) {
+    const previewPlatforms = ['Vercel', 'Netlify'];
+    const topRec = cards[0].platform;
+    if (!previewPlatforms.some(p => topRec.includes(p))) {
+      const existing = cards[0].warning;
+      cards[0].warning = existing + ' Also: preview deployments per PR aren\'t built-in. You\'ll need to configure them with your CI/CD pipeline.';
+    }
+  }
+
+  if (cards.length === 0) {
+    cards.push({
+      platform: 'No clear recommendation',
+      reason: 'Your combination of requirements did not match any platform profile. Try adjusting your answers or consider a manual evaluation.',
+      warning: 'This typically means your requirements are unusual or conflicting. Consider consulting with a platform engineer.'
+    });
+  }
+
+  return { cards, mistake };
+}
+
+
+/* ============================================
+   5. OPERATIONAL COMPLEXITY SPECTRUM
+   ============================================ */
+let activeSpectrum = null;
+
+function renderSpectrum() {
+  const container = document.getElementById('spectrumPlatforms');
+  container.innerHTML = SPECTRUM_DATA.map((p, i) =>
+    `<div class="spectrum-platform ${activeSpectrum === i ? 'active' : ''}" role="button" tabindex="0"
+      onclick="selectSpectrum(${i})"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSpectrum(${i});}">
+      <div class="sp-name">${p.name}</div>
+      <div class="sp-tag">${p.tag}</div>
+    </div>`
+  ).join('');
+}
+
+function selectSpectrum(idx) {
+  activeSpectrum = activeSpectrum === idx ? null : idx;
+  renderSpectrum();
+
+  const detail = document.getElementById('spectrumDetail');
+  if (activeSpectrum === null) {
+    detail.classList.remove('visible');
+    return;
+  }
+
+  const p = SPECTRUM_DATA[idx];
+  detail.classList.add('visible');
+  detail.innerHTML = `<h4>${p.name}</h4>
+    <div class="spectrum-detail-grid">
+      <div class="spectrum-detail-col col-benefit">
+        <h5>You don't manage</h5>
+        <ul>${p.benefit.map(b => `<li>${b}</li>`).join('')}</ul>
+      </div>
+      <div class="spectrum-detail-col col-tradeoff">
+        <h5>You give up</h5>
+        <ul>${p.tradeoff.map(t => `<li>${t}</li>`).join('')}</ul>
+      </div>
+      <div class="spectrum-detail-col col-team">
+        <h5>Best fit</h5>
+        <ul>${p.team.map(t => `<li>${t}</li>`).join('')}</ul>
+      </div>
+    </div>`;
+}
+
+
+/* ============================================
+   6. VERCEL VS CLOUDFLARE VERDICT
+   ============================================ */
+function updateVsVerdict() {
+  const framework = document.getElementById('vsFramework').value;
+  const scale = document.getElementById('vsScale').value;
+  const budget = document.getElementById('vsBudget').value;
+
+  let platform = 'Vercel';
+  let reason = 'Both platforms are strong choices for your combination. Vercel edges ahead on DX; Cloudflare on cost at scale.';
+
+  // Next.js + DX priority = Vercel
+  if (framework === 'nextjs' && budget === 'dx') {
+    platform = 'Vercel';
+    reason = 'Next.js on Vercel is the most integrated experience available. ISR, Image Optimization, and Middleware work natively without configuration. ';
+    if (scale === 'massive') {
+      reason += 'At 10M+ requests, negotiate an Enterprise plan. The cost will be significant but the DX and feature set are unmatched for Next.js.';
+    } else {
+      reason += 'At your traffic level, Pro plan pricing is reasonable relative to the productivity gains.';
+    }
+  }
+  // High scale + cost priority = Cloudflare
+  else if ((scale === 'high' || scale === 'massive') && budget === 'cost') {
+    platform = 'Cloudflare';
+    reason = `At ${scale === 'massive' ? '10M+' : '1-10M'} requests, Cloudflare's pricing advantage is decisive. Workers cost a fraction of Vercel's serverless functions at scale. `;
+    if (framework === 'nextjs') {
+      reason += 'Next.js on Cloudflare requires the @opennextjs/cloudflare adapter. Not all features work identically, but the cost savings at your scale likely justify the migration effort.';
+    } else {
+      reason += `${framework.charAt(0).toUpperCase() + framework.slice(1)} has good Cloudflare adapter support. The runtime difference (V8 isolates vs Node.js) is the main risk to evaluate.`;
+    }
+  }
+  // Balanced
+  else if (budget === 'balanced') {
+    if (scale === 'low' || scale === 'mid') {
+      if (framework === 'nextjs') {
+        platform = 'Vercel';
+        reason = 'At moderate traffic with balanced priorities, Vercel\'s DX advantage for Next.js outweighs the cost difference. The free/Pro tier handles this traffic well, and the deployment experience is smoother.';
+      } else {
+        platform = 'Cloudflare';
+        reason = `For ${framework === 'static' ? 'static sites' : framework}, Cloudflare Pages offers a generous free tier and lower long-term costs. Without Next.js-specific features driving you to Vercel, Cloudflare is the stronger default.`;
+      }
+    } else {
+      platform = 'Cloudflare';
+      reason = `At ${scale === 'massive' ? '10M+' : '1-10M'} requests with balanced priorities, the cost math favors Cloudflare. The DX gap is narrowing, and the price difference at scale is substantial. `;
+      if (framework === 'nextjs') {
+        reason += 'The main question is whether @opennextjs/cloudflare covers your Next.js feature usage. Test critical paths before committing.';
+      }
+    }
+  }
+  // DX priority for non-Next.js
+  else if (budget === 'dx') {
+    if (framework === 'remix' || framework === 'astro' || framework === 'sveltekit') {
+      platform = 'Vercel';
+      reason = `Vercel supports ${framework} well with zero-config deployment. Their preview deployment workflow and dashboard UX are still a step ahead. `;
+      reason += 'However, the DX advantage over Cloudflare is smaller for non-Next.js frameworks. If cost becomes a concern later, migration to Cloudflare is feasible.';
+    } else {
+      platform = 'Vercel';
+      reason = 'Vercel\'s deployment workflow and dashboard are the best in class for DX. For your framework and scale, the experience justifies the premium.';
+    }
+  }
+  // Cost priority for low/mid scale
+  else {
+    platform = 'Cloudflare';
+    reason = 'When cost is the priority, Cloudflare wins at every scale. Free tier is generous (100K Workers requests/day), and paid pricing is predictable and low. ';
+    reason += 'The tradeoff is runtime compatibility -- audit your dependencies for Node.js built-in usage before committing.';
+  }
+
+  const verdict = document.getElementById('vsVerdict');
+  verdict.innerHTML = `<h4>Given your context:</h4>
+    <div class="verdict-platform" style="color:${platform === 'Vercel' ? 'var(--accent)' : 'var(--accent4)'}">${platform}</div>
+    <div class="verdict-reason">${reason}</div>`;
+}
+
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// Highlight active nav on scroll
+const observer = new IntersectionObserver(entries => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+      const id = entry.target.id;
+      const navMap = {
+        compatibility: 0, cost: 1, lockin: 2, wizard: 3, spectrum: 4, versus: 5
+      };
+      const idx = navMap[id];
+      const btns = document.querySelectorAll('.nav-btn');
+      if (idx !== undefined && btns[idx]) {
+        btns[idx].classList.add('active');
+      }
+    }
+  });
+}, { threshold: 0.3 });
+
+document.querySelectorAll('.section').forEach(s => observer.observe(s));
+
+
+/* ============================================
+   INIT
+   ============================================ */
+[
+  renderStrategyTabs,
+  renderCompatGrid,
+  updateCost,
+  renderLockinTabs,
+  renderLockinFeatures,
+  renderWizard,
+  renderSpectrum,
+  updateVsVerdict
+].forEach(fn => { try { fn(); } catch (e) { console.error('Init failed:', e); } });
+</script>
+</body>
+</html>
