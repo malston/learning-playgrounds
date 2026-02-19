@@ -170,7 +170,9 @@ main {
   border: 1px solid var(--border);
 }
 
-.tooltip:hover::after { opacity: 1; }
+.tooltip:hover::after,
+.tooltip:focus::after,
+.tooltip:focus-within::after { opacity: 1; }
 
 /* ============================================
    1. COMPATIBILITY MATRIX
@@ -970,7 +972,7 @@ footer {
 
   <div class="calc-controls">
     <div class="control-group">
-      <label>Monthly Requests</label>
+      <label for="reqSlider">Monthly Requests</label>
       <div class="value-display" id="reqDisplay">100,000</div>
       <input type="range" id="reqSlider" min="0" max="4" step="1" value="1" oninput="updateCost()">
       <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px;">
@@ -978,7 +980,7 @@ footer {
       </div>
     </div>
     <div class="control-group">
-      <label>Rendering Strategy</label>
+      <label for="costStrategy">Rendering Strategy</label>
       <select id="costStrategy" onchange="updateCost()">
         <option value="ssg">SSG (static only)</option>
         <option value="csr">CSR (static shell + client JS)</option>
@@ -988,12 +990,12 @@ footer {
       </select>
     </div>
     <div class="control-group">
-      <label>SSR Ratio (% hitting compute)</label>
+      <label for="ssrSlider">SSR Ratio (% hitting compute)</label>
       <div class="value-display" id="ssrDisplay">50%</div>
       <input type="range" id="ssrSlider" min="0" max="100" step="5" value="50" oninput="updateCost()">
     </div>
     <div class="control-group">
-      <label>Team Size</label>
+      <label for="teamSlider">Team Size</label>
       <div class="value-display" id="teamDisplay">3</div>
       <input type="range" id="teamSlider" min="1" max="20" step="1" value="3" oninput="updateCost()">
     </div>
@@ -1097,10 +1099,10 @@ footer {
       <tr>
         <td>Runtime</td>
         <td class="neutral">Node.js (familiar)</td>
-        <td class="disadvantage"><span class="tooltip" data-tip="V8 isolates run JavaScript but lack Node.js built-in modules like fs, path, net. npm packages using these will not work without modification.">V8 isolates (not Node)</span></td>
+        <td class="disadvantage"><span class="tooltip" tabindex="0" data-tip="V8 isolates run JavaScript but lack Node.js built-in modules like fs, path, net. npm packages using these will not work without modification.">V8 isolates (not Node)</span></td>
       </tr>
       <tr>
-        <td><span class="tooltip" data-tip="Time for the first request to a function after it has been idle. V8 isolates start nearly instantly; Node.js containers take longer.">Cold starts</span></td>
+        <td><span class="tooltip" tabindex="0" data-tip="Time for the first request to a function after it has been idle. V8 isolates start nearly instantly; Node.js containers take longer.">Cold starts</span></td>
         <td class="disadvantage">Occasional</td>
         <td class="advantage">Near-zero (isolates)</td>
       </tr>
@@ -1436,7 +1438,9 @@ function renderCompatGrid() {
   grid.innerHTML = PLATFORMS.map(p => {
     const c = data[p];
     const statusLabel = { full: 'Compatible', workaround: 'Workaround', none: 'Incompatible' }[c.status];
-    return `<div class="compat-card" data-compat="${c.status}" onclick="showCompatDetail('${p}')">
+    return `<div class="compat-card" data-compat="${c.status}" role="button" tabindex="0"
+      onclick="showCompatDetail('${p}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showCompatDetail('${p}');}">
       <div class="platform-name">${p}</div>
       <span class="compat-status">${statusLabel}</span>
     </div>`;
@@ -1474,7 +1478,7 @@ function calcCosts(requests, strategy, ssrRatio, teamSize) {
   const staticRequests = requests * (1 - ssrFraction);
   const computeRequests = requests * ssrFraction;
 
-  // Vercel: Pro = $20/member/mo + $0.60 per 100K function invocations beyond 1M free
+  // Vercel: Pro = $20/member/mo (free for solo), $0.60/100K invocations beyond 1M, ~$40/TB bandwidth beyond 1M requests
   const vercelBase = teamSize > 1 ? 20 * teamSize : 0;
   const vercelCompute = computeRequests > 1000000
     ? ((computeRequests - 1000000) / 100000) * 0.60
@@ -1484,7 +1488,7 @@ function calcCosts(requests, strategy, ssrRatio, teamSize) {
     : 0;
   const vercel = vercelBase + vercelCompute + vercelBandwidth;
 
-  // Netlify: Pro = $19/member/mo + $25 per 100GB bandwidth beyond 1TB
+  // Netlify: Pro = $19/member/mo + $25 per 100GB bandwidth beyond 1TB + $0.50/100K invocations beyond 500K
   const netlifyBase = teamSize > 1 ? 19 * teamSize : 0;
   const netlifyBandwidthGB = (requests * 0.2) / 1000; // ~200KB avg
   const netlifyOverage = netlifyBandwidthGB > 1000
@@ -1503,7 +1507,7 @@ function calcCosts(requests, strategy, ssrRatio, teamSize) {
     cloudflare = 5 + ((cfRequests - cfFreeDaily) / 1000000) * 0.50;
   }
 
-  // Railway: $5/mo + ~$0.000463/min per vCPU
+  // Railway: $5/mo base + ~$10 per 1M SSR requests (estimated from resource pricing)
   const railwayBase = 5;
   const railwayCompute = computeRequests > 0
     ? Math.max(0, (computeRequests / 1000000) * 10) // ~$10 per 1M SSR requests estimated
@@ -1515,7 +1519,7 @@ function calcCosts(requests, strategy, ssrRatio, teamSize) {
   const renderInstances = Math.max(1, Math.ceil(computeRequests / 2000000));
   const render = strategy === 'ssg' || strategy === 'csr' ? 0 : renderInstance * renderInstances;
 
-  // Fly.io: ~$1.94/mo per shared-1x VM, $0.15/GB bandwidth
+  // Fly.io: ~$3.50/mo per VM, ~$0.02/GB bandwidth
   const flyVMs = Math.max(1, Math.ceil(computeRequests / 1000000));
   const flyBase = strategy === 'ssg' || strategy === 'csr' ? 0 : flyVMs * 3.5;
   const flyBandwidth = (requests * 0.2 / 1000) * 0.02; // $0.02/GB approx
@@ -1549,11 +1553,15 @@ function calcCosts(requests, strategy, ssrRatio, teamSize) {
 
 function updateCost() {
   const reqIdx = parseInt(document.getElementById('reqSlider').value);
-  const requests = REQUEST_TIERS[reqIdx];
   const strategy = document.getElementById('costStrategy').value;
   const ssrRatio = parseInt(document.getElementById('ssrSlider').value);
   const teamSize = parseInt(document.getElementById('teamSlider').value);
 
+  if (isNaN(reqIdx) || reqIdx < 0 || reqIdx >= REQUEST_TIERS.length || isNaN(ssrRatio) || isNaN(teamSize)) {
+    return;
+  }
+
+  const requests = REQUEST_TIERS[reqIdx];
   document.getElementById('reqDisplay').textContent = requests.toLocaleString();
   document.getElementById('ssrDisplay').textContent = ssrRatio + '%';
   document.getElementById('teamDisplay').textContent = teamSize;
@@ -1954,6 +1962,14 @@ function computeRecommendation(a) {
     }
   }
 
+  if (cards.length === 0) {
+    cards.push({
+      platform: 'No clear recommendation',
+      reason: 'Your combination of requirements did not match any platform profile. Try adjusting your answers or consider a manual evaluation.',
+      warning: 'This typically means your requirements are unusual or conflicting. Consider consulting with a platform engineer.'
+    });
+  }
+
   return { cards, mistake };
 }
 
@@ -1966,7 +1982,9 @@ let activeSpectrum = null;
 function renderSpectrum() {
   const container = document.getElementById('spectrumPlatforms');
   container.innerHTML = SPECTRUM_DATA.map((p, i) =>
-    `<div class="spectrum-platform ${activeSpectrum === i ? 'active' : ''}" onclick="selectSpectrum(${i})">
+    `<div class="spectrum-platform ${activeSpectrum === i ? 'active' : ''}" role="button" tabindex="0"
+      onclick="selectSpectrum(${i})"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSpectrum(${i});}">
       <div class="sp-name">${p.name}</div>
       <div class="sp-tag">${p.tag}</div>
     </div>`
@@ -2011,7 +2029,8 @@ function updateVsVerdict() {
   const scale = document.getElementById('vsScale').value;
   const budget = document.getElementById('vsBudget').value;
 
-  let platform, reason;
+  let platform = 'Vercel';
+  let reason = 'Both platforms are strong choices for your combination. Vercel edges ahead on DX; Cloudflare on cost at scale.';
 
   // Next.js + DX priority = Vercel
   if (framework === 'nextjs' && budget === 'dx') {
@@ -2080,7 +2099,8 @@ function updateVsVerdict() {
    NAVIGATION
    ============================================ */
 function scrollToSection(id) {
-  document.getElementById(id).scrollIntoView({ behavior: 'smooth' });
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
 }
 
 // Highlight active nav on scroll
@@ -2093,8 +2113,9 @@ const observer = new IntersectionObserver(entries => {
         compatibility: 0, cost: 1, lockin: 2, wizard: 3, spectrum: 4, versus: 5
       };
       const idx = navMap[id];
-      if (idx !== undefined) {
-        document.querySelectorAll('.nav-btn')[idx].classList.add('active');
+      const btns = document.querySelectorAll('.nav-btn');
+      if (idx !== undefined && btns[idx]) {
+        btns[idx].classList.add('active');
       }
     }
   });
@@ -2106,14 +2127,16 @@ document.querySelectorAll('.section').forEach(s => observer.observe(s));
 /* ============================================
    INIT
    ============================================ */
-renderStrategyTabs();
-renderCompatGrid();
-updateCost();
-renderLockinTabs();
-renderLockinFeatures();
-renderWizard();
-renderSpectrum();
-updateVsVerdict();
+[
+  renderStrategyTabs,
+  renderCompatGrid,
+  updateCost,
+  renderLockinTabs,
+  renderLockinFeatures,
+  renderWizard,
+  renderSpectrum,
+  updateVsVerdict
+].forEach(fn => { try { fn(); } catch (e) { console.error('Init failed:', e); } });
 </script>
 </body>
 </html>
