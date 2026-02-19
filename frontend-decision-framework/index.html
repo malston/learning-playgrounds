@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontend Decision Framework</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0d1117;--surface:#161b22;--border:#30363d;
+  --text:#e6edf3;--text-dim:#8b949e;--accent:#58a6ff;
+  --green:#3fb950;--cyan:#7dcfff;
+}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px}
+h1{font-size:20px;margin-bottom:8px}
+p{font-size:13px;color:var(--text-dim);margin-bottom:24px}
+.links{display:flex;flex-direction:column;gap:12px;width:100%;max-width:480px}
+a{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:20px;text-decoration:none;color:inherit;transition:border-color .15s,transform .15s;display:block}
+a:hover{border-color:var(--accent);transform:translateY(-2px)}
+a h2{font-size:15px;color:var(--accent);margin-bottom:4px}
+a span{font-size:12px;color:var(--text-dim)}
+.back{margin-top:24px;font-size:12px;color:var(--text-dim);text-decoration:none}
+.back:hover{color:var(--accent)}
+</style>
+</head>
+<body>
+<h1>Frontend Decision Framework</h1>
+<p>Two interactive tools for frontend architecture decisions.</p>
+<div class="links">
+  <a href="frontend-decision-playground.html">
+    <h2>Decision Playground</h2>
+    <span>Rendering strategy visualizer, meta-framework bracket, and org structure cards</span>
+  </a>
+  <a href="frontend-reference.html">
+    <h2>Ecosystem Reference</h2>
+    <span>Comprehensive reference for frontend frameworks, build tools, and rendering strategies</span>
+  </a>
+</div>
+<a class="back" href="../">&larr; All Playgrounds</a>
+</body>
+</html>
