@@ -1,0 +1,1226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Modern Frontend Ecosystem — Field Guide</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e17;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1f2d45;
+    --accent: #38bdf8;
+    --accent2: #a78bfa;
+    --accent3: #34d399;
+    --accent4: #fb923c;
+    --accent5: #f472b6;
+    --text: #e2e8f0;
+    --text-muted: #64748b;
+    --text-dim: #94a3b8;
+    --code-bg: #0d1117;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    line-height: 1.6;
+    padding: 40px 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* HEADER */
+  header {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: end;
+    margin-bottom: 48px;
+    padding-bottom: 32px;
+    border-bottom: 1px solid var(--border);
+    gap: 24px;
+  }
+
+  .header-title {
+    font-family: 'Syne', sans-serif;
+    font-size: clamp(28px, 5vw, 52px);
+    font-weight: 800;
+    line-height: 1.05;
+    letter-spacing: -0.03em;
+  }
+
+  .title-line1 { color: var(--text); }
+  .title-line2 {
+    background: linear-gradient(90deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .header-meta {
+    text-align: right;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.8;
+  }
+
+  .header-meta span { color: var(--accent3); }
+
+  /* GRID LAYOUT */
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-wide {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid-4 {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  @media (max-width: 1100px) {
+    .grid-wide { grid-template-columns: 1fr 1fr; }
+    .grid-4 { grid-template-columns: repeat(2, 1fr); }
+  }
+  @media (max-width: 700px) {
+    .grid-wide, .grid-4, .grid { grid-template-columns: 1fr; }
+  }
+
+  /* SECTION HEADER */
+  .section-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 40px 0 16px;
+    font-family: 'Syne', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+  }
+
+  .section-header::before {
+    content: '';
+    display: block;
+    width: 24px;
+    height: 1px;
+    background: var(--text-muted);
+  }
+
+  .section-header::after {
+    content: '';
+    display: block;
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  /* CARD */
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 2px;
+  }
+
+  .card.blue::before   { background: linear-gradient(90deg, var(--accent), transparent); }
+  .card.purple::before { background: linear-gradient(90deg, var(--accent2), transparent); }
+  .card.green::before  { background: linear-gradient(90deg, var(--accent3), transparent); }
+  .card.orange::before { background: linear-gradient(90deg, var(--accent4), transparent); }
+  .card.pink::before   { background: linear-gradient(90deg, var(--accent5), transparent); }
+  .card.multi::before  { background: linear-gradient(90deg, var(--accent), var(--accent2), var(--accent3)); }
+
+  .card-title {
+    font-family: 'Syne', sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    margin-bottom: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    font-weight: 700;
+  }
+
+  .badge-new    { background: rgba(52, 211, 153, 0.15); color: var(--accent3); border: 1px solid rgba(52,211,153,0.3); }
+  .badge-hot    { background: rgba(251, 146, 60, 0.15); color: var(--accent4); border: 1px solid rgba(251,146,60,0.3); }
+  .badge-stable { background: rgba(56, 189, 248, 0.15); color: var(--accent); border: 1px solid rgba(56,189,248,0.3); }
+  .badge-legacy { background: rgba(100, 116, 139, 0.15); color: var(--text-muted); border: 1px solid rgba(100,116,139,0.3); }
+  .badge-avoid  { background: rgba(244, 63, 94, 0.15); color: #fb7185; border: 1px solid rgba(244,63,94,0.3); }
+
+  /* COMPARISON TABLE */
+  .cmp-table { width: 100%; border-collapse: collapse; }
+  .cmp-table th {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    text-align: left;
+    padding: 4px 8px 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cmp-table td {
+    padding: 8px;
+    font-size: 13px;
+    border-bottom: 1px solid rgba(31, 45, 69, 0.5);
+    vertical-align: top;
+  }
+  .cmp-table tr:last-child td { border-bottom: none; }
+  .cmp-table .tool-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    white-space: nowrap;
+  }
+  .cmp-table .rating { font-size: 11px; color: var(--text-muted); }
+
+  /* TOOL GRID */
+  .tool-list { display: flex; flex-direction: column; gap: 8px; }
+
+  .tool-item {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 12px;
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .tool-name {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  .tool-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  /* TAGS */
+  .tag {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  /* CODE */
+  code {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    padding: 1px 5px;
+    border-radius: 3px;
+    color: var(--accent3);
+    border: 1px solid var(--border);
+  }
+
+  pre {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    background: var(--code-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px;
+    overflow-x: auto;
+    line-height: 1.7;
+    color: #c9d1d9;
+    margin-top: 10px;
+  }
+
+  pre .kw   { color: #ff79c6; }
+  pre .str  { color: #f1fa8c; }
+  pre .fn   { color: #50fa7b; }
+  pre .cm   { color: #6272a4; font-style: italic; }
+  pre .imp  { color: var(--accent4); }
+  pre .var  { color: #8be9fd; }
+  pre .op   { color: #bd93f9; }
+
+  /* CHOICE CARDS */
+  .choice-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  .choice-card {
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+
+  .choice-card .when {
+    font-size: 11px;
+    color: var(--text-muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .choice-card .pick {
+    font-family: 'JetBrains Mono', monospace;
+    font-weight: 700;
+    font-size: 15px;
+    margin-bottom: 4px;
+  }
+
+  .choice-card .reason {
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+
+  /* TREND BARS */
+  .trend-list { display: flex; flex-direction: column; gap: 10px; margin-top: 4px; }
+
+  .trend-item { display: flex; flex-direction: column; gap: 4px; }
+
+  .trend-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+  }
+
+  .trend-name { font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+  .trend-pct { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--text-muted); }
+
+  .trend-bar {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+
+  .trend-fill {
+    height: 100%;
+    border-radius: 2px;
+    transition: width 0.3s ease;
+  }
+
+  /* WHAT'S CHANGED callout */
+  .callout {
+    background: rgba(56, 189, 248, 0.05);
+    border: 1px solid rgba(56, 189, 248, 0.2);
+    border-radius: 6px;
+    padding: 12px 14px;
+    margin-top: 10px;
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.6;
+  }
+
+  .callout strong { color: var(--accent); font-weight: 500; }
+
+  .callout-warn {
+    background: rgba(251, 146, 60, 0.05);
+    border-color: rgba(251, 146, 60, 0.2);
+  }
+  .callout-warn strong { color: var(--accent4); }
+
+  .callout-green {
+    background: rgba(52, 211, 153, 0.05);
+    border-color: rgba(52, 211, 153, 0.2);
+  }
+  .callout-green strong { color: var(--accent3); }
+
+  /* DIVIDER */
+  hr { border: none; border-top: 1px solid var(--border); margin: 32px 0; }
+
+  /* CHECKLIST */
+  .checklist { list-style: none; display: flex; flex-direction: column; gap: 6px; }
+  .checklist li {
+    display: flex;
+    gap: 8px;
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.4;
+  }
+  .checklist li::before {
+    content: '→';
+    color: var(--accent3);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 1px;
+  }
+
+  /* PILL GROUPS */
+  .pill-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+  }
+
+  .pill {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: var(--surface2);
+    color: var(--text-dim);
+    cursor: default;
+  }
+
+  .pill.blue   { border-color: rgba(56,189,248,0.4); color: var(--accent); background: rgba(56,189,248,0.08); }
+  .pill.purple { border-color: rgba(167,139,250,0.4); color: var(--accent2); background: rgba(167,139,250,0.08); }
+  .pill.green  { border-color: rgba(52,211,153,0.4); color: var(--accent3); background: rgba(52,211,153,0.08); }
+  .pill.orange { border-color: rgba(251,146,60,0.4); color: var(--accent4); background: rgba(251,146,60,0.08); }
+
+  /* SUBTITLE */
+  .subtitle {
+    font-size: 12px;
+    color: var(--text-muted);
+    margin-bottom: 12px;
+    font-style: italic;
+  }
+
+  /* VERSUS */
+  .vs-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+    margin: 6px 0;
+    font-size: 12px;
+  }
+  .vs-left { color: var(--text-dim); }
+  .vs-right { color: var(--text-dim); text-align: right; }
+  .vs-label {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    color: var(--text-muted);
+    text-align: center;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+    padding: 1px 5px;
+    white-space: nowrap;
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <div class="header-title">
+      <div class="title-line1">Modern Frontend</div>
+      <div class="title-line2">Ecosystem Field Guide</div>
+    </div>
+    <div style="margin-top:12px; font-size:13px; color:var(--text-muted); max-width:520px;">
+      A reference for engineers returning to the JS ecosystem — covering build tools, frameworks, state management, TypeScript, and toolchain conventions as of 2025.
+    </div>
+  </div>
+  <div class="header-meta">
+    <div><span>updated</span> 2025</div>
+    <div><span>stack</span> React / Vite / TypeScript</div>
+    <div><span>target</span> re-entry reference</div>
+  </div>
+</header>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: BUILD TOOLS
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Build Tools &amp; Bundlers</div>
+
+<div class="grid">
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">
+      vite <span class="badge badge-hot">Default Pick</span>
+    </div>
+    <div class="subtitle">The modern dev server + bundler for web apps</div>
+    <table class="cmp-table">
+      <tr>
+        <th>Tool</th><th>Role</th><th>When to use</th>
+      </tr>
+      <tr>
+        <td class="tool-name" style="color:var(--accent)">Vite</td>
+        <td><span class="tag">app bundler</span></td>
+        <td class="tool-desc">New React/Vue/Svelte apps. Best DX, fast HMR.</td>
+      </tr>
+      <tr>
+        <td class="tool-name" style="color:#bd93f9">Webpack</td>
+        <td><span class="tag">app bundler</span></td>
+        <td class="tool-desc">Legacy projects only. Module Federation if needed.</td>
+      </tr>
+      <tr>
+        <td class="tool-name" style="color:var(--accent3)">esbuild</td>
+        <td><span class="tag">low-level</span></td>
+        <td class="tool-desc">Library/CLI bundling. Used inside Vite/Bun.</td>
+      </tr>
+      <tr>
+        <td class="tool-name" style="color:var(--accent4)">Rollup</td>
+        <td><span class="tag">lib bundler</span></td>
+        <td class="tool-desc">Publishing npm packages. Better tree-shaking than esbuild.</td>
+      </tr>
+      <tr>
+        <td class="tool-name" style="color:var(--accent5)">Bun</td>
+        <td><span class="tag">runtime + tools</span></td>
+        <td class="tool-desc">Replace Node + npm + bundler with one binary.</td>
+      </tr>
+    </table>
+    <div class="callout">
+      <strong>Vite's trick:</strong> Uses esbuild for dev (fast) and Rollup for prod (optimized). You get the best of both without configuration.
+    </div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">What changed since ~2019</div>
+    <ul class="checklist">
+      <li>Webpack is no longer the default — Vite dominates new projects</li>
+      <li>esbuild (Go-based) made 100x faster builds mainstream</li>
+      <li>Native ES modules in browsers eliminated many bundling workarounds</li>
+      <li>Bun emerged as a Node.js replacement (runtime + package manager)</li>
+      <li>Turbopack (Rust) is Next.js's future bundler, still maturing</li>
+      <li>Package managers: npm is fine, but pnpm is preferred in monorepos</li>
+    </ul>
+    <div class="callout">
+      <strong>pnpm</strong> is now widely preferred over npm/yarn for monorepos — uses content-addressable storage, saves disk space, and is significantly faster.
+    </div>
+  </div>
+
+</div>
+
+<div class="grid-wide">
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">Quick Setup</div>
+    <pre><span class="cm"># Start a new project</span>
+<span class="fn">npm</span> create vite@latest my-app -- --template react-ts
+<span class="fn">cd</span> my-app && <span class="fn">npm</span> install && <span class="fn">npm</span> run dev
+
+<span class="cm"># Or with Bun (faster)</span>
+<span class="fn">bun</span> create vite my-app --template react-ts
+<span class="fn">bun</span> dev</pre>
+  </div>
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">vite.config.ts anatomy</div>
+    <pre><span class="kw">import</span> { <span class="var">defineConfig</span> } <span class="kw">from</span> <span class="str">'vite'</span>
+<span class="kw">import</span> <span class="var">react</span> <span class="kw">from</span> <span class="str">'@vitejs/plugin-react'</span>
+
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  plugins: [<span class="fn">react</span>()],
+  server: { port: <span class="imp">3000</span>, proxy: {
+    <span class="str">'/api'</span>: <span class="str">'http://localhost:8080'</span>
+  }},
+  build: { outDir: <span class="str">'dist'</span>, sourcemap: <span class="kw">true</span> }
+})</pre>
+  </div>
+
+  <div class="card orange">
+    <div class="card-title" style="color:var(--accent4)">Package Manager Cheat</div>
+    <pre><span class="cm"># npm equivalents with pnpm</span>
+npm install       → <span class="fn">pnpm</span> install
+npm install pkg   → <span class="fn">pnpm</span> add pkg
+npm run dev       → <span class="fn">pnpm</span> dev
+npx vite          → <span class="fn">pnpm</span> dlx vite
+
+<span class="cm"># Workspace (monorepo) filter</span>
+<span class="fn">pnpm</span> --filter my-app add lodash</pre>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: FRAMEWORKS
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Frameworks &amp; Meta-Frameworks</div>
+
+<div class="grid-4">
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">
+      React 19 <span class="badge badge-stable">Stable</span>
+    </div>
+    <div class="subtitle">Still dominant, but significantly evolved</div>
+    <ul class="checklist">
+      <li>Server Components (RSC) — components run on server, no client JS</li>
+      <li><code>useActionState</code> — form actions & optimistic updates</li>
+      <li>Compiler (React Forget) — auto-memoization, eliminates useMemo/useCallback boilerplate</li>
+      <li>New hooks: <code>use()</code>, <code>useOptimistic()</code>, <code>useFormStatus()</code></li>
+    </ul>
+    <div class="callout callout-warn">
+      <strong>Class components</strong> are legacy. Everything is hooks. React 18 concurrent features (Suspense, transitions) are now standard.
+    </div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">
+      Next.js 15 <span class="badge badge-hot">Go-to for React</span>
+    </div>
+    <div class="subtitle">Meta-framework with SSR, SSG, RSC built in</div>
+    <ul class="checklist">
+      <li>App Router (new) vs Pages Router (legacy) — use App Router</li>
+      <li>Layouts, loading.tsx, error.tsx, not-found.tsx as file conventions</li>
+      <li>Server Actions: handle form submissions without API routes</li>
+      <li>Partial Prerendering (PPR) — mixes static + dynamic per-component</li>
+    </ul>
+    <div class="callout">
+      <strong>App Router paradigm shift:</strong> Components are server by default. Add <code>'use client'</code> at the top only when you need interactivity or browser APIs.
+    </div>
+  </div>
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">
+      Vue 3 / Nuxt 3 <span class="badge badge-stable">Stable</span>
+    </div>
+    <div class="subtitle">If you want less ceremony than React</div>
+    <ul class="checklist">
+      <li>Composition API (like React hooks but arguably cleaner)</li>
+      <li><code>&lt;script setup&gt;</code> — less boilerplate than Options API</li>
+      <li>Nuxt 3 is the Next.js equivalent for Vue</li>
+      <li>Pinia replaces Vuex for state management</li>
+    </ul>
+    <div class="callout callout-green">
+      <strong>Good fit</strong> if building internal dashboards or tooling UIs — less opinionated, gentler learning curve than React 19's RSC model.
+    </div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-title" style="color:var(--accent4)">
+      Svelte 5 / SvelteKit <span class="badge badge-new">Runes</span>
+    </div>
+    <div class="subtitle">Compiler-based — no virtual DOM</div>
+    <ul class="checklist">
+      <li>Svelte 5 introduces Runes — new reactive primitives (<code>$state</code>, <code>$derived</code>)</li>
+      <li>Smallest bundle sizes — compiles away the framework</li>
+      <li>SvelteKit = Next.js equivalent for Svelte</li>
+      <li>Steeper learning curve if you're React-brained</li>
+    </ul>
+    <div class="callout callout-warn">
+      <strong>Worth knowing about</strong> but not the go-to unless you specifically want tiny bundles or enjoy the compiler-first approach.
+    </div>
+  </div>
+
+</div>
+
+<!-- Next.js App Router quick ref -->
+<div class="grid">
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">Next.js App Router File Conventions</div>
+    <pre>app/
+├── layout.tsx        <span class="cm"># Root shell, persists across routes</span>
+├── page.tsx          <span class="cm"># Route component → /</span>
+├── loading.tsx       <span class="cm"># Suspense fallback</span>
+├── error.tsx         <span class="cm"># Error boundary ('use client')</span>
+├── not-found.tsx     <span class="cm"># 404</span>
+├── route.ts          <span class="cm"># API route (GET, POST handlers)</span>
+└── dashboard/
+    ├── layout.tsx    <span class="cm"># Nested layout</span>
+    └── [id]/
+        └── page.tsx  <span class="cm"># Dynamic route → /dashboard/:id</span></pre>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">Server vs Client Components</div>
+    <pre><span class="cm">// Server Component (default) — runs on server</span>
+<span class="cm">// Can: async/await, DB access, env vars (secure)</span>
+<span class="cm">// Cannot: useState, useEffect, event handlers</span>
+<span class="kw">async function</span> <span class="fn">Page</span>() {
+  <span class="kw">const</span> <span class="var">data</span> = <span class="kw">await</span> <span class="fn">fetchFromDB</span>()
+  <span class="kw">return</span> &lt;<span class="imp">div</span>&gt;{data}&lt;/<span class="imp">div</span>&gt;
+}
+
+<span class="cm">// Client Component — runs in browser</span>
+<span class="cm">// Can: useState, useEffect, event handlers</span>
+<span class="str">'use client'</span>
+<span class="kw">import</span> { <span class="var">useState</span> } <span class="kw">from</span> <span class="str">'react'</span>
+<span class="kw">function</span> <span class="fn">Counter</span>() {
+  <span class="kw">const</span> [<span class="var">n</span>, <span class="fn">setN</span>] = <span class="fn">useState</span>(<span class="imp">0</span>)
+  <span class="kw">return</span> &lt;<span class="imp">button</span> onClick={() =&gt; <span class="fn">setN</span>(n+<span class="imp">1</span>)}&gt;{n}&lt;/<span class="imp">button</span>&gt;
+}</pre>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: STATE MANAGEMENT
+═══════════════════════════════════════════════════ -->
+<div class="section-header">State Management</div>
+
+<div class="grid-wide">
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">
+      Server State — the big shift
+    </div>
+    <div class="subtitle">Most "state" in apps is really async server data. Don't put it in Redux.</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">TanStack Query</div>
+        <div class="tool-desc">Fetching, caching, invalidation, background refresh. The go-to.</div>
+        <span class="badge badge-hot">Default</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">SWR</div>
+        <div class="tool-desc">Simpler alternative by Vercel. Good for Next.js projects.</div>
+        <span class="badge badge-stable">Good</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">RTK Query</div>
+        <div class="tool-desc">Redux Toolkit's server state layer. Only if you already use RTK.</div>
+        <span class="badge badge-stable">Ok</span>
+      </div>
+    </div>
+    <pre style="margin-top:12px"><span class="kw">const</span> { <span class="var">data</span>, <span class="var">isPending</span>, <span class="var">error</span> } = <span class="fn">useQuery</span>({
+  queryKey: [<span class="str">'todos'</span>, userId],
+  queryFn: () =&gt; <span class="fn">fetch</span>(<span class="str">`/api/todos/${userId}`</span>).<span class="fn">then</span>(r =&gt; r.<span class="fn">json</span>())
+})</pre>
+  </div>
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">
+      Client State — much lighter now
+    </div>
+    <div class="subtitle">Redux was over-used. Most client state can be local or URL-based.</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">useState / useReducer</div>
+        <div class="tool-desc">Component-local state. Sufficient for 80% of cases.</div>
+        <span class="badge badge-stable">Start here</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Zustand</div>
+        <div class="tool-desc">Minimal global store. No boilerplate. Replaces Redux for most apps.</div>
+        <span class="badge badge-hot">Preferred</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Jotai / Recoil</div>
+        <div class="tool-desc">Atomic state. Fine-grained reactivity. Jotai > Recoil now.</div>
+        <span class="badge badge-new">Atomic</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Redux Toolkit</div>
+        <div class="tool-desc">Redux done right. Only reach for it on large team projects.</div>
+        <span class="badge badge-legacy">Large apps</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">URL &amp; Form State</div>
+    <div class="subtitle">Often overlooked — serialize state into URL params</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">nuqs</div>
+        <div class="tool-desc">Type-safe URL search params as React state. Incredible DX.</div>
+        <span class="badge badge-new">New</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">React Hook Form</div>
+        <div class="tool-desc">Forms with minimal re-renders. Works great with Zod validation.</div>
+        <span class="badge badge-hot">Default</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Zod</div>
+        <div class="tool-desc">TypeScript-first schema validation. Use everywhere: forms, API responses.</div>
+        <span class="badge badge-hot">Essential</span>
+      </div>
+    </div>
+    <div class="callout callout-green">
+      <strong>Pattern:</strong> Zod schema → infer TypeScript type → feed into React Hook Form resolver. Type-safe forms with zero manual typing.
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: TYPESCRIPT
+═══════════════════════════════════════════════════ -->
+<div class="section-header">TypeScript — Now Mandatory</div>
+
+<div class="grid">
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">Essential Patterns</div>
+    <pre><span class="cm">// 1. Infer types from Zod schemas</span>
+<span class="kw">import</span> { <span class="var">z</span> } <span class="kw">from</span> <span class="str">'zod'</span>
+<span class="kw">const</span> <span class="var">UserSchema</span> = z.<span class="fn">object</span>({
+  id: z.<span class="fn">string</span>(),
+  name: z.<span class="fn">string</span>().<span class="fn">min</span>(<span class="imp">1</span>),
+  role: z.<span class="fn">enum</span>([<span class="str">'admin'</span>, <span class="str">'user'</span>])
+})
+<span class="kw">type</span> <span class="var">User</span> = z.<span class="var">infer</span>&lt;<span class="kw">typeof</span> <span class="var">UserSchema</span>&gt;
+
+<span class="cm">// 2. Discriminated unions for component variants</span>
+<span class="kw">type</span> <span class="var">Status</span> =
+  | { state: <span class="str">'loading'</span> }
+  | { state: <span class="str">'error'</span>; message: <span class="var">string</span> }
+  | { state: <span class="str">'success'</span>; data: <span class="var">User</span>[] }
+
+<span class="cm">// 3. Satisfies — validate without widening type</span>
+<span class="kw">const</span> <span class="var">config</span> = {
+  theme: <span class="str">'dark'</span>, port: <span class="imp">3000</span>
+} <span class="kw">satisfies</span> <span class="var">Config</span> <span class="cm">// still infers exact type</span>
+
+<span class="cm">// 4. Template literal types</span>
+<span class="kw">type</span> <span class="var">EventName</span> = <span class="str">`on${Capitalize&lt;string&gt;}`</span></pre>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">tsconfig.json — modern defaults</div>
+    <pre>{
+  <span class="str">"compilerOptions"</span>: {
+    <span class="str">"target"</span>: <span class="str">"ES2022"</span>,
+    <span class="str">"lib"</span>: [<span class="str">"dom"</span>, <span class="str">"dom.iterable"</span>, <span class="str">"ES2022"</span>],
+    <span class="str">"module"</span>: <span class="str">"ESNext"</span>,
+    <span class="str">"moduleResolution"</span>: <span class="str">"bundler"</span>, <span class="cm">// NEW</span>
+    <span class="str">"strict"</span>: <span class="kw">true</span>,              <span class="cm">// always</span>
+    <span class="str">"noUncheckedIndexedAccess"</span>: <span class="kw">true</span>, <span class="cm">// catches arr[i]</span>
+    <span class="str">"exactOptionalPropertyTypes"</span>: <span class="kw">true</span>,
+    <span class="str">"verbatimModuleSyntax"</span>: <span class="kw">true</span>,  <span class="cm">// NEW in 5.x</span>
+    <span class="str">"paths"</span>: { <span class="str">"@/*"</span>: [<span class="str">"./src/*"</span>] }
+  }
+}</pre>
+    <div class="callout">
+      <strong>moduleResolution: "bundler"</strong> is new in TS 5 — handles the way Vite/esbuild resolve imports. Use this instead of "node16".
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: STYLING
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Styling Approaches</div>
+
+<div class="grid-4">
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">
+      Tailwind CSS <span class="badge badge-hot">Dominant</span>
+    </div>
+    <div class="subtitle">Utility-first. Write styles inline in JSX.</div>
+    <ul class="checklist">
+      <li>No context switching between CSS and JSX</li>
+      <li>PurgeCSS built in — tiny production bundles</li>
+      <li>v4 uses CSS-native cascade layers, no config file</li>
+      <li>Combine with <code>clsx</code> + <code>tailwind-merge</code> for conditional classes</li>
+    </ul>
+    <pre><span class="cm">// clsx + tailwind-merge pattern</span>
+<span class="kw">import</span> { <span class="var">clsx</span> } <span class="kw">from</span> <span class="str">'clsx'</span>
+<span class="kw">import</span> { <span class="var">twMerge</span> } <span class="kw">from</span> <span class="str">'tailwind-merge'</span>
+<span class="kw">const</span> <span class="var">cn</span> = (...<span class="var">inputs</span>) =&gt; <span class="fn">twMerge</span>(<span class="fn">clsx</span>(<span class="var">inputs</span>))</pre>
+  </div>
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">
+      CSS Modules <span class="badge badge-stable">Safe</span>
+    </div>
+    <div class="subtitle">Scoped CSS. Co-located with components.</div>
+    <pre><span class="cm">/* Button.module.css */</span>
+.<span class="fn">btn</span> { padding: <span class="imp">8px 16px</span>; }
+.<span class="fn">primary</span> { background: blue; }
+
+<span class="cm">// Button.tsx</span>
+<span class="kw">import</span> <span class="var">s</span> <span class="kw">from</span> <span class="str">'./Button.module.css'</span>
+<span class="kw">const</span> <span class="fn">Button</span> = () =&gt; (
+  &lt;<span class="imp">button</span> className={<span class="str">`${<span class="var">s</span>.btn} ${<span class="var">s</span>.primary}`</span>}&gt;
+    Click
+  &lt;/<span class="imp">button</span>&gt;
+)</pre>
+    <div class="callout">Good when Tailwind is too opinionated or you need complex animations.</div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">
+      CSS-in-JS <span class="badge badge-legacy">Declining</span>
+    </div>
+    <div class="subtitle">Styled-components / Emotion</div>
+    <ul class="checklist">
+      <li>Runtime overhead kills performance with RSC</li>
+      <li>Not compatible with React Server Components</li>
+      <li>Linaria / Panda CSS are compile-time alternatives</li>
+      <li>Avoid for new projects unless you have a strong reason</li>
+    </ul>
+    <div class="callout callout-warn">
+      <strong>RSC incompatibility</strong> is the killer — styled-components requires React context which only works in client components.
+    </div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-title" style="color:var(--accent4)">
+      Component Libraries
+    </div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name" style="font-size:12px">shadcn/ui</div>
+        <div class="tool-desc">Copy-paste components into your repo. Not a dep. Tailwind-based.</div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name" style="font-size:12px">Radix UI</div>
+        <div class="tool-desc">Unstyled accessible primitives. Base for shadcn.</div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name" style="font-size:12px">MUI / Ant Design</div>
+        <div class="tool-desc">Full component suites. Heavier but comprehensive.</div>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name" style="font-size:12px">Headless UI</div>
+        <div class="tool-desc">Tailwind Labs' unstyled components. Good with Tailwind.</div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: TESTING
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Testing</div>
+
+<div class="grid-wide">
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">
+      Vitest <span class="badge badge-hot">Replaces Jest</span>
+    </div>
+    <div class="subtitle">Jest-compatible API, Vite-native, massively faster</div>
+    <pre><span class="cm">// vitest.config.ts</span>
+<span class="kw">import</span> { <span class="var">defineConfig</span> } <span class="kw">from</span> <span class="str">'vitest/config'</span>
+<span class="kw">export default</span> <span class="fn">defineConfig</span>({
+  test: { environment: <span class="str">'jsdom'</span>, globals: <span class="kw">true</span>,
+          setupFiles: [<span class="str">'./src/test-setup.ts'</span>] }
+})
+
+<span class="cm">// test file — same API as Jest</span>
+<span class="kw">import</span> { <span class="fn">describe</span>, <span class="fn">it</span>, <span class="fn">expect</span>, <span class="fn">vi</span> } <span class="kw">from</span> <span class="str">'vitest'</span>
+<span class="fn">describe</span>(<span class="str">'add'</span>, () =&gt; {
+  <span class="fn">it</span>(<span class="str">'sums numbers'</span>, () =&gt; {
+    <span class="fn">expect</span>(<span class="fn">add</span>(<span class="imp">1</span>, <span class="imp">2</span>)).<span class="fn">toBe</span>(<span class="imp">3</span>)
+  })
+})</pre>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">
+      Testing Library <span class="badge badge-stable">Standard</span>
+    </div>
+    <div class="subtitle">Test components as users interact with them</div>
+    <pre><span class="kw">import</span> { <span class="fn">render</span>, <span class="fn">screen</span>, <span class="fn">userEvent</span> }
+  <span class="kw">from</span> <span class="str">'@testing-library/react'</span>
+
+<span class="fn">it</span>(<span class="str">'increments counter'</span>, <span class="kw">async</span> () =&gt; {
+  <span class="fn">render</span>(&lt;<span class="imp">Counter</span> /&gt;)
+  <span class="kw">await</span> userEvent.<span class="fn">click</span>(<span class="fn">screen.getByRole</span>(<span class="str">'button'</span>))
+  <span class="fn">expect</span>(<span class="fn">screen.getByText</span>(<span class="str">'1'</span>)).<span class="fn">toBeInTheDocument</span>()
+})
+
+<span class="cm">// Prefer: getByRole, getByLabelText, getByText</span>
+<span class="cm">// Avoid:  getByTestId (couples tests to impl)</span></pre>
+  </div>
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">
+      Playwright <span class="badge badge-hot">E2E Standard</span>
+    </div>
+    <div class="subtitle">Replaces Cypress for most new projects</div>
+    <pre><span class="kw">import</span> { <span class="fn">test</span>, <span class="fn">expect</span> } <span class="kw">from</span> <span class="str">'@playwright/test'</span>
+
+<span class="fn">test</span>(<span class="str">'login flow'</span>, <span class="kw">async</span> ({ <span class="var">page</span> }) =&gt; {
+  <span class="kw">await</span> page.<span class="fn">goto</span>(<span class="str">'/login'</span>)
+  <span class="kw">await</span> page.<span class="fn">fill</span>(<span class="str">'[name=email]'</span>, <span class="str">'user@test.com'</span>)
+  <span class="kw">await</span> page.<span class="fn">click</span>(<span class="str">'button[type=submit]'</span>)
+  <span class="kw">await</span> <span class="fn">expect</span>(page).<span class="fn">toHaveURL</span>(<span class="str">'/dashboard'</span>)
+})</pre>
+    <div class="callout callout-green">
+      <strong>Playwright vs Cypress:</strong> Playwright supports multiple browsers, is faster, and has better async handling. It's the default choice for new projects.
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: ECOSYSTEM QUICK REF
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Ecosystem Quick Reference</div>
+
+<div class="grid">
+  <div class="card multi">
+    <div class="card-title">Routing</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">TanStack Router</div>
+        <div class="tool-desc">Type-safe client-side routing. File-based or code-based. Replaces React Router for SPAs.</div>
+        <span class="badge badge-hot">New Default</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">React Router v7</div>
+        <div class="tool-desc">Now a full-stack framework (merged with Remix). Good if you need Remix-style loaders.</div>
+        <span class="badge badge-stable">Stable</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Next.js App Router</div>
+        <div class="tool-desc">File-system routing built into Next.js. Not standalone.</div>
+        <span class="badge badge-stable">Next only</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">Data Fetching Patterns</div>
+    <div class="vs-row">
+      <div class="vs-left">REST (axios/fetch)</div>
+      <div class="vs-label">vs</div>
+      <div class="vs-right">tRPC (type-safe RPC)</div>
+    </div>
+    <div class="vs-row">
+      <div class="vs-left">Client fetch on mount</div>
+      <div class="vs-label">vs</div>
+      <div class="vs-right">Server Component fetch</div>
+    </div>
+    <div class="vs-row">
+      <div class="vs-left">GraphQL (Apollo/URQL)</div>
+      <div class="vs-label">vs</div>
+      <div class="vs-right">tRPC (if full-stack TS)</div>
+    </div>
+    <div class="callout">
+      <strong>tRPC</strong> is compelling: define procedures on server, call them from client with full type inference, no codegen. Works great with Next.js.
+    </div>
+  </div>
+</div>
+
+<div class="grid-wide">
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">Animation</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">Motion (Framer)</div>
+        <div class="tool-desc">The standard React animation library. Declarative, layout animations, gestures.</div>
+        <span class="badge badge-hot">Go-to</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">React Spring</div>
+        <div class="tool-desc">Physics-based animations. More control, more complexity.</div>
+        <span class="badge badge-stable">Alternative</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">CSS Transitions</div>
+        <div class="tool-desc">View Transitions API (native browser) now good enough for page transitions.</div>
+        <span class="badge badge-new">Native</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">Dev Tooling</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">ESLint + Prettier</div>
+        <div class="tool-desc">Linting + formatting. Now using flat config (eslint.config.js).</div>
+        <span class="badge badge-stable">Standard</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Biome</div>
+        <div class="tool-desc">ESLint + Prettier replacement in one Rust tool. 10-100x faster.</div>
+        <span class="badge badge-new">Emerging</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Storybook</div>
+        <div class="tool-desc">Component workshop. Still the standard for design systems.</div>
+        <span class="badge badge-stable">Mature</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-title" style="color:var(--accent4)">Deployment</div>
+    <div class="tool-list">
+      <div class="tool-item">
+        <div class="tool-name">Vercel</div>
+        <div class="tool-desc">First-class Next.js hosting. Fastest DX for full-stack React.</div>
+        <span class="badge badge-hot">Easiest</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Cloudflare Pages</div>
+        <div class="tool-desc">Edge-native. Free tier. Great for static + Workers.</div>
+        <span class="badge badge-new">Edge</span>
+      </div>
+      <div class="tool-item">
+        <div class="tool-name">Netlify / Railway</div>
+        <div class="tool-desc">Good alternatives. Railway is great for full-stack with DB.</div>
+        <span class="badge badge-stable">Alternatives</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: 2025 TRENDS
+═══════════════════════════════════════════════════ -->
+<div class="section-header">2025 Trends to Know</div>
+
+<div class="grid-4">
+
+  <div class="card blue">
+    <div class="card-title" style="color:var(--accent)">React Server Components</div>
+    <p style="font-size:13px; color:var(--text-dim); line-height:1.6;">The biggest paradigm shift in React since hooks. Components run on the server, stream HTML to the client, and only the interactive parts ship JS. Fundamentally changes how you think about data fetching and component boundaries.</p>
+    <div class="callout callout-green" style="margin-top:10px">
+      <strong>Impact:</strong> Much less client-side JS, faster TTI, simpler data fetching — but new mental model to learn.
+    </div>
+  </div>
+
+  <div class="card purple">
+    <div class="card-title" style="color:var(--accent2)">Islands Architecture</div>
+    <p style="font-size:13px; color:var(--text-dim); line-height:1.6;">Astro popularized this: render everything as static HTML, then hydrate only interactive "islands" independently. RSC achieves a similar result within React. Key insight: <em>most content doesn't need JS</em>.</p>
+    <div class="pill-group" style="margin-top:10px">
+      <span class="pill blue">Astro</span>
+      <span class="pill purple">RSC</span>
+      <span class="pill green">Qwik</span>
+      <span class="pill orange">11ty</span>
+    </div>
+  </div>
+
+  <div class="card green">
+    <div class="card-title" style="color:var(--accent3)">Edge Runtime</div>
+    <p style="font-size:13px; color:var(--text-dim); line-height:1.6;">Run server code at CDN edge nodes globally instead of a single region. Cloudflare Workers, Vercel Edge Functions, Deno Deploy. Subset of Node.js APIs available — web standards only (fetch, Request, Response, etc.).</p>
+    <div class="callout callout-warn" style="margin-top:10px">
+      <strong>Gotcha:</strong> Many npm packages don't work at the edge (use fs, crypto, etc.). Check compatibility carefully.
+    </div>
+  </div>
+
+  <div class="card orange">
+    <div class="card-title" style="color:var(--accent4)">AI-First Patterns</div>
+    <p style="font-size:13px; color:var(--text-dim); line-height:1.6;">Streaming LLM responses via <code>ReadableStream</code>, Vercel AI SDK for React hooks around streaming, generative UI (server streams React components to client). Entire new category of UI patterns emerging.</p>
+    <div class="pill-group" style="margin-top:10px">
+      <span class="pill orange">Vercel AI SDK</span>
+      <span class="pill blue">ReadableStream</span>
+      <span class="pill green">useChat</span>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ═══════════════════════════════════════════════════
+     SECTION: OPINIONATED STACK RECOMMENDATION
+═══════════════════════════════════════════════════ -->
+<div class="section-header">Recommended Stack — Re-Entry Starting Point</div>
+
+<div class="card multi" style="margin-bottom:16px">
+  <div class="card-title">The T3 Stack (+ variations) — sensible defaults for 2025</div>
+  <div class="choice-grid">
+    <div class="choice-card">
+      <div class="when">Framework</div>
+      <div class="pick" style="color:var(--accent)">Next.js 15</div>
+      <div class="reason">App Router, RSC, full-stack in one repo</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Language</div>
+      <div class="pick" style="color:var(--accent2)">TypeScript 5</div>
+      <div class="reason">strict mode, satisfies, verbatimModuleSyntax</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Styling</div>
+      <div class="pick" style="color:var(--accent3)">Tailwind v4</div>
+      <div class="reason">+ shadcn/ui for components</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Validation</div>
+      <div class="pick" style="color:var(--accent4)">Zod</div>
+      <div class="reason">shared between client + server</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Server State</div>
+      <div class="pick" style="color:var(--accent)">TanStack Query</div>
+      <div class="reason">or Next.js fetch + RSC</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Client State</div>
+      <div class="pick" style="color:var(--accent2)">Zustand</div>
+      <div class="reason">minimal, no boilerplate</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Forms</div>
+      <div class="pick" style="color:var(--accent3)">React Hook Form</div>
+      <div class="reason">+ Zod resolver</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Testing</div>
+      <div class="pick" style="color:var(--accent4)">Vitest + Playwright</div>
+      <div class="reason">unit + E2E coverage</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Package Mgr</div>
+      <div class="pick" style="color:var(--accent)">pnpm</div>
+      <div class="reason">faster, disk-efficient</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">ORM</div>
+      <div class="pick" style="color:var(--accent2)">Drizzle</div>
+      <div class="reason">or Prisma — both TypeScript-first</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Auth</div>
+      <div class="pick" style="color:var(--accent3)">Auth.js (NextAuth v5)</div>
+      <div class="reason">or Clerk for managed auth</div>
+    </div>
+    <div class="choice-card">
+      <div class="when">Deploy</div>
+      <div class="pick" style="color:var(--accent4)">Vercel</div>
+      <div class="reason">or Cloudflare Pages</div>
+    </div>
+  </div>
+</div>
+
+<div style="padding:16px 20px; background:var(--surface2); border:1px solid var(--border); border-radius:8px; font-size:11px; color:var(--text-muted); font-family:'JetBrains Mono',monospace; text-align:center; margin-top:8px;">
+  <span style="color:var(--accent3)">→</span> create.t3.gg scaffolds Next.js + TypeScript + Tailwind + tRPC + Prisma + NextAuth in one command &nbsp;|&nbsp; <span style="color:var(--accent)">pnpm create t3-app@latest</span>
+</div>
+
+</body>
+</html>

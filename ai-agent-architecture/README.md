@@ -10,8 +10,10 @@ See [results.md](results.md)
 
 ## Try It Out
 
+Run this from the root directory in order for Claude Code to pick up the [settings](../.claude/settings.json)
+
 ```sh
-cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
+cat <(echo "/playground") ai-agent-architecture/prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
 ```
 
 ## Full Transcript
@@ -97,7 +99,7 @@ cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude
       10   --bg:#0d1117;--surface:#161b22;--border:#30363d;
      … +848 lines (ctrl+o to expand)
 
-⏺ Bash(open /Users/markalston/code/learning-playgrounds/ai-agent-architecture/ai-agent-architecture.html)
+⏺ Bash(open /Users/<usr>/code/learning-playgrounds/ai-agent-architecture/ai-agent-architecture.html)
   ⎿  (No output)
 
 ⏺ The playground is open in your browser, Mark. Here's what you've got:

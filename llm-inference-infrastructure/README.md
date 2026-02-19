@@ -11,8 +11,10 @@ See [prompt.md](prompt.md)
 
 ## Try It Out
 
+Run this from the root directory in order for Claude Code to pick up the [settings](../.claude/settings.json)
+
 ```sh
-cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
+cat <(echo "/playground") llm-inference-infrastructure/prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
 ```
 
 ## Full Transcript
@@ -143,9 +145,9 @@ cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude
   agent-architecture-prompt.md). Those are in a sibling project so they won't interfere, but you may want to commit them separately. I'll create a feature branch for
   this work.
 
-⏺ Bash(cd /Users/markalston/code/learning-playgrounds && git checkout -b feature/llm-inference-playground)
+⏺ Bash(cd /Users/<usr>/code/learning-playgrounds && git checkout -b feature/llm-inference-playground)
   ⎿  Switched to a new branch 'feature/llm-inference-playground'
-  ⎿  Shell cwd was reset to /Users/markalston/code/learning-playgrounds/llm-inference-infrastructure
+  ⎿  Shell cwd was reset to /Users/<usr>/code/learning-playgrounds/llm-inference-infrastructure
 
 ⏺ Now let me build the playground. This is a substantial single-file HTML application with 5 interactive sections.
 
@@ -163,7 +165,7 @@ cat <(echo "/playground") prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude
       10   --bg-section: #0e0e1a;
      … +1522 lines (ctrl+o to expand)
 
-⏺ Bash(open /Users/markalston/code/learning-playgrounds/llm-inference-infrastructure/llm-inference-playground.html)
+⏺ Bash(open /Users/<usr>/code/learning-playgrounds/llm-inference-infrastructure/llm-inference-playground.html)
   ⎿  (No output)
 
 ⏺ The playground is open in your browser. Here's what I built:
