@@ -18,7 +18,7 @@ An interactive matrix where the user selects their rendering strategy and sees w
 | --- | --- | --- | --- |
 | SSG (static only) | Everything | None | None |
 | CSR (static shell + client JS) | Everything | None | None |
-| SSR (Node.js) | Vercel, Render, Railway, Fly, AWS, VPS | Cloudflare (Workers runtime, not Node) | GitHub Pages, Netlify static |
+| SSR / Universal Rendering (Node.js) | Vercel, Render, Railway, Fly, AWS, VPS | Cloudflare (Workers runtime, not Node) | GitHub Pages, Netlify static |
 | Edge SSR | Vercel Edge, Cloudflare Workers, Netlify Edge | AWS Lambda@Edge (limited) | Traditional VPS, Railway |
 | Islands (Astro) | Most platforms (output is mostly static) | Varies by SSR island usage | None for pure SSG mode |
 

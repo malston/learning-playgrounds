@@ -42,7 +42,7 @@ An animated, step-by-step visualization of what actually happens in the browser 
 **The 5 strategies to cover:**
 
 - CSR — blank screen until JS executes
-- SSR + Hydration — visible early, interactive later, hydration cost shown explicitly
+- SSR + Hydration (also called Universal Rendering) — visible early, interactive later, hydration cost shown explicitly; label it "Universal Rendering" in the UI since engineers coming from Nuxt or Vue will encounter that term and need to map it to the same concept
 - SSG — fastest possible, build pipeline constraint shown
 - Islands (Astro) — static shell with isolated hydration zones, show which parts are JS and which aren't
 - Resumability (Qwik) — no hydration replay, show lazy handler loading on first interaction
