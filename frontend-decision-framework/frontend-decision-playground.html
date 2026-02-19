@@ -1466,11 +1466,15 @@ input[type="range"]::-webkit-slider-thumb {
   </div>
 
   <div class="org-choices" id="org-choices">
-    <div class="org-choice consistency" onclick="selectOrgPath('consistency')">
+    <div class="org-choice consistency" role="button" tabindex="0"
+         onclick="selectOrgPath('consistency')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectOrgPath('consistency');}">
       <div class="org-choice-title" style="color:var(--accent2)">Consistency enforced by the framework</div>
       <div class="org-choice-quote">"I want guardrails. The framework should make the wrong thing hard to do."</div>
     </div>
-    <div class="org-choice flexibility" onclick="selectOrgPath('flexibility')">
+    <div class="org-choice flexibility" role="button" tabindex="0"
+         onclick="selectOrgPath('flexibility')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectOrgPath('flexibility');}">
       <div class="org-choice-title" style="color:var(--accent)">Flexibility -- we'll define our own conventions</div>
       <div class="org-choice-quote">"I want freedom. We'll build the conventions that fit our team."</div>
     </div>
@@ -1484,7 +1488,7 @@ input[type="range"]::-webkit-slider-thumb {
      ============================================ -->
 <div style="max-width:1200px; margin:0 auto; padding:32px 24px; text-align:center;">
   <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">
-    Frontend Architecture Decision Playground &middot; Companion to the <a href="frontend-reference.html" style="color:var(--accent); text-decoration:none;">Field Guide</a> and <a href="frontend-ecosystem-reference.md" style="color:var(--accent); text-decoration:none;">Reference</a>
+    Frontend Architecture Decision Playground &middot; Companion to the <a href="frontend-reference.html" style="color:var(--accent); text-decoration:none;">Field Guide</a>
   </div>
 </div>
 
@@ -1893,7 +1897,9 @@ function renderWizardStep() {
       <div class="wizard-options">
         ${q.options.map(opt => `
           <div class="wizard-option ${wizard.answers[q.key] === opt.value ? 'selected' : ''}"
-               onclick="wizardSelect('${q.key}', '${opt.value}')">
+               role="button" tabindex="0"
+               onclick="wizardSelect(this, '${q.key}', '${opt.value}')"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();wizardSelect(this, '${q.key}', '${opt.value}');}">
             <div class="wizard-option-label">${opt.label}</div>
             <div class="wizard-option-desc">${opt.desc}</div>
           </div>
@@ -1904,11 +1910,11 @@ function renderWizardStep() {
   renderWizardProgress();
 }
 
-function wizardSelect(key, value) {
+function wizardSelect(el, key, value) {
   wizard.answers[key] = value;
   const options = document.querySelectorAll('.wizard-option');
   options.forEach(o => o.classList.remove('selected'));
-  event.currentTarget.classList.add('selected');
+  el.classList.add('selected');
   setTimeout(() => {
     wizard.step++;
     renderWizardStep();
@@ -2241,7 +2247,9 @@ function initBracket() {
 
   const constraintsEl = document.getElementById('bracket-constraints');
   constraintsEl.innerHTML = CONSTRAINTS.map(c => `
-    <div class="constraint-item" data-id="${c.id}" onclick="toggleConstraint('${c.id}')">
+    <div class="constraint-item" data-id="${c.id}" role="button" tabindex="0"
+         onclick="toggleConstraint('${c.id}')"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleConstraint('${c.id}');}">
       <div class="constraint-toggle"></div>
       <div class="constraint-label">${c.label}</div>
     </div>
