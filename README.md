@@ -32,3 +32,5 @@ Each topic lives in its own directory with three files:
 
 - **[ai-agent-architecture](ai-agent-architecture/)** -- Interactive concept map covering AI agent patterns: routing, orchestration, delegation, and reflection. Click nodes to explore pseudocode, use cases, and connections between concepts.
 - **[llm-inference-infrastructure](llm-inference-infrastructure/)** -- Self-contained HTML playground covering 5 interactive sections: VRAM calculator, quantization tradeoffs, parallelism strategy visualizer, buy vs rent decision tool, and MoE vs dense comparison.
+- **[frontend-decision-framework](frontend-decision-framework/)** -- Interactive decision playground for frontend architecture choices: rendering strategy visualizer with timeline controls, meta-framework elimination bracket with constraint filtering, and org structure decision cards.
+- **[hosting-decisions](hosting-decisions/)** -- Interactive hosting decision playground with 6 tools: rendering strategy compatibility matrix, cost reality calculator with live bar charts, lock-in exposure visualizer, guided hosting selector wizard, operational complexity spectrum, and Vercel vs Cloudflare comparison.
