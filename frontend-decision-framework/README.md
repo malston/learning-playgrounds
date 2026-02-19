@@ -1,4 +1,4 @@
-# LLM Inference Infrastructure
+# Frontend Decision Framework
 
 ## Input
 
