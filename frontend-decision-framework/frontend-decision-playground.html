@@ -1,0 +1,2381 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Frontend Architecture Decision Playground</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;600;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300&display=swap" rel="stylesheet">
+<style>
+/* ============================================
+   VARIABLES & RESET
+   ============================================ */
+:root {
+  --bg: #0a0e17;
+  --surface: #111827;
+  --surface2: #1a2235;
+  --surface3: #243049;
+  --border: #1f2d45;
+  --accent: #38bdf8;
+  --accent2: #a78bfa;
+  --accent3: #34d399;
+  --accent4: #fb923c;
+  --accent5: #f472b6;
+  --text: #e2e8f0;
+  --text-muted: #64748b;
+  --text-dim: #94a3b8;
+  --code-bg: #0d1117;
+  --danger: #f43f5e;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 15px;
+  line-height: 1.6;
+  overflow-x: hidden;
+}
+
+/* ============================================
+   TYPOGRAPHY
+   ============================================ */
+h1, h2, h3 { font-family: 'Syne', sans-serif; }
+
+/* ============================================
+   HEADER
+   ============================================ */
+.site-header {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 48px 24px 32px;
+  border-bottom: 1px solid var(--border);
+}
+
+.site-header h1 {
+  font-size: clamp(28px, 5vw, 48px);
+  font-weight: 800;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.title-gradient {
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.site-header p {
+  color: var(--text-muted);
+  font-size: 14px;
+  max-width: 560px;
+  margin-top: 12px;
+}
+
+/* ============================================
+   STICKY NAV
+   ============================================ */
+.section-nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(10, 14, 23, 0.92);
+  backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 24px;
+}
+
+.section-nav-inner {
+  max-width: 1200px;
+  margin: 0 auto;
+  display: flex;
+  gap: 4px;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.section-nav-inner::-webkit-scrollbar { display: none; }
+
+.nav-link {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  text-decoration: none;
+  padding: 14px 16px;
+  white-space: nowrap;
+  border-bottom: 2px solid transparent;
+  transition: color 0.2s, border-color 0.2s;
+}
+
+.nav-link:hover { color: var(--text-dim); }
+.nav-link.active { color: var(--accent); border-bottom-color: var(--accent); }
+
+/* ============================================
+   SECTIONS
+   ============================================ */
+.playground-section {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 64px 24px;
+  border-bottom: 1px solid var(--border);
+  min-height: 80vh;
+}
+
+.section-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-size: clamp(22px, 3vw, 32px);
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+
+.section-subtitle {
+  color: var(--text-muted);
+  font-size: 14px;
+  margin-bottom: 36px;
+  max-width: 640px;
+}
+
+/* ============================================
+   TOOLTIP SYSTEM
+   ============================================ */
+.term {
+  text-decoration: underline dotted rgba(56, 189, 248, 0.4);
+  text-underline-offset: 3px;
+  cursor: help;
+  position: relative;
+  color: var(--accent);
+}
+
+.term:hover::after {
+  content: attr(data-tip);
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: normal;
+  width: max-content;
+  max-width: 280px;
+  line-height: 1.5;
+  z-index: 200;
+  pointer-events: none;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+/* ============================================
+   WIZARD SECTION
+   ============================================ */
+.wizard-container {
+  position: relative;
+  overflow: hidden;
+}
+
+.wizard-progress {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 32px;
+}
+
+.progress-step {
+  width: 32px;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--border);
+  transition: background 0.3s ease;
+}
+
+.progress-step.completed { background: var(--accent3); }
+.progress-step.active { background: var(--accent); }
+
+.wizard-step {
+  display: none;
+}
+
+.wizard-step.active {
+  display: block;
+  animation: fadeSlideIn 0.35s ease forwards;
+}
+
+.wizard-question {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  margin-bottom: 24px;
+  letter-spacing: -0.01em;
+}
+
+.wizard-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.wizard-option {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s, transform 0.15s;
+}
+
+.wizard-option:hover {
+  border-color: var(--accent);
+  background: var(--surface2);
+  transform: translateY(-2px);
+}
+
+.wizard-option.selected {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+}
+
+.wizard-option-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.wizard-option-desc {
+  font-size: 12px;
+  color: var(--text-muted);
+  line-height: 1.4;
+}
+
+.wizard-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px 0;
+  margin-bottom: 16px;
+  transition: color 0.2s;
+}
+
+.wizard-back:hover { color: var(--accent); }
+
+/* Wizard Results */
+.wizard-results {
+  display: none;
+}
+
+.wizard-results.active {
+  display: block;
+  animation: fadeSlideIn 0.4s ease forwards;
+}
+
+.result-primary {
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 28px;
+  margin-bottom: 20px;
+  position: relative;
+  overflow: hidden;
+}
+
+.result-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent), var(--accent2));
+}
+
+.result-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--accent3);
+  margin-bottom: 8px;
+}
+
+.result-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 28px;
+  font-weight: 800;
+  margin-bottom: 4px;
+}
+
+.result-base {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+
+.result-why {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.7;
+  margin-bottom: 16px;
+}
+
+.result-tradeoffs {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.tradeoff-item {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.tradeoff-item::before {
+  content: '~';
+  color: var(--accent4);
+  font-family: 'JetBrains Mono', monospace;
+  flex-shrink: 0;
+}
+
+.result-warning {
+  background: rgba(251, 146, 60, 0.06);
+  border: 1px solid rgba(251, 146, 60, 0.2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.result-warning strong { color: var(--accent4); }
+
+.result-alternatives {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.alt-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.alt-card-name {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 2px;
+}
+
+.alt-card-base {
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.alt-card-why {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.5;
+}
+
+.scoring-breakdown {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.scoring-title {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 14px;
+}
+
+.scoring-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  font-size: 13px;
+}
+
+.scoring-answer {
+  color: var(--text-dim);
+  min-width: 180px;
+}
+
+.scoring-bar {
+  flex: 1;
+  height: 6px;
+  background: var(--border);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.scoring-fill {
+  height: 100%;
+  border-radius: 3px;
+  background: var(--accent);
+  transition: width 0.5s ease;
+}
+
+.scoring-points {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--accent);
+  min-width: 30px;
+  text-align: right;
+}
+
+.wizard-actions {
+  display: flex;
+  gap: 12px;
+  margin-top: 8px;
+}
+
+.btn {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 10px 20px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+
+.btn-primary {
+  background: rgba(56, 189, 248, 0.1);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.btn-primary:hover { background: rgba(56, 189, 248, 0.2); }
+
+/* ============================================
+   RENDERING TIMELINE SECTION
+   ============================================ */
+.strategy-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.strategy-tab {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 8px 16px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.strategy-tab:hover { border-color: var(--text-muted); color: var(--text-dim); }
+
+.strategy-tab.active {
+  border-color: var(--accent);
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--accent);
+}
+
+.timeline-wrapper {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  margin-bottom: 16px;
+}
+
+.timeline-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.timeline-name {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.timeline-tagline {
+  font-size: 13px;
+  color: var(--text-muted);
+  margin-left: 12px;
+}
+
+.timeline-time {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.timeline-body {
+  display: grid;
+  grid-template-columns: 80px 1fr;
+  gap: 0;
+}
+
+.lane-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 12px 0;
+  text-align: right;
+  padding-right: 16px;
+  border-right: 1px solid var(--border);
+}
+
+.lane-track {
+  position: relative;
+  height: 40px;
+  margin: 4px 0;
+  border-radius: 4px;
+}
+
+.tl-block {
+  position: absolute;
+  top: 4px;
+  height: 32px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  padding: 0 8px;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(255,255,255,0.9);
+  white-space: nowrap;
+  overflow: hidden;
+  opacity: 0;
+  transform-origin: left center;
+  transition: opacity 0.3s ease;
+}
+
+.tl-block.visible { opacity: 1; }
+
+.tl-block.server { background: rgba(167, 139, 250, 0.5); border: 1px solid rgba(167, 139, 250, 0.6); }
+.tl-block.network { background: rgba(56, 189, 248, 0.35); border: 1px solid rgba(56, 189, 248, 0.5); }
+.tl-block.network.small { background: rgba(56, 189, 248, 0.2); }
+.tl-block.browser-paint { background: rgba(52, 211, 153, 0.4); border: 1px solid rgba(52, 211, 153, 0.5); }
+.tl-block.browser-hydrate { background: rgba(251, 146, 60, 0.4); border: 1px solid rgba(251, 146, 60, 0.5); }
+.tl-block.browser-execute { background: rgba(251, 146, 60, 0.3); border: 1px solid rgba(251, 146, 60, 0.4); }
+.tl-block.browser-interactive { background: rgba(52, 211, 153, 0.5); border: 1px solid rgba(52, 211, 153, 0.6); }
+.tl-block.cdn { background: rgba(52, 211, 153, 0.3); border: 1px solid rgba(52, 211, 153, 0.5); }
+
+.timeline-scale {
+  grid-column: 2;
+  display: flex;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid var(--border);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+.timeline-markers {
+  grid-column: 2;
+  position: relative;
+  height: 28px;
+  margin-top: 4px;
+}
+
+.tl-marker {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 3px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.tl-marker.visible { opacity: 1; }
+.tl-marker.fcp { color: var(--accent3); background: rgba(52, 211, 153, 0.15); border: 1px solid rgba(52, 211, 153, 0.3); }
+.tl-marker.tti { color: var(--accent); background: rgba(56, 189, 248, 0.15); border: 1px solid rgba(56, 189, 248, 0.3); }
+
+.timeline-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--accent);
+  opacity: 0.6;
+  z-index: 10;
+  pointer-events: none;
+  transition: left 0.05s linear;
+}
+
+.timeline-controls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.viewport-and-info {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  gap: 20px;
+}
+
+.viewport-preview {
+  background: var(--code-bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.viewport-chrome {
+  background: var(--surface2);
+  padding: 6px 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  border-bottom: 1px solid var(--border);
+}
+
+.viewport-dots {
+  display: flex;
+  gap: 4px;
+}
+
+.viewport-dots span {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--border);
+}
+
+.viewport-url {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+}
+
+.viewport-content {
+  height: 120px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  gap: 6px;
+  padding: 12px;
+  transition: all 0.3s ease;
+}
+
+.viewport-content.blank {
+  background: #1a1a2e;
+}
+
+.viewport-content.html-visible {
+  background: var(--code-bg);
+}
+
+.viewport-content.interactive {
+  background: var(--code-bg);
+  border: 2px solid var(--accent3);
+  border-top: none;
+}
+
+.viewport-line {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--surface2);
+  transition: opacity 0.3s;
+}
+
+.viewport-btn-fake {
+  width: 60px;
+  height: 16px;
+  border-radius: 4px;
+  background: var(--surface3);
+  margin-top: 4px;
+  transition: background 0.3s;
+}
+
+.viewport-content.interactive .viewport-btn-fake {
+  background: rgba(52, 211, 153, 0.3);
+}
+
+.viewport-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  color: var(--text-muted);
+  text-align: center;
+  margin-top: 4px;
+}
+
+.viewport-content.blank .viewport-status { color: var(--danger); }
+.viewport-content.interactive .viewport-status { color: var(--accent3); }
+
+.timeline-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.info-row {
+  display: flex;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.info-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  min-width: 100px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.info-value { color: var(--text-dim); }
+
+.info-insight {
+  background: rgba(56, 189, 248, 0.05);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+.info-insight strong { color: var(--accent); }
+
+/* ============================================
+   REACTIVITY SECTION
+   ============================================ */
+.reactivity-controls {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 32px;
+  flex-wrap: wrap;
+}
+
+.slider-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.slider-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.slider-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--accent);
+  min-width: 55px;
+}
+
+input[type="range"] {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 200px;
+  height: 4px;
+  background: var(--border);
+  border-radius: 2px;
+  outline: none;
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--accent);
+  cursor: pointer;
+}
+
+.reactivity-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.react-col {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.react-col::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+}
+
+.react-col.col-react::before { background: linear-gradient(90deg, #61dafb, transparent); }
+.react-col.col-svelte::before { background: linear-gradient(90deg, #ff3e00, transparent); }
+.react-col.col-solid::before { background: linear-gradient(90deg, #4f88c6, transparent); }
+
+.col-header {
+  margin-bottom: 20px;
+}
+
+.col-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.col-approach {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.node-grid {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 3px;
+  margin-bottom: 20px;
+  aspect-ratio: 1;
+}
+
+.node-cell {
+  border-radius: 2px;
+  background: var(--surface2);
+  transition: background 0.15s ease;
+}
+
+.node-cell.vdom-scan { background: rgba(251, 146, 60, 0.45); }
+.node-cell.changed { background: rgba(52, 211, 153, 0.7); }
+.node-cell.signal-hit { background: rgba(56, 189, 248, 0.6); }
+
+.perf-section {
+  margin-bottom: 16px;
+}
+
+.perf-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+}
+
+.perf-label {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.perf-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.perf-track {
+  height: 8px;
+  background: var(--border);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.perf-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+.col-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+}
+
+.stat-label { color: var(--text-muted); }
+
+.stat-value {
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 700;
+}
+
+/* ============================================
+   BRACKET SECTION
+   ============================================ */
+.bracket-layout {
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 24px;
+}
+
+.bracket-constraints {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.constraint-item {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: border-color 0.2s, background 0.2s;
+  user-select: none;
+}
+
+.constraint-item:hover { border-color: var(--text-muted); }
+.constraint-item.active { border-color: var(--accent); background: rgba(56, 189, 248, 0.05); }
+
+.constraint-toggle {
+  width: 36px;
+  height: 20px;
+  border-radius: 10px;
+  background: var(--border);
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.2s;
+}
+
+.constraint-item.active .constraint-toggle { background: var(--accent); }
+
+.constraint-toggle::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--text);
+  transition: transform 0.2s;
+}
+
+.constraint-item.active .constraint-toggle::after { transform: translateX(16px); }
+
+.constraint-label {
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.bracket-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 12px;
+  align-content: start;
+}
+
+.fw-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  transition: all 0.35s ease;
+  position: relative;
+}
+
+.fw-card.eliminated {
+  opacity: 0.2;
+  transform: scale(0.95);
+  filter: grayscale(1);
+}
+
+.fw-card.advantage { border-color: var(--accent3); }
+
+.fw-name {
+  font-family: 'Syne', sans-serif;
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.fw-base {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-bottom: 10px;
+}
+
+.fw-differentiator {
+  font-size: 12px;
+  color: var(--text-dim);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+
+.fw-elimination-reason {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  color: var(--danger);
+  margin-top: 8px;
+  line-height: 1.4;
+  display: none;
+}
+
+.fw-card.eliminated .fw-elimination-reason { display: block; }
+
+.fw-advantage-badge {
+  display: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 9px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 3px;
+  background: rgba(52, 211, 153, 0.15);
+  color: var(--accent3);
+  border: 1px solid rgba(52, 211, 153, 0.3);
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.fw-card.advantage .fw-advantage-badge { display: inline-block; }
+
+.fw-detail-panel {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 20px;
+  margin-top: 16px;
+  display: none;
+  grid-column: 1 / -1;
+}
+
+.fw-detail-panel.visible { display: block; animation: fadeSlideIn 0.3s ease; }
+
+.bracket-status {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 16px;
+  grid-column: 1 / -1;
+}
+
+/* ============================================
+   ORG STRUCTURE TEST
+   ============================================ */
+.org-question-box {
+  text-align: center;
+  max-width: 700px;
+  margin: 0 auto 40px;
+}
+
+.org-question-text {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--text);
+}
+
+.org-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+.org-choice {
+  background: var(--surface);
+  border: 2px solid var(--border);
+  border-radius: 10px;
+  padding: 32px 24px;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.25s ease;
+}
+
+.org-choice:hover {
+  border-color: var(--accent);
+  transform: translateY(-3px);
+}
+
+.org-choice.selected {
+  transform: translateY(-3px);
+}
+
+.org-choice.selected.consistency { border-color: var(--accent2); background: rgba(167, 139, 250, 0.06); }
+.org-choice.selected.flexibility { border-color: var(--accent); background: rgba(56, 189, 248, 0.06); }
+
+.org-choice-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 16px;
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.org-choice-quote {
+  font-size: 13px;
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.org-result {
+  max-width: 800px;
+  margin: 32px auto 0;
+  display: none;
+}
+
+.org-result.visible {
+  display: block;
+  animation: fadeSlideIn 0.4s ease;
+}
+
+.org-result-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 28px;
+}
+
+.org-result-title {
+  font-family: 'Syne', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 16px;
+}
+
+.org-result-body {
+  font-size: 14px;
+  color: var(--text-dim);
+  line-height: 1.8;
+}
+
+.org-result-body p { margin-bottom: 12px; }
+
+.org-what-goes-wrong {
+  background: rgba(244, 63, 94, 0.05);
+  border: 1px solid rgba(244, 63, 94, 0.2);
+  border-radius: 6px;
+  padding: 16px;
+  margin-top: 16px;
+}
+
+.org-what-goes-wrong strong { color: var(--danger); }
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+@keyframes fadeSlideIn {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 1000px) {
+  .reactivity-columns { grid-template-columns: 1fr; }
+  .bracket-layout { grid-template-columns: 1fr; }
+  .viewport-and-info { grid-template-columns: 1fr; }
+  .result-alternatives { grid-template-columns: 1fr; }
+}
+
+@media (max-width: 700px) {
+  .org-choices { grid-template-columns: 1fr; }
+  .wizard-options { grid-template-columns: 1fr; }
+  .playground-section { padding: 40px 16px; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================
+     HEADER
+     ============================================ -->
+<header class="site-header">
+  <h1>Frontend Architecture<br><span class="title-gradient">Decision Playground</span></h1>
+  <p>Not what frameworks exist -- what you should choose for your specific context, and why. For engineers who understand software and need defensible recommendations.</p>
+</header>
+
+<!-- ============================================
+     NAVIGATION
+     ============================================ -->
+<nav class="section-nav">
+  <div class="section-nav-inner">
+    <a href="#wizard" class="nav-link active">Framework Selector</a>
+    <a href="#rendering" class="nav-link">Rendering Strategies</a>
+    <a href="#reactivity" class="nav-link">Reactivity Models</a>
+    <a href="#bracket" class="nav-link">Elimination Bracket</a>
+    <a href="#org" class="nav-link">Org Structure Test</a>
+  </div>
+</nav>
+
+<!-- ============================================
+     SECTION 1: FRAMEWORK SELECTOR WIZARD
+     ============================================ -->
+<section id="wizard" class="playground-section">
+  <div class="section-label">01 / Guided Decision</div>
+  <div class="section-title">Framework Selector</div>
+  <div class="section-subtitle">Five questions. Each one narrows the field. The recommendation shows its reasoning -- no black box answers.</div>
+
+  <div class="wizard-container">
+    <div class="wizard-progress" id="wizard-progress"></div>
+    <div id="wizard-steps"></div>
+    <div id="wizard-results" class="wizard-results"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 2: RENDERING STRATEGY VISUALIZER
+     ============================================ -->
+<section id="rendering" class="playground-section">
+  <div class="section-label">02 / Visual Timeline</div>
+  <div class="section-title">Rendering Strategy Visualizer</div>
+  <div class="section-subtitle">What actually happens in the browser for each strategy. Watch the timeline animate to see when content is <span class="term" data-tip="First Contentful Paint -- when meaningful content first appears on screen.">visible</span> vs <span class="term" data-tip="Time to Interactive -- when the page responds to user input like clicks and typing.">interactive</span>.</div>
+
+  <div class="strategy-tabs" id="strategy-tabs"></div>
+
+  <div class="timeline-wrapper">
+    <div class="timeline-header">
+      <div>
+        <span class="timeline-name" id="timeline-name">Client-Side Rendering</span>
+        <span class="timeline-tagline" id="timeline-tagline"></span>
+      </div>
+      <span class="timeline-time" id="timeline-time">0ms</span>
+    </div>
+    <div class="timeline-body" id="timeline-body">
+      <div class="lane-label">Server</div>
+      <div class="lane-track" id="lane-server"></div>
+      <div class="lane-label">Network</div>
+      <div class="lane-track" id="lane-network"></div>
+      <div class="lane-label">Browser</div>
+      <div class="lane-track" id="lane-browser"></div>
+      <div class="lane-label"></div>
+      <div class="timeline-markers" id="timeline-markers"></div>
+      <div class="lane-label"></div>
+      <div class="timeline-scale">
+        <span>0ms</span><span>500ms</span><span>1000ms</span><span>1500ms</span><span>2000ms</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="timeline-controls">
+    <button class="btn btn-primary" id="btn-play" onclick="toggleTimeline()">Play</button>
+    <button class="btn" onclick="resetTimeline()">Reset</button>
+  </div>
+
+  <div class="viewport-and-info">
+    <div>
+      <div class="viewport-preview">
+        <div class="viewport-chrome">
+          <div class="viewport-dots"><span></span><span></span><span></span></div>
+          <div class="viewport-url">example.com</div>
+        </div>
+        <div class="viewport-content blank" id="viewport-content">
+          <div class="viewport-line" style="width:80%; opacity:0"></div>
+          <div class="viewport-line" style="width:60%; opacity:0"></div>
+          <div class="viewport-line" style="width:70%; opacity:0"></div>
+          <div class="viewport-btn-fake" style="opacity:0"></div>
+          <div class="viewport-status" id="viewport-status">Blank screen</div>
+        </div>
+      </div>
+    </div>
+    <div class="timeline-info" id="timeline-info"></div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 3: REACTIVITY MODEL SIDE-BY-SIDE
+     ============================================ -->
+<section id="reactivity" class="playground-section">
+  <div class="section-label">03 / Performance Comparison</div>
+  <div class="section-title">Reactivity Models Side-by-Side</div>
+  <div class="section-subtitle">The same component -- a filtered list -- in three different reactivity models. Increase the list size and watch how update cost scales differently.</div>
+
+  <div class="reactivity-controls">
+    <div class="slider-group">
+      <span class="slider-label">List items:</span>
+      <input type="range" id="list-slider" min="100" max="10000" step="100" value="100" oninput="updateReactivity()">
+      <span class="slider-value" id="list-value">100</span>
+    </div>
+    <button class="btn btn-primary" onclick="triggerReactivityUpdate()">Trigger Update</button>
+  </div>
+
+  <div class="reactivity-columns">
+    <!-- React Column -->
+    <div class="react-col col-react">
+      <div class="col-header">
+        <div class="col-title" style="color:#61dafb">React</div>
+        <div class="col-approach">Runtime <span class="term" data-tip="Virtual DOM -- an in-memory tree that mirrors the real DOM. React diffs old and new virtual trees to find minimal changes.">VDOM</span> Diffing</div>
+      </div>
+      <div class="node-grid" id="grid-react"></div>
+      <div class="perf-section">
+        <div class="perf-header">
+          <span class="perf-label">Update cost</span>
+          <span class="perf-value" id="perf-react-val" style="color:#61dafb">~2ms</span>
+        </div>
+        <div class="perf-track">
+          <div class="perf-fill" id="perf-react" style="width:3%; background:#61dafb"></div>
+        </div>
+      </div>
+      <div class="col-stats">
+        <div class="stat-row"><span class="stat-label">Bundle baseline</span><span class="stat-value">~42KB</span></div>
+        <div class="stat-row"><span class="stat-label">Scaling</span><span class="stat-value" style="color:var(--accent4)">O(tree size)</span></div>
+        <div class="stat-row"><span class="stat-label">Model</span><span class="stat-value">Re-render tree, diff for changes</span></div>
+      </div>
+    </div>
+
+    <!-- Svelte Column -->
+    <div class="react-col col-svelte">
+      <div class="col-header">
+        <div class="col-title" style="color:#ff3e00">Svelte</div>
+        <div class="col-approach">Compile-time Reactivity</div>
+      </div>
+      <div class="node-grid" id="grid-svelte"></div>
+      <div class="perf-section">
+        <div class="perf-header">
+          <span class="perf-label">Update cost</span>
+          <span class="perf-value" id="perf-svelte-val" style="color:#ff3e00">~0.5ms</span>
+        </div>
+        <div class="perf-track">
+          <div class="perf-fill" id="perf-svelte" style="width:1%; background:#ff3e00"></div>
+        </div>
+      </div>
+      <div class="col-stats">
+        <div class="stat-row"><span class="stat-label">Bundle baseline</span><span class="stat-value">~2KB + components</span></div>
+        <div class="stat-row"><span class="stat-label">Scaling</span><span class="stat-value" style="color:var(--accent3)">O(changed)</span></div>
+        <div class="stat-row"><span class="stat-label">Model</span><span class="stat-value">Compiler wires direct updates</span></div>
+      </div>
+    </div>
+
+    <!-- Solid Column -->
+    <div class="react-col col-solid">
+      <div class="col-header">
+        <div class="col-title" style="color:#4f88c6">Solid</div>
+        <div class="col-approach"><span class="term" data-tip="Fine-grained reactive primitives that track dependencies automatically. When a signal changes, only its direct subscribers update.">Signals</span>-based Reactivity</div>
+      </div>
+      <div class="node-grid" id="grid-solid"></div>
+      <div class="perf-section">
+        <div class="perf-header">
+          <span class="perf-label">Update cost</span>
+          <span class="perf-value" id="perf-solid-val" style="color:#4f88c6">~0.1ms</span>
+        </div>
+        <div class="perf-track">
+          <div class="perf-fill" id="perf-solid" style="width:0.5%; background:#4f88c6"></div>
+        </div>
+      </div>
+      <div class="col-stats">
+        <div class="stat-row"><span class="stat-label">Bundle baseline</span><span class="stat-value">~7KB</span></div>
+        <div class="stat-row"><span class="stat-label">Scaling</span><span class="stat-value" style="color:var(--accent3)">O(1)</span></div>
+        <div class="stat-row"><span class="stat-label">Model</span><span class="stat-value">Signal updates only subscribers</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 4: META-FRAMEWORK ELIMINATION BRACKET
+     ============================================ -->
+<section id="bracket" class="playground-section">
+  <div class="section-label">04 / Constraint Filter</div>
+  <div class="section-title">Elimination Bracket</div>
+  <div class="section-subtitle">Toggle your constraints. Frameworks that don't fit fade out with a reason why. What remains is your shortlist.</div>
+
+  <div class="bracket-layout">
+    <div class="bracket-constraints" id="bracket-constraints"></div>
+    <div>
+      <div class="bracket-grid" id="bracket-grid"></div>
+      <div class="bracket-status" id="bracket-status"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============================================
+     SECTION 5: ORG STRUCTURE TEST
+     ============================================ -->
+<section id="org" class="playground-section">
+  <div class="section-label">05 / The Real Question</div>
+  <div class="section-title">The Org Structure Test</div>
+  <div class="section-subtitle">This single question predicts more about framework fit than any benchmark.</div>
+
+  <div class="org-question-box">
+    <div class="org-question-text">"When 10 different developers touch the same codebase over 2 years, what do you want to be true?"</div>
+  </div>
+
+  <div class="org-choices" id="org-choices">
+    <div class="org-choice consistency" onclick="selectOrgPath('consistency')">
+      <div class="org-choice-title" style="color:var(--accent2)">Consistency enforced by the framework</div>
+      <div class="org-choice-quote">"I want guardrails. The framework should make the wrong thing hard to do."</div>
+    </div>
+    <div class="org-choice flexibility" onclick="selectOrgPath('flexibility')">
+      <div class="org-choice-title" style="color:var(--accent)">Flexibility -- we'll define our own conventions</div>
+      <div class="org-choice-quote">"I want freedom. We'll build the conventions that fit our team."</div>
+    </div>
+  </div>
+
+  <div class="org-result" id="org-result"></div>
+</section>
+
+<!-- ============================================
+     FOOTER
+     ============================================ -->
+<div style="max-width:1200px; margin:0 auto; padding:32px 24px; text-align:center;">
+  <div style="font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text-muted);">
+    Frontend Architecture Decision Playground &middot; Companion to the <a href="frontend-reference.html" style="color:var(--accent); text-decoration:none;">Field Guide</a> and <a href="frontend-ecosystem-reference.md" style="color:var(--accent); text-decoration:none;">Reference</a>
+  </div>
+</div>
+
+
+<script>
+/* ============================================
+   DATA DEFINITIONS
+   ============================================ */
+
+const FRAMEWORKS = {
+  nextjs:     { name: 'Next.js',     base: 'React',  color: '#38bdf8' },
+  remix:      { name: 'Remix',       base: 'React',  color: '#e879f9' },
+  nuxt:       { name: 'Nuxt',        base: 'Vue',    color: '#34d399' },
+  sveltekit:  { name: 'SvelteKit',   base: 'Svelte', color: '#ff3e00' },
+  angular:    { name: 'Angular',     base: 'Angular', color: '#dd0031' },
+  solidstart: { name: 'SolidStart',  base: 'Solid',  color: '#4f88c6' },
+  astro:      { name: 'Astro',       base: 'Any',    color: '#fb923c' },
+};
+
+const FRAMEWORK_DETAILS = {
+  nextjs: {
+    strengths: ['Largest ecosystem', 'SSR/SSG/ISR', 'Server Components', 'Vercel-optimized deployment'],
+    tradeoffs: ['Complex mental model with RSC', 'Vercel coupling creates vendor dependency', 'Heavy for simple sites'],
+    bestFor: 'Production React apps that need SSR, SEO, or full-stack capabilities',
+  },
+  remix: {
+    strengths: ['Web standards focus', 'Progressive enhancement', 'Nested routing with data loading', 'No vendor lock-in'],
+    tradeoffs: ['Smaller community than Next.js', 'SSR-focused (SSG is secondary)', 'Fewer deployment optimizations'],
+    bestFor: 'Teams that value web standards and want to avoid vendor lock-in',
+  },
+  nuxt: {
+    strengths: ['Vue ecosystem', 'Auto-imports', 'Gentle learning curve', 'Good developer experience'],
+    tradeoffs: ['Smaller ecosystem than React', 'Fewer enterprise adoption examples', 'Vue hiring pool is moderate'],
+    bestFor: 'Teams that prefer Vue or want a gentler ramp than React Server Components',
+  },
+  sveltekit: {
+    strengths: ['Smallest bundles', 'Simple mental model', 'Fast developer ramp-up', 'Compile-time optimization'],
+    tradeoffs: ['Smallest hiring pool among major frameworks', 'Growing but limited ecosystem', 'Fewer established enterprise patterns'],
+    bestFor: 'Small teams that prioritize developer experience and bundle size',
+  },
+  angular: {
+    strengths: ['Enforced architectural consistency', 'Built-in DI, routing, forms, HTTP', 'Strong enterprise support', 'CLI-enforced conventions'],
+    tradeoffs: ['Steep learning curve for newcomers', 'Heavy for small projects', 'Less flexibility than React ecosystem'],
+    bestFor: 'Large teams (10+) that need enforced architectural consistency across many developers',
+  },
+  solidstart: {
+    strengths: ['Fine-grained reactivity (signals)', 'Small runtime footprint', 'JSX familiarity from React', 'No virtual DOM overhead'],
+    tradeoffs: ['Very small ecosystem and community', 'Niche hiring pool', 'Less mature tooling and documentation'],
+    bestFor: 'Performance-critical apps built by experienced teams who value reactivity',
+  },
+  astro: {
+    strengths: ['Partial hydration (islands)', 'Use any UI framework', 'Near-zero JS by default', 'Content-first architecture'],
+    tradeoffs: ['Limited for app-like interactivity', 'Islands model requires different thinking', 'Not suited for complex SPAs'],
+    bestFor: 'Content sites, documentation, and marketing pages with selective interactivity',
+  },
+};
+
+/* ---- WIZARD QUESTIONS ---- */
+const QUESTIONS = [
+  {
+    key: 'building',
+    title: 'What are you building?',
+    options: [
+      { value: 'content',   label: 'Content site',           desc: 'Blog, docs, marketing pages -- mostly static content' },
+      { value: 'ecommerce', label: 'E-commerce / Marketing', desc: 'Product catalog, checkout, SEO and performance critical' },
+      { value: 'saas',      label: 'SaaS behind auth',       desc: 'Dashboard, data tables, user-specific content' },
+      { value: 'internal',  label: 'Internal tooling',       desc: 'Admin panels, back-office apps, employee-facing' },
+      { value: 'mobile',    label: 'Mobile-first consumer',  desc: 'Performance-critical, bandwidth-constrained, consumer-facing' },
+    ],
+  },
+  {
+    key: 'teamSize',
+    title: "What does your team look like?",
+    options: [
+      { value: 'solo',  label: 'Solo or pair',    desc: 'Just me or one other developer' },
+      { value: 'small', label: 'Small (3-8)',      desc: 'Tight team, direct communication' },
+      { value: 'mid',   label: 'Mid-size (8-20)',  desc: 'Multiple squads or pods' },
+      { value: 'large', label: 'Large (20+)',      desc: 'Multiple teams, possibly distributed' },
+    ],
+  },
+  {
+    key: 'hiring',
+    title: "What's the hiring picture?",
+    options: [
+      { value: 'competitive', label: 'Competitive market',  desc: 'Actively hiring, fighting for talent' },
+      { value: 'stable',      label: 'Stable team',         desc: 'No near-term hiring pressure' },
+      { value: 'contractor',  label: 'Contractor-heavy',    desc: 'Rotating contractors or agencies' },
+      { value: 'offshore',    label: 'Distributed/offshore', desc: 'Multiple locations and time zones' },
+    ],
+  },
+  {
+    key: 'bundleSize',
+    title: 'How much does initial load performance matter?',
+    options: [
+      { value: 'critical',    label: 'Core to the product', desc: 'E-commerce, media, mobile -- every millisecond counts' },
+      { value: 'important',   label: 'Important, not critical', desc: 'Matters, but not the primary differentiator' },
+      { value: 'notCritical', label: 'Not a primary concern', desc: 'Behind auth, internal users, or desktop-only' },
+    ],
+  },
+  {
+    key: 'shipFast',
+    title: 'Does this need to ship fast with junior developers?',
+    options: [
+      { value: 'yes', label: 'Yes, fast ramp-up matters', desc: 'Juniors and mid-levels need to be productive quickly' },
+      { value: 'no',  label: 'No, experienced team only', desc: 'Team can handle complexity and novel patterns' },
+    ],
+  },
+];
+
+/* ---- SCORING MATRIX ---- */
+const SCORES = {
+  building: {
+    content:   { astro: 5, sveltekit: 3, nextjs: 2, nuxt: 2, remix: 1 },
+    ecommerce: { nextjs: 5, nuxt: 3, remix: 3, sveltekit: 2 },
+    saas:      { nextjs: 4, remix: 3, nuxt: 3, angular: 2, solidstart: 1 },
+    internal:  { angular: 4, nextjs: 3, nuxt: 3, sveltekit: 2 },
+    mobile:    { nextjs: 4, sveltekit: 3, solidstart: 3, astro: 2 },
+  },
+  teamSize: {
+    solo:  { sveltekit: 4, astro: 3, nuxt: 3, nextjs: 2, remix: 2 },
+    small: { nextjs: 3, sveltekit: 3, nuxt: 3, remix: 2, astro: 2 },
+    mid:   { nextjs: 4, angular: 3, nuxt: 3, remix: 2 },
+    large: { angular: 5, nextjs: 4, remix: 2 },
+  },
+  hiring: {
+    competitive: { nextjs: 5, angular: 3, nuxt: 2, remix: 2 },
+    stable:      { nextjs: 2, nuxt: 2, sveltekit: 2, remix: 2, angular: 2, solidstart: 2, astro: 2 },
+    contractor:  { nextjs: 4, angular: 3, nuxt: 1 },
+    offshore:    { angular: 5, nextjs: 3 },
+  },
+  bundleSize: {
+    critical:    { astro: 5, sveltekit: 4, solidstart: 4 },
+    important:   { sveltekit: 2, solidstart: 2, astro: 2, nextjs: 1 },
+    notCritical: { nextjs: 2, angular: 1, nuxt: 1, remix: 1 },
+  },
+  shipFast: {
+    yes: { nuxt: 4, sveltekit: 4, nextjs: 3 },
+    no:  { solidstart: 3, angular: 2, remix: 2, nextjs: 1 },
+  },
+};
+
+/* ---- QUESTION-SPECIFIC LABEL FOR SCORING BREAKDOWN ---- */
+const ANSWER_LABELS = {
+  building:   { content: 'Content site', ecommerce: 'E-commerce', saas: 'SaaS app', internal: 'Internal tooling', mobile: 'Mobile-first' },
+  teamSize:   { solo: 'Solo/pair', small: 'Small team', mid: 'Mid-size team', large: 'Large team' },
+  hiring:     { competitive: 'Competitive hiring', stable: 'Stable team', contractor: 'Contractor-heavy', offshore: 'Distributed/offshore' },
+  bundleSize: { critical: 'Perf is critical', important: 'Perf is important', notCritical: 'Perf not primary' },
+  shipFast:   { yes: 'Ship fast w/ juniors', no: 'Experienced team' },
+};
+
+/* ---- WARNINGS ---- */
+function getWarnings(answers, topId) {
+  const warnings = [];
+  if (['competitive', 'contractor'].includes(answers.hiring) && topId === 'solidstart')
+    warnings.push('Solid has a very small hiring pool. In a competitive market, finding Solid developers will be significantly harder than React or Angular developers.');
+  if (answers.hiring === 'competitive' && topId === 'sveltekit')
+    warnings.push('Svelte developers are growing but still a fraction of the React talent pool. Factor recruiting difficulty into your timeline.');
+  if (['large'].includes(answers.teamSize) && topId === 'sveltekit')
+    warnings.push("Svelte's ecosystem has fewer established patterns for large-team governance compared to React or Angular.");
+  if (answers.teamSize === 'solo' && topId === 'angular')
+    warnings.push("Angular's opinionated structure adds overhead for solo developers. The governance benefits only pay off with larger teams.");
+  if (answers.building === 'saas' && topId === 'astro')
+    warnings.push("Astro is content-first. SaaS apps behind auth typically need more client-side interactivity than the islands model provides easily.");
+  if (answers.building === 'content' && topId === 'angular')
+    warnings.push("Angular is enterprise-grade machinery for a content site. Consider whether the overhead is justified for what may be a simpler problem.");
+  return warnings;
+}
+
+/* ---- RENDERING STRATEGY DATA ---- */
+const STRATEGIES = {
+  csr: {
+    name: 'Client-Side Rendering',
+    tag: 'CSR',
+    tagline: 'Browser does all the work',
+    blocks: [
+      { lane: 'server',  start: 0,    end: 50,   label: 'Serve HTML shell', cls: 'server' },
+      { lane: 'network', start: 50,   end: 200,  label: 'HTML (tiny)',      cls: 'network small' },
+      { lane: 'network', start: 200,  end: 800,  label: 'JS Bundle (large)', cls: 'network' },
+      { lane: 'browser', start: 800,  end: 1200, label: 'Parse + Execute',  cls: 'browser-execute' },
+      { lane: 'browser', start: 1200, end: 1600, label: 'Render DOM',       cls: 'browser-paint' },
+    ],
+    fcp: 1600, tti: 1600,
+    viewport: [
+      { until: 800,  state: 'blank',        label: 'Blank screen' },
+      { until: 1600, state: 'blank',        label: 'JS executing...' },
+      { until: 2000, state: 'interactive',  label: 'Interactive' },
+    ],
+    sends: 'Empty HTML shell + large JavaScript bundle',
+    infra: 'Static host only (S3, CDN, Netlify)',
+    insight: '<strong>Key insight:</strong> The user sees nothing until all JavaScript downloads, parses, and executes. FCP and TTI happen at the same moment because there is no HTML content before JS runs.',
+  },
+  ssr: {
+    name: 'SSR + Hydration',
+    tag: 'SSR',
+    tagline: 'Visible early, interactive later',
+    blocks: [
+      { lane: 'server',  start: 0,   end: 300,  label: 'Render HTML',       cls: 'server' },
+      { lane: 'network', start: 300, end: 550,  label: 'Full HTML',         cls: 'network' },
+      { lane: 'network', start: 400, end: 950,  label: 'JS Bundle',         cls: 'network' },
+      { lane: 'browser', start: 550, end: 650,  label: 'Paint HTML',        cls: 'browser-paint' },
+      { lane: 'browser', start: 950, end: 1500, label: 'Hydration',         cls: 'browser-hydrate' },
+    ],
+    fcp: 650, tti: 1500,
+    viewport: [
+      { until: 550,  state: 'blank',        label: 'Waiting for server...' },
+      { until: 650,  state: 'html-visible', label: 'Content visible' },
+      { until: 1500, state: 'html-visible', label: 'Looks ready, NOT interactive' },
+      { until: 2000, state: 'interactive',  label: 'Interactive' },
+    ],
+    sends: 'Complete server-rendered HTML + JS bundle for hydration',
+    infra: 'Node.js server or edge runtime required',
+    insight: '<strong>Key insight:</strong> The page looks ready at ~650ms but buttons do not work until ~1500ms. That 850ms gap is hydration -- replaying the rendering work the server already did. Users click and nothing happens.',
+  },
+  ssg: {
+    name: 'Static Site Generation',
+    tag: 'SSG',
+    tagline: 'Pre-built and cached at the edge',
+    blocks: [
+      { lane: 'network', start: 0,   end: 80,  label: 'HTML from CDN',     cls: 'cdn' },
+      { lane: 'network', start: 80,  end: 200, label: 'Minimal JS',        cls: 'network small' },
+      { lane: 'browser', start: 80,  end: 160, label: 'Paint HTML',        cls: 'browser-paint' },
+      { lane: 'browser', start: 200, end: 350, label: 'Light hydration',   cls: 'browser-hydrate' },
+    ],
+    fcp: 160, tti: 350,
+    viewport: [
+      { until: 80,   state: 'blank',        label: 'Loading from CDN...' },
+      { until: 160,  state: 'html-visible', label: 'Content visible' },
+      { until: 350,  state: 'html-visible', label: 'Hydrating...' },
+      { until: 2000, state: 'interactive',  label: 'Interactive' },
+    ],
+    sends: 'Pre-built HTML served directly from CDN + minimal JS',
+    infra: 'CDN only -- no server compute per request',
+    insight: '<strong>Key insight:</strong> Fastest possible first paint because content is pre-built. The constraint: every content change requires a rebuild and deploy, making this impractical for frequently updated or personalized pages.',
+  },
+  islands: {
+    name: 'Islands Architecture',
+    tag: 'Islands',
+    tagline: 'Static shell, interactive islands (Astro)',
+    blocks: [
+      { lane: 'network', start: 0,   end: 80,  label: 'Static HTML (CDN)', cls: 'cdn' },
+      { lane: 'network', start: 150, end: 260, label: 'Island 1 JS',       cls: 'network small' },
+      { lane: 'network', start: 180, end: 300, label: 'Island 2 JS',       cls: 'network small' },
+      { lane: 'browser', start: 80,  end: 160, label: 'Paint full page',   cls: 'browser-paint' },
+      { lane: 'browser', start: 260, end: 400, label: 'Hydrate search',    cls: 'browser-hydrate' },
+      { lane: 'browser', start: 300, end: 450, label: 'Hydrate cart',      cls: 'browser-hydrate' },
+    ],
+    fcp: 160, tti: 450,
+    viewport: [
+      { until: 80,   state: 'blank',        label: 'Loading from CDN...' },
+      { until: 160,  state: 'html-visible', label: 'Full page visible' },
+      { until: 450,  state: 'html-visible', label: 'Islands hydrating...' },
+      { until: 2000, state: 'interactive',  label: 'Interactive' },
+    ],
+    sends: 'Full static HTML + small JS bundles per interactive island',
+    infra: 'CDN + optional server for dynamic islands',
+    insight: '<strong>Key insight:</strong> Most of the page ships zero JavaScript. Only interactive widgets ("islands") pay the JS cost. A page with a search bar and cart widget hydrates just those two components independently.',
+  },
+  resumability: {
+    name: 'Resumability',
+    tag: 'Qwik',
+    tagline: 'No hydration -- the browser resumes where the server left off',
+    blocks: [
+      { lane: 'server',  start: 0,   end: 200, label: 'Render + serialize state', cls: 'server' },
+      { lane: 'network', start: 200, end: 380, label: 'HTML + serialized state',  cls: 'cdn' },
+      { lane: 'browser', start: 380, end: 460, label: 'Paint HTML',               cls: 'browser-paint' },
+      { lane: 'browser', start: 460, end: 500, label: 'Ready (no hydration)',      cls: 'browser-interactive' },
+    ],
+    fcp: 460, tti: 500,
+    viewport: [
+      { until: 380,  state: 'blank',        label: 'Waiting for server...' },
+      { until: 460,  state: 'html-visible', label: 'Painting...' },
+      { until: 2000, state: 'interactive',  label: 'Interactive (no hydration!)' },
+    ],
+    sends: 'HTML with serialized application state embedded inline',
+    infra: 'Edge or Node.js server required',
+    insight: '<strong>Key insight:</strong> No hydration step at all. The browser resumes from serialized state. JavaScript for specific interactions loads lazily when the user first clicks -- only the handler needed for that action, not the entire framework.',
+  },
+};
+
+/* ---- BRACKET DATA ---- */
+const BRACKET_FRAMEWORKS = [
+  { id: 'nextjs',     name: 'Next.js',     base: 'React',  diff: 'Largest ecosystem. SSR/SSG/ISR with React Server Components.' },
+  { id: 'remix',      name: 'Remix',       base: 'React',  diff: 'Web standards. Progressive enhancement. No vendor lock-in.' },
+  { id: 'nuxt',       name: 'Nuxt',        base: 'Vue',    diff: 'Vue ecosystem. Auto-imports. Gentler learning curve.' },
+  { id: 'sveltekit',  name: 'SvelteKit',   base: 'Svelte', diff: 'Compile-time. Smallest bundles. Fastest developer ramp-up.' },
+  { id: 'solidstart', name: 'SolidStart',  base: 'Solid',  diff: 'Signals-native. Fine-grained reactivity. Smallest runtime.' },
+  { id: 'astro',      name: 'Astro',       base: 'Any',    diff: 'Islands architecture. Partial hydration. Content-first.' },
+  { id: 'qwik',       name: 'Qwik City',   base: 'Qwik',   diff: 'Resumability. Zero-hydration. Lazy-loads everything.' },
+];
+
+const CONSTRAINTS = [
+  {
+    id: 'ssg',
+    label: 'Must support SSG',
+    eliminates: { remix: 'SSR-focused; static generation is not a core strength' },
+  },
+  {
+    id: 'knowsReact',
+    label: 'Team already knows React',
+    eliminates: {
+      nuxt: 'Requires Vue, not React',
+      sveltekit: 'Requires Svelte, not React',
+      solidstart: 'Requires Solid (similar but different from React)',
+      qwik: 'Different component model from React',
+    },
+  },
+  {
+    id: 'knowsVue',
+    label: 'Team already knows Vue',
+    eliminates: {
+      nextjs: 'Requires React, not Vue',
+      remix: 'Requires React, not Vue',
+      sveltekit: 'Requires Svelte, not Vue',
+      solidstart: 'Requires Solid, not Vue',
+      qwik: 'Different component model from Vue',
+    },
+  },
+  {
+    id: 'islands',
+    label: 'Need islands architecture',
+    eliminates: {
+      nextjs: 'Uses full-page hydration, not islands',
+      remix: 'Uses full-page hydration, not islands',
+      nuxt: 'Uses full-page hydration, not islands',
+      sveltekit: 'Uses full-page hydration, not islands',
+      solidstart: 'Uses full-page hydration, not islands',
+      qwik: 'Uses resumability, not islands',
+    },
+  },
+  {
+    id: 'vercel',
+    label: 'Vercel deployment preferred',
+    advantages: { nextjs: 'First-class Vercel integration and optimization' },
+    eliminates: {},
+  },
+  {
+    id: 'webStandards',
+    label: 'Web standards / no vendor lock-in',
+    eliminates: { nextjs: 'Vercel-specific features create deployment coupling' },
+    advantages: { remix: 'Built on web platform APIs (Request, Response, FormData)' },
+  },
+];
+
+/* ---- ORG TEST DATA ---- */
+const ORG_RESULTS = {
+  consistency: {
+    title: 'The Angular Value Proposition',
+    body: `<p>You want the framework to enforce structure. This is the Angular philosophy -- and it is a legitimate engineering choice, not a legacy holdover.</p>
+<p>Angular ships with dependency injection, an opinionated module system, a powerful CLI that generates consistent boilerplate, built-in routing, forms, HTTP handling, and testing utilities. When 10 developers write Angular code, it looks like Angular code. The framework makes the "wrong" thing harder to do.</p>
+<p>This pays off when teams are large, distributed, or rotate members frequently. New developers join and the codebase has a shape they recognize. The CLI enforces conventions that would otherwise require extensive linting rules and code review time.</p>`,
+    wrongTitle: 'What goes wrong when you pick this for the wrong org',
+    wrongBody: 'A 3-person startup using Angular spends weeks on ceremony that a small team does not need. The DI system, module declarations, and service abstractions add overhead without the governance benefits. The team moves slower than competitors using lighter frameworks, and the learning curve delays shipping. Angular is organizational governance -- powerful for large teams, overhead for small ones.',
+  },
+  flexibility: {
+    title: 'The React Tradeoff',
+    body: `<p>You want freedom to define your own architecture. This is the React philosophy -- a rendering library, not an application framework. You choose the state management, routing, styling, file structure, and conventions.</p>
+<p>This means React's massive ecosystem gives you options for every layer. The team picks Zustand or Redux or Jotai for state. TanStack Router or Next.js for routing. Tailwind or CSS Modules or styled-components for styling. This flexibility lets experienced teams build exactly the architecture that fits their product.</p>
+<p>The tradeoff: that freedom is also the responsibility. You are now the framework architect. Every convention exists because your team created and enforces it. Code review becomes the governance mechanism that Angular builds into its tooling.</p>`,
+    wrongTitle: 'What goes wrong when you pick this for the wrong org',
+    wrongBody: 'A 50-person organization chooses React without strong architectural leadership. Over 18 months, different teams make different choices: Team A uses Redux, Team B uses Zustand, Team C has custom hooks. Three different testing approaches. Two folder structures. The codebase becomes 10 different architectures wearing a React skin. Onboarding new developers means learning the specific team\'s React, not React itself. The freedom that helped the first 5 developers hurts the next 45.',
+  },
+};
+
+
+/* ============================================
+   STATE
+   ============================================ */
+const wizard = { step: 0, answers: {} };
+let timelineAnim = { id: null, playing: false, progress: 0 };
+let currentStrategy = 'csr';
+let bracketState = {};
+let reactivityAnimating = false;
+
+
+/* ============================================
+   WIZARD LOGIC
+   ============================================ */
+function initWizard() {
+  renderWizardProgress();
+  renderWizardStep();
+}
+
+function renderWizardProgress() {
+  const el = document.getElementById('wizard-progress');
+  el.innerHTML = QUESTIONS.map((_, i) =>
+    `<div class="progress-step ${i < wizard.step ? 'completed' : ''} ${i === wizard.step ? 'active' : ''}"></div>`
+  ).join('');
+}
+
+function renderWizardStep() {
+  const container = document.getElementById('wizard-steps');
+  const results = document.getElementById('wizard-results');
+  results.className = 'wizard-results';
+
+  if (wizard.step >= QUESTIONS.length) {
+    container.innerHTML = '';
+    renderWizardResults();
+    return;
+  }
+
+  const q = QUESTIONS[wizard.step];
+  container.innerHTML = `
+    <div class="wizard-step active">
+      ${wizard.step > 0 ? `<button class="wizard-back" onclick="wizardBack()">&#8592; Back</button>` : ''}
+      <div class="wizard-question">${q.title}</div>
+      <div class="wizard-options">
+        ${q.options.map(opt => `
+          <div class="wizard-option ${wizard.answers[q.key] === opt.value ? 'selected' : ''}"
+               onclick="wizardSelect('${q.key}', '${opt.value}')">
+            <div class="wizard-option-label">${opt.label}</div>
+            <div class="wizard-option-desc">${opt.desc}</div>
+          </div>
+        `).join('')}
+      </div>
+    </div>
+  `;
+  renderWizardProgress();
+}
+
+function wizardSelect(key, value) {
+  wizard.answers[key] = value;
+  const options = document.querySelectorAll('.wizard-option');
+  options.forEach(o => o.classList.remove('selected'));
+  event.currentTarget.classList.add('selected');
+  setTimeout(() => {
+    wizard.step++;
+    renderWizardStep();
+  }, 300);
+}
+
+function wizardBack() {
+  if (wizard.step > 0) {
+    wizard.step--;
+    renderWizardStep();
+  }
+}
+
+function calculateScores() {
+  const scores = {};
+  Object.keys(FRAMEWORKS).forEach(id => scores[id] = 0);
+
+  const breakdown = [];
+
+  QUESTIONS.forEach(q => {
+    const answer = wizard.answers[q.key];
+    if (!answer) return;
+    const qScores = SCORES[q.key][answer] || {};
+    Object.entries(qScores).forEach(([fw, pts]) => {
+      scores[fw] = (scores[fw] || 0) + pts;
+    });
+    breakdown.push({ question: q.key, answer, scores: qScores });
+  });
+
+  return { scores, breakdown };
+}
+
+function renderWizardResults() {
+  const { scores, breakdown } = calculateScores();
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const [topId, topScore] = sorted[0];
+  const top = { id: topId, ...FRAMEWORKS[topId], ...FRAMEWORK_DETAILS[topId] };
+  const alts = sorted.slice(1, 3).map(([id, score]) => ({ id, score, ...FRAMEWORKS[id], ...FRAMEWORK_DETAILS[id] }));
+  const maxScore = topScore;
+  const warnings = getWarnings(wizard.answers, topId);
+
+  const el = document.getElementById('wizard-results');
+  el.className = 'wizard-results active';
+  el.innerHTML = `
+    <button class="wizard-back" onclick="wizardBack()">&#8592; Back to last question</button>
+
+    <div class="result-primary">
+      <div class="result-label">Top Recommendation</div>
+      <div class="result-name" style="color:${top.color}">${top.name}</div>
+      <div class="result-base">${top.base} &middot; Score: ${topScore}</div>
+      <div class="result-why">${top.bestFor}</div>
+      <div class="result-tradeoffs">
+        ${top.tradeoffs.map(t => `<div class="tradeoff-item">${t}</div>`).join('')}
+      </div>
+      ${warnings.length ? warnings.map(w => `<div class="result-warning"><strong>Warning:</strong> ${w}</div>`).join('') : ''}
+    </div>
+
+    <div class="result-alternatives">
+      ${alts.map(a => `
+        <div class="alt-card">
+          <div class="alt-card-name" style="color:${a.color}">${a.name}</div>
+          <div class="alt-card-base">${a.base} &middot; Score: ${a.score}</div>
+          <div class="alt-card-why">${a.bestFor}</div>
+        </div>
+      `).join('')}
+    </div>
+
+    <div class="scoring-breakdown">
+      <div class="scoring-title">What drove this decision</div>
+      ${breakdown.map(b => {
+        const pts = b.scores[topId] || 0;
+        const pct = maxScore > 0 ? (pts / maxScore) * 100 : 0;
+        return `
+          <div class="scoring-row">
+            <span class="scoring-answer">${ANSWER_LABELS[b.question][b.answer]}</span>
+            <div class="scoring-bar"><div class="scoring-fill" style="width:${pct}%"></div></div>
+            <span class="scoring-points">+${pts}</span>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="wizard-actions">
+      <button class="btn" onclick="resetWizard()">Start Over</button>
+      <button class="btn btn-primary" onclick="copyRecommendation()">Copy Recommendation</button>
+    </div>
+  `;
+}
+
+function resetWizard() {
+  wizard.step = 0;
+  wizard.answers = {};
+  document.getElementById('wizard-results').className = 'wizard-results';
+  renderWizardStep();
+}
+
+function copyRecommendation() {
+  const { scores } = calculateScores();
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  const [topId] = sorted[0];
+  const top = FRAMEWORKS[topId];
+
+  const lines = [
+    `Recommended framework: ${top.name} (${top.base})`,
+    '',
+    'Context:',
+    ...Object.entries(wizard.answers).map(([k, v]) => `- ${ANSWER_LABELS[k][v]}`),
+    '',
+    `Why: ${FRAMEWORK_DETAILS[topId].bestFor}`,
+    '',
+    'Tradeoffs:',
+    ...FRAMEWORK_DETAILS[topId].tradeoffs.map(t => `- ${t}`),
+  ];
+
+  navigator.clipboard.writeText(lines.join('\n')).then(() => {
+    const btn = document.querySelector('.wizard-actions .btn-primary');
+    const orig = btn.textContent;
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = orig, 1500);
+  }).catch(() => {});
+}
+
+
+/* ============================================
+   RENDERING TIMELINE LOGIC
+   ============================================ */
+function initRendering() {
+  const tabs = document.getElementById('strategy-tabs');
+  tabs.innerHTML = Object.entries(STRATEGIES).map(([key, s]) =>
+    `<button class="strategy-tab ${key === currentStrategy ? 'active' : ''}" onclick="selectStrategy('${key}')">${s.tag}</button>`
+  ).join('');
+  buildTimeline();
+  renderTimelineInfo();
+}
+
+function selectStrategy(key) {
+  currentStrategy = key;
+  resetTimeline();
+  document.querySelectorAll('.strategy-tab').forEach(t => t.classList.toggle('active', t.textContent === STRATEGIES[key].tag));
+  buildTimeline();
+  renderTimelineInfo();
+}
+
+function buildTimeline() {
+  const s = STRATEGIES[currentStrategy];
+  document.getElementById('timeline-name').textContent = s.name;
+  document.getElementById('timeline-tagline').textContent = s.tagline;
+  document.getElementById('timeline-time').textContent = '0ms';
+
+  ['server', 'network', 'browser'].forEach(lane => {
+    const track = document.getElementById('lane-' + lane);
+    const blocks = s.blocks.filter(b => b.lane === lane);
+    track.innerHTML = blocks.map(b => {
+      const left = (b.start / 2000) * 100;
+      const width = ((b.end - b.start) / 2000) * 100;
+      return `<div class="tl-block ${b.cls}" data-start="${b.start}" style="left:${left}%; width:${width}%">${b.label}</div>`;
+    }).join('');
+  });
+
+  const markers = document.getElementById('timeline-markers');
+  markers.innerHTML = `
+    <div class="tl-marker fcp" data-time="${s.fcp}" style="left:${(s.fcp / 2000) * 100}%">FCP ${s.fcp}ms</div>
+    <div class="tl-marker tti" data-time="${s.tti}" style="left:${(s.tti / 2000) * 100}%">TTI ${s.tti}ms</div>
+  `;
+
+  updateViewport(0);
+}
+
+function renderTimelineInfo() {
+  const s = STRATEGIES[currentStrategy];
+  document.getElementById('timeline-info').innerHTML = `
+    <div class="info-row"><span class="info-label">Server sends</span><span class="info-value">${s.sends}</span></div>
+    <div class="info-row"><span class="info-label">Infra needed</span><span class="info-value">${s.infra}</span></div>
+    <div class="info-insight">${s.insight}</div>
+  `;
+}
+
+function toggleTimeline() {
+  if (timelineAnim.playing) {
+    cancelAnimationFrame(timelineAnim.id);
+    timelineAnim.playing = false;
+    document.getElementById('btn-play').textContent = 'Play';
+  } else {
+    if (timelineAnim.progress >= 1) timelineAnim.progress = 0;
+    timelineAnim.playing = true;
+    timelineAnim.startTime = null;
+    timelineAnim.startProgress = timelineAnim.progress;
+    document.getElementById('btn-play').textContent = 'Pause';
+    timelineAnim.id = requestAnimationFrame(tickTimeline);
+  }
+}
+
+function tickTimeline(timestamp) {
+  if (!timelineAnim.startTime) timelineAnim.startTime = timestamp;
+  const elapsed = timestamp - timelineAnim.startTime;
+  const duration = 3000;
+  timelineAnim.progress = Math.min(timelineAnim.startProgress + elapsed / duration, 1);
+  const currentMs = timelineAnim.progress * 2000;
+
+  document.getElementById('timeline-time').textContent = Math.round(currentMs) + 'ms';
+
+  document.querySelectorAll('.tl-block').forEach(b => {
+    const start = parseFloat(b.dataset.start);
+    b.classList.toggle('visible', currentMs >= start);
+  });
+
+  document.querySelectorAll('.tl-marker').forEach(m => {
+    const time = parseFloat(m.dataset.time);
+    m.classList.toggle('visible', currentMs >= time);
+  });
+
+  updateViewport(currentMs);
+
+  if (timelineAnim.progress < 1) {
+    timelineAnim.id = requestAnimationFrame(tickTimeline);
+  } else {
+    timelineAnim.playing = false;
+    document.getElementById('btn-play').textContent = 'Play';
+  }
+}
+
+function resetTimeline() {
+  cancelAnimationFrame(timelineAnim.id);
+  timelineAnim = { id: null, playing: false, progress: 0 };
+  document.getElementById('btn-play').textContent = 'Play';
+  document.getElementById('timeline-time').textContent = '0ms';
+  document.querySelectorAll('.tl-block').forEach(b => b.classList.remove('visible'));
+  document.querySelectorAll('.tl-marker').forEach(m => m.classList.remove('visible'));
+  updateViewport(0);
+}
+
+function updateViewport(ms) {
+  const s = STRATEGIES[currentStrategy];
+  const vp = document.getElementById('viewport-content');
+  const status = document.getElementById('viewport-status');
+  const lines = vp.querySelectorAll('.viewport-line');
+  const btn = vp.querySelector('.viewport-btn-fake');
+
+  let state = 'blank', label = '';
+  for (const v of s.viewport) {
+    if (ms < v.until) { state = v.state; label = v.label; break; }
+    state = v.state; label = v.label;
+  }
+
+  vp.className = 'viewport-content ' + state;
+  status.textContent = label;
+
+  const showContent = state !== 'blank';
+  lines.forEach(l => l.style.opacity = showContent ? 1 : 0);
+  if (btn) btn.style.opacity = showContent ? 1 : 0;
+}
+
+
+/* ============================================
+   REACTIVITY LOGIC
+   ============================================ */
+function initReactivity() {
+  ['react', 'svelte', 'solid'].forEach(model => {
+    const grid = document.getElementById('grid-' + model);
+    grid.innerHTML = Array.from({ length: 100 }, () => '<div class="node-cell"></div>').join('');
+  });
+  updateReactivity();
+}
+
+function updateReactivity() {
+  const size = parseInt(document.getElementById('list-slider').value);
+  document.getElementById('list-value').textContent = size.toLocaleString();
+
+  const reactMs = (size / 100) * 2;
+  const svelteMs = 0.5 + Math.log10(size) * 0.15;
+  const solidMs = 0.1;
+  const maxMs = 200;
+
+  document.getElementById('perf-react-val').textContent = `~${reactMs.toFixed(1)}ms`;
+  document.getElementById('perf-svelte-val').textContent = `~${svelteMs.toFixed(1)}ms`;
+  document.getElementById('perf-solid-val').textContent = `~${solidMs}ms`;
+
+  document.getElementById('perf-react').style.width = Math.min((reactMs / maxMs) * 100, 100) + '%';
+  document.getElementById('perf-svelte').style.width = Math.max((svelteMs / maxMs) * 100, 1) + '%';
+  document.getElementById('perf-solid').style.width = Math.max((solidMs / maxMs) * 100, 0.5) + '%';
+}
+
+function triggerReactivityUpdate() {
+  if (reactivityAnimating) return;
+  reactivityAnimating = true;
+
+  const changedIndices = [];
+  while (changedIndices.length < 3) {
+    const idx = Math.floor(Math.random() * 100);
+    if (!changedIndices.includes(idx)) changedIndices.push(idx);
+  }
+
+  animateReactModel(changedIndices);
+  animateSvelteModel(changedIndices);
+  animateSolidModel(changedIndices);
+
+  setTimeout(() => { reactivityAnimating = false; }, 1200);
+}
+
+function animateReactModel(changed) {
+  const cells = document.querySelectorAll('#grid-react .node-cell');
+  cells.forEach(c => c.classList.add('vdom-scan'));
+  setTimeout(() => {
+    cells.forEach(c => c.classList.remove('vdom-scan'));
+    changed.forEach(i => cells[i].classList.add('changed'));
+    setTimeout(() => changed.forEach(i => cells[i].classList.remove('changed')), 500);
+  }, 400);
+}
+
+function animateSvelteModel(changed) {
+  const cells = document.querySelectorAll('#grid-svelte .node-cell');
+  setTimeout(() => {
+    changed.forEach(i => cells[i].classList.add('changed'));
+    setTimeout(() => changed.forEach(i => cells[i].classList.remove('changed')), 500);
+  }, 200);
+}
+
+function animateSolidModel(changed) {
+  const cells = document.querySelectorAll('#grid-solid .node-cell');
+  changed.forEach(i => cells[i].classList.add('signal-hit'));
+  setTimeout(() => changed.forEach(i => cells[i].classList.remove('signal-hit')), 600);
+}
+
+
+/* ============================================
+   BRACKET LOGIC
+   ============================================ */
+function initBracket() {
+  CONSTRAINTS.forEach(c => bracketState[c.id] = false);
+
+  const constraintsEl = document.getElementById('bracket-constraints');
+  constraintsEl.innerHTML = CONSTRAINTS.map(c => `
+    <div class="constraint-item" data-id="${c.id}" onclick="toggleConstraint('${c.id}')">
+      <div class="constraint-toggle"></div>
+      <div class="constraint-label">${c.label}</div>
+    </div>
+  `).join('');
+
+  const gridEl = document.getElementById('bracket-grid');
+  gridEl.innerHTML = BRACKET_FRAMEWORKS.map(fw => `
+    <div class="fw-card" data-fw="${fw.id}">
+      <div class="fw-advantage-badge">BEST FIT</div>
+      <div class="fw-name">${fw.name}</div>
+      <div class="fw-base">${fw.base}</div>
+      <div class="fw-differentiator">${fw.diff}</div>
+      <div class="fw-elimination-reason" data-fw="${fw.id}"></div>
+    </div>
+  `).join('');
+
+  updateBracket();
+}
+
+function toggleConstraint(id) {
+  bracketState[id] = !bracketState[id];
+  document.querySelectorAll('.constraint-item').forEach(el => {
+    el.classList.toggle('active', bracketState[el.dataset.id]);
+  });
+  updateBracket();
+}
+
+function updateBracket() {
+  const eliminated = {};
+  const advantages = {};
+
+  CONSTRAINTS.forEach(c => {
+    if (!bracketState[c.id]) return;
+    if (c.eliminates) {
+      Object.entries(c.eliminates).forEach(([fw, reason]) => {
+        if (!eliminated[fw]) eliminated[fw] = [];
+        eliminated[fw].push(reason);
+      });
+    }
+    if (c.advantages) {
+      Object.entries(c.advantages).forEach(([fw, reason]) => {
+        advantages[fw] = reason;
+      });
+    }
+  });
+
+  document.querySelectorAll('.fw-card').forEach(card => {
+    const fw = card.dataset.fw;
+    const isEliminated = !!eliminated[fw];
+    const hasAdvantage = !!advantages[fw] && !isEliminated;
+
+    card.classList.toggle('eliminated', isEliminated);
+    card.classList.toggle('advantage', hasAdvantage);
+
+    const reasonEl = card.querySelector('.fw-elimination-reason');
+    if (isEliminated) {
+      reasonEl.textContent = eliminated[fw][0];
+    } else {
+      reasonEl.textContent = '';
+    }
+  });
+
+  const active = BRACKET_FRAMEWORKS.filter(fw => !eliminated[fw.id]);
+  const statusEl = document.getElementById('bracket-status');
+  if (Object.keys(bracketState).every(k => !bracketState[k])) {
+    statusEl.textContent = 'Toggle constraints to filter. All 7 meta-frameworks are viable starting points.';
+  } else {
+    statusEl.textContent = `${active.length} of ${BRACKET_FRAMEWORKS.length} remaining: ${active.map(f => f.name).join(', ')}`;
+  }
+}
+
+
+/* ============================================
+   ORG TEST LOGIC
+   ============================================ */
+function selectOrgPath(choice) {
+  document.querySelectorAll('.org-choice').forEach(c => c.classList.remove('selected'));
+  document.querySelector(`.org-choice.${choice}`).classList.add('selected');
+
+  const data = ORG_RESULTS[choice];
+  const el = document.getElementById('org-result');
+  el.className = 'org-result visible';
+  el.innerHTML = `
+    <div class="org-result-card">
+      <div class="org-result-title" style="color:${choice === 'consistency' ? 'var(--accent2)' : 'var(--accent)'}">${data.title}</div>
+      <div class="org-result-body">${data.body}</div>
+      <div class="org-what-goes-wrong">
+        <strong>${data.wrongTitle}</strong>
+        <p style="margin-top:8px">${data.wrongBody}</p>
+      </div>
+    </div>
+  `;
+}
+
+
+/* ============================================
+   NAVIGATION
+   ============================================ */
+function initNav() {
+  const sections = document.querySelectorAll('.playground-section');
+  const navLinks = document.querySelectorAll('.nav-link');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle('active', link.getAttribute('href') === '#' + entry.target.id);
+        });
+      }
+    });
+  }, { threshold: 0.2, rootMargin: '-80px 0px -60% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+
+  navLinks.forEach(link => {
+    link.addEventListener('click', (e) => {
+      e.preventDefault();
+      const target = document.querySelector(link.getAttribute('href'));
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  });
+}
+
+
+/* ============================================
+   INIT
+   ============================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  initNav();
+  initWizard();
+  initRendering();
+  initReactivity();
+  initBracket();
+});
+</script>
+</body>
+</html>
