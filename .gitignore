@@ -39,3 +39,6 @@ worktrees/
 !/CLAUDE.md
 .claude/*.local.md
 .claude/settings.local.json
+
+# Playwright screenshots
+*.png
