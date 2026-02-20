@@ -19,7 +19,7 @@ cat <(echo "/playground") ai-agent-architecture/prompt.md | CLAUDE_CODE_MAX_OUTP
 ## Full Transcript
 
 ```text
-✻
+    ✻
     |
    ▟█▙     Claude Code v2.1.45
  ▐▛███▜▌   Opus 4.6 · Claude Max
