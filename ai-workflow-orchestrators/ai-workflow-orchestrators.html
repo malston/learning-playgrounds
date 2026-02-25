@@ -11,6 +11,7 @@
   --border:#1f2d45;--accent:#38bdf8;--accent2:#a78bfa;--accent3:#34d399;--accent4:#fb923c;
   --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8;
   --danger:#f43f5e;--yellow:#fbbf24;
+  --accent5:#f472b6;--accent6:#22d3ee;
   --radius:8px;--radius-lg:12px;
 }
 html{scroll-behavior:smooth;scroll-padding-top:72px}
@@ -65,10 +66,14 @@ h3{font-size:1.15rem;font-weight:600;margin-bottom:6px}
 .tool-superpowers{color:var(--accent2)}
 .tool-conductor{color:var(--accent3)}
 .tool-speckit{color:var(--accent4)}
+.tool-openspec{color:var(--accent5)}
+.tool-taskmaster{color:var(--accent6)}
 .border-gsd{border-left:3px solid var(--accent)}
 .border-superpowers{border-left:3px solid var(--accent2)}
 .border-conductor{border-left:3px solid var(--accent3)}
 .border-speckit{border-left:3px solid var(--accent4)}
+.border-openspec{border-left:3px solid var(--accent5)}
+.border-taskmaster{border-left:3px solid var(--accent6)}
 
 /* Insight banners */
 .insight{background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:var(--radius);padding:14px 18px;margin:16px 0;font-size:0.88rem;color:var(--text-dim)}
@@ -118,6 +123,8 @@ h3{font-size:1.15rem;font-weight:600;margin-bottom:6px}
 .context-tool-tab.active[data-tool="superpowers"]{background:rgba(167,139,250,0.12);border-color:var(--accent2);color:var(--accent2)}
 .context-tool-tab.active[data-tool="conductor"]{background:rgba(52,211,153,0.12);border-color:var(--accent3);color:var(--accent3)}
 .context-tool-tab.active[data-tool="speckit"]{background:rgba(251,146,60,0.12);border-color:var(--accent4);color:var(--accent4)}
+.context-tool-tab.active[data-tool="openspec"]{background:rgba(244,114,182,0.12);border-color:var(--accent5);color:var(--accent5)}
+.context-tool-tab.active[data-tool="taskmaster"]{background:rgba(34,211,238,0.12);border-color:var(--accent6);color:var(--accent6)}
 .context-scene{position:relative;min-height:340px}
 .context-panel{display:none;animation:fadeIn 0.3s ease}
 .context-panel.active{display:block}
@@ -239,7 +246,7 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.8
 <main>
   <section id="wizard" class="section">
     <h2>Orchestrator Selector</h2>
-    <p class="section-subtitle">Answer six questions to get a ranked recommendation. Each answer narrows the field and explains why.</p>
+    <p class="section-subtitle">Answer seven questions to get a ranked recommendation. Each answer narrows the field and explains why.</p>
     <div id="wizard-container" aria-live="polite"></div>
   </section>
 
@@ -251,7 +258,7 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.8
 
   <section id="spectrum" class="section">
     <h2>The Flexibility Spectrum</h2>
-    <p class="section-subtitle">Four tools spanning from flexible to opinionated. Click a tool to see what it enforces, what it leaves to you, and what breaks if you choose wrong.</p>
+    <p class="section-subtitle">Six tools spanning from flexible to opinionated. Click a tool to see what it enforces, what it leaves to you, and what breaks if you choose wrong.</p>
     <div id="spectrum-container" aria-live="polite"></div>
   </section>
 
@@ -284,10 +291,12 @@ const TOOLS = {
   gsd: { name: 'GSD', color: '#38bdf8', cls: 'tool-gsd' },
   superpowers: { name: 'Superpowers', color: '#a78bfa', cls: 'tool-superpowers' },
   conductor: { name: 'Conductor', color: '#34d399', cls: 'tool-conductor' },
-  speckit: { name: 'Spec Kit', color: '#fb923c', cls: 'tool-speckit' }
+  speckit: { name: 'Spec Kit', color: '#fb923c', cls: 'tool-speckit' },
+  openspec: { name: 'OpenSpec', color: '#f472b6', cls: 'tool-openspec' },
+  taskmaster: { name: 'Taskmaster', color: '#22d3ee', cls: 'tool-taskmaster' }
 };
 
-const TOOL_KEYS = ['gsd', 'superpowers', 'conductor', 'speckit'];
+const TOOL_KEYS = ['gsd', 'superpowers', 'conductor', 'speckit', 'openspec', 'taskmaster'];
 
 const QUESTIONS = [
   {
@@ -295,20 +304,28 @@ const QUESTIONS = [
     question: "What's your primary pain point with AI-assisted development today?",
     options: [
       { value: 'wrong-thing', label: 'We build the wrong thing', desc: 'Vague requirements turn into wasted sprints',
-        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3 },
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3, openspec: 0, taskmaster: 0 },
         eliminates: { superpowers: 'Superpowers doesn\'t address specification quality', conductor: 'Conductor enforces execution process, not requirement clarity' }
       },
       { value: 'sloppily', label: 'We build it sloppily', desc: 'Skipped tests, inconsistent quality, shortcuts under pressure',
-        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0 },
+        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0, openspec: 0, taskmaster: 0 },
         eliminates: { speckit: 'Spec Kit focuses on specs, not execution discipline', gsd: 'GSD provides structure but not per-task quality gates' }
       },
       { value: 'momentum', label: "We can't maintain momentum on large projects", desc: 'Context gets lost across sessions',
-        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 0 },
+        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 0, openspec: 0, taskmaster: 1 },
         eliminates: { superpowers: 'Superpowers has no project-level structure', speckit: 'Spec Kit doesn\'t manage execution across sessions' }
       },
       { value: 'prove', label: "We can't prove what we did or why", desc: 'Compliance, audits, team turnover',
-        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 1 },
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 1, openspec: 1, taskmaster: 0 },
         eliminates: { superpowers: 'Superpowers produces design plans, not formal compliance artifacts' }
+      },
+      { value: 'outdated-specs', label: "We're modifying an existing system and specs are out of date", desc: 'Brownfield work with no living specification baseline',
+        scores: { gsd: 0, superpowers: 0, conductor: 0, speckit: 1, openspec: 3, taskmaster: 0 },
+        eliminates: { superpowers: 'Superpowers doesn\'t manage specifications', conductor: 'Conductor enforces execution, not spec evolution' }
+      },
+      { value: 'task-breakdown', label: "We have a PRD but can't break it into well-ordered tasks", desc: 'Dependency-aware task sequencing from product requirements',
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 0, openspec: 0, taskmaster: 3 },
+        eliminates: { superpowers: 'Superpowers doesn\'t decompose PRDs', speckit: 'Spec Kit focuses on spec quality, not task sequencing' }
       }
     ]
   },
@@ -317,16 +334,34 @@ const QUESTIONS = [
     question: 'How large and long-running are the projects you\'re orchestrating?',
     options: [
       { value: 'small', label: 'Single features or bug fixes', desc: 'Hours to days',
-        scores: { gsd: 0, superpowers: 3, conductor: 1, speckit: 1 },
+        scores: { gsd: 0, superpowers: 3, conductor: 1, speckit: 1, openspec: 0, taskmaster: 1 },
         eliminates: { gsd: 'GSD\'s full lifecycle is overhead for short tasks' }
       },
       { value: 'medium', label: 'Multi-phase projects', desc: 'Weeks, multiple milestones',
-        scores: { gsd: 3, superpowers: 0, conductor: 2, speckit: 1 },
+        scores: { gsd: 3, superpowers: 0, conductor: 2, speckit: 1, openspec: 1, taskmaster: 2 },
         eliminates: { superpowers: 'Superpowers doesn\'t track milestones or phases' }
       },
       { value: 'large', label: 'Large codebases that outlive the context window', desc: 'Context management is the bottleneck',
-        scores: { gsd: 3, superpowers: 0, conductor: 0, speckit: 0 },
+        scores: { gsd: 3, superpowers: 0, conductor: 0, speckit: 0, openspec: 1, taskmaster: 1 },
         eliminates: { superpowers: 'No context scheduling', conductor: 'Shared context saturates on large codebases', speckit: 'No selective file loading' }
+      }
+    ]
+  },
+  {
+    id: 'greenfield',
+    question: 'Are you building something new or modifying an existing system?',
+    options: [
+      { value: 'greenfield', label: 'Greenfield', desc: 'Building from scratch',
+        scores: { gsd: 2, superpowers: 1, conductor: 1, speckit: 2, openspec: 0, taskmaster: 2 },
+        eliminates: { openspec: 'OpenSpec manages delta specs against an existing baseline -- no baseline in greenfield' }
+      },
+      { value: 'brownfield', label: 'Brownfield', desc: 'Modifying or extending a system that already exists',
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 0, openspec: 3, taskmaster: 1 },
+        eliminates: {}
+      },
+      { value: 'mixed', label: 'Mixed', desc: 'Some new, some existing',
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 1, openspec: 1, taskmaster: 1 },
+        eliminates: {}
       }
     ]
   },
@@ -335,15 +370,15 @@ const QUESTIONS = [
     question: 'Is TDD non-negotiable on your team?',
     options: [
       { value: 'enforce', label: 'Yes \u2014 we need structural enforcement', desc: 'Not encouragement, hard gates',
-        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0 },
-        eliminates: { gsd: 'GSD doesn\'t enforce TDD within tasks', speckit: 'Spec Kit focuses on specs, not test discipline' }
+        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0, openspec: 0, taskmaster: 0 },
+        eliminates: { gsd: 'GSD doesn\'t enforce TDD within tasks', speckit: 'Spec Kit focuses on specs, not test discipline', openspec: 'OpenSpec manages specs, not test discipline', taskmaster: 'Taskmaster sequences tasks, doesn\'t enforce how they\'re built' }
       },
       { value: 'practice', label: 'We practice it but don\'t need guardrails', desc: 'The team is disciplined enough',
-        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 1 },
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 1, openspec: 1, taskmaster: 1 },
         eliminates: {}
       },
       { value: 'no', label: 'Not a priority', desc: 'Other concerns come first',
-        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 1 },
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 1, openspec: 1, taskmaster: 1 },
         eliminates: {}
       }
     ]
@@ -353,15 +388,15 @@ const QUESTIONS = [
     question: 'What\'s your compliance and audit situation?',
     options: [
       { value: 'external', label: 'External auditors', desc: 'We need to prove process compliance to third parties',
-        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0 },
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0, openspec: 1, taskmaster: 0 },
         eliminates: { superpowers: 'Superpowers produces plans, not formal compliance evidence', speckit: 'Captures intent, not process compliance' }
       },
       { value: 'internal', label: 'Internal traceability', desc: 'Requirements \u2192 implementation \u2192 verification',
-        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 1 },
+        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 1, openspec: 2, taskmaster: 1 },
         eliminates: { superpowers: 'No requirements traceability' }
       },
       { value: 'neither', label: 'Neither applies', desc: 'Move fast, ship features',
-        scores: { gsd: 0, superpowers: 2, conductor: 0, speckit: 1 },
+        scores: { gsd: 0, superpowers: 2, conductor: 0, speckit: 1, openspec: 0, taskmaster: 1 },
         eliminates: {}
       }
     ]
@@ -371,11 +406,11 @@ const QUESTIONS = [
     question: 'Do you need this to work across multiple AI coding assistants?',
     options: [
       { value: 'yes', label: 'Yes \u2014 our team uses different tools', desc: 'Cursor, Copilot, Claude Code, etc.',
-        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3 },
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3, openspec: 2, taskmaster: 2 },
         eliminates: { conductor: 'Conductor is tightly coupled to Claude Code', superpowers: 'Superpowers is Claude Code specific' }
       },
       { value: 'no', label: 'No \u2014 we\'re standardized on one', desc: 'Everyone uses the same tool',
-        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 0 },
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 0, openspec: 0, taskmaster: 0 },
         eliminates: {}
       }
     ]
@@ -385,15 +420,15 @@ const QUESTIONS = [
     question: 'Where does your team fall on the AI-assisted dev maturity curve?',
     options: [
       { value: 'new', label: 'New to it', desc: 'We need guardrails and mandatory gates',
-        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0 },
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0, openspec: 0, taskmaster: 1 },
         eliminates: { superpowers: 'Too flexible for teams needing mandatory structure' }
       },
       { value: 'building', label: 'Building confidence', desc: 'Structure helps but we can handle some autonomy',
-        scores: { gsd: 2, superpowers: 1, conductor: 1, speckit: 1 },
+        scores: { gsd: 2, superpowers: 1, conductor: 1, speckit: 1, openspec: 1, taskmaster: 1 },
         eliminates: {}
       },
       { value: 'experienced', label: 'Experienced', desc: 'We want discipline without lifecycle overhead',
-        scores: { gsd: 0, superpowers: 3, conductor: 0, speckit: 2 },
+        scores: { gsd: 0, superpowers: 3, conductor: 0, speckit: 2, openspec: 1, taskmaster: 1 },
         eliminates: { gsd: 'Full lifecycle feels like overhead for experienced teams', conductor: 'Mandatory 11-step process slows experienced teams' }
       }
     ]
@@ -416,6 +451,14 @@ const TRADEOFFS = {
   speckit: [
     'Strong on specification, weak on execution rigor \u2014 great specs don\'t guarantee great implementation',
     'Adds specification overhead to fast-moving prototyping \u2014 premature formality can slow exploration'
+  ],
+  openspec: [
+    'Requires an existing codebase to express deltas against \u2014 no baseline means no delta specs',
+    'Manages spec evolution, not execution rigor \u2014 knowing what changed doesn\'t guarantee it was built well'
+  ],
+  taskmaster: [
+    'Decomposes and sequences tasks, doesn\'t enforce how they\'re built \u2014 well-ordered tasks with sloppy implementation',
+    'Only as good as the input PRD \u2014 if the spec is vague, Taskmaster sequences garbage into well-ordered garbage'
   ]
 };
 
@@ -423,7 +466,9 @@ const COMPLEMENT_MAP = {
   gsd: { tool: 'superpowers', reason: 'GSD orchestrates phases; Superpowers enforces coding discipline within each task' },
   superpowers: { tool: 'speckit', reason: 'Superpowers enforces per-task discipline; Spec Kit ensures you\'re building the right thing' },
   conductor: { tool: 'superpowers', reason: 'Conductor provides audit trail and TDD gates; Superpowers fills brainstorming and debugging gaps' },
-  speckit: { tool: 'gsd', reason: 'Spec Kit produces high-quality specifications; GSD\'s execution engine parallelizes implementation' }
+  speckit: { tool: 'gsd', reason: 'Spec Kit produces high-quality specifications; GSD\'s execution engine parallelizes implementation' },
+  openspec: { tool: 'superpowers', reason: 'OpenSpec tracks what\'s changing in your specs; Superpowers enforces how each change is built' },
+  taskmaster: { tool: 'superpowers', reason: 'Taskmaster decomposes and sequences work; Superpowers enforces coding discipline per task' }
 };
 
 const WARNINGS = [
@@ -436,7 +481,11 @@ const WARNINGS = [
   { condition: (a) => a['cross-assistant'] === 'yes' && getWinner(a).tool === 'conductor',
     msg: 'Conductor is tightly coupled to Claude Code. If your team uses multiple AI assistants, Spec Kit\'s assistant-agnostic specifications may be a better foundation.' },
   { condition: (a) => a.maturity === 'experienced' && getWinner(a).tool === 'conductor',
-    msg: 'Conductor\'s mandatory 11-step TDD lifecycle can feel heavy for experienced teams. Consider Superpowers for lighter discipline or Spec Kit for specification-focused workflow.' }
+    msg: 'Conductor\'s mandatory 11-step TDD lifecycle can feel heavy for experienced teams. Consider Superpowers for lighter discipline or Spec Kit for specification-focused workflow.' },
+  { condition: (a) => a.greenfield === 'greenfield' && getWinner(a).tool === 'openspec',
+    msg: 'OpenSpec manages delta specs against an existing baseline. In a greenfield project there\'s no baseline to express deltas against. Consider Spec Kit for upfront specification quality instead.' },
+  { condition: (a) => getWinner(a).tool === 'taskmaster' && (a.painpoint === 'wrong-thing' || a.painpoint === 'outdated-specs'),
+    msg: 'Taskmaster sequences tasks from a PRD, but if spec quality is the real bottleneck, you\'ll get well-ordered tasks built from a bad spec. Consider pairing with Spec Kit or OpenSpec for specification quality.' }
 ];
 
 // Context Visualizer
@@ -470,6 +519,46 @@ const SPECTRUM_DATA = {
       'Team that needs project-level structure \u2192 discipline without direction',
       'Multi-phase projects \u2192 no way to track progress across sessions',
       'Formal compliance \u2192 plans exist but aren\'t structured for auditor consumption'
+    ]
+  },
+  taskmaster: {
+    position: 18,
+    enforces: [
+      'Task decomposition structure from PRD analysis',
+      'Dependency ordering and sequencing via next routing',
+      'Complexity-based task breakdown with subtask generation',
+      'Priority-based work selection across the task graph'
+    ],
+    freedom: [
+      'How you code each task (TDD, style, patterns)',
+      'Commit conventions and version control workflow',
+      'Verification and testing approach',
+      'Specification quality and completeness'
+    ],
+    breaks: [
+      'Team where spec quality is the bottleneck \u2192 well-sequenced tasks built from a bad spec',
+      'Solo developer on small tasks \u2192 task graph overhead for straightforward work',
+      'Team needing audit trails \u2192 task status tracking but no formal compliance artifacts'
+    ]
+  },
+  openspec: {
+    position: 25,
+    enforces: [
+      'Delta-based spec management (change isolation, archive-and-merge lifecycle)',
+      'Artifact DAG tracking dependencies between specification documents',
+      'Per-artifact context assembly from project config, rules, and templates',
+      'Spec evolution as a side effect of development work'
+    ],
+    freedom: [
+      'How you build (TDD, coding style, commit conventions)',
+      'Verification and testing approach',
+      'Task sequencing and execution order',
+      'Project lifecycle and milestone planning'
+    ],
+    breaks: [
+      'Greenfield project with no existing spec baseline \u2192 no baseline to express deltas against',
+      'Team needing execution rigor \u2192 knowing what changed doesn\'t guarantee it was built well',
+      'Fast prototyping \u2192 spec management overhead slows early exploration'
     ]
   },
   speckit: {
@@ -560,6 +649,24 @@ const CAPABILITIES = [
     labels: ['High', 'High', 'High'],
     colors: ['#34d399', '#34d399', '#34d399'],
     trajectory: 'Garbage in, garbage out regardless of model capability. A model 10x better at code generation still builds the wrong thing if the spec is vague. Specification quality is durable.' },
+  { id: 'taskdecomp', name: 'Task decomposition',
+    desc: 'PRD parsing, complexity analysis, dependency ordering',
+    values: [85, 55, 35],
+    labels: ['High', 'Medium', 'Low-Med'],
+    colors: ['#34d399', '#fbbf24', '#f43f5e'],
+    trajectory: 'Models are improving at self-planning -- breaking a problem into steps, identifying dependencies, sequencing their own work. The value shifts from "the model can\'t plan" to "the model\'s plan isn\'t persistent or shareable."' },
+  { id: 'specevol', name: 'Spec evolution',
+    desc: 'Delta specs, living baseline, archive-and-merge lifecycle',
+    values: [85, 86, 88],
+    labels: ['High', 'High', 'High'],
+    colors: ['#34d399', '#34d399', '#34d399'],
+    trajectory: 'For long-lived codebases, keeping specs accurate as the system changes is a workflow problem, not a model capability problem. Building spec maintenance into development as a side effect of normal work is durable.' },
+  { id: 'depmgmt', name: 'Dependency management',
+    desc: 'Task graph, circular dependency detection, priority routing',
+    values: [85, 85, 70],
+    labels: ['High', 'High', 'Med-High'],
+    colors: ['#34d399', '#34d399', '#fbbf24'],
+    trajectory: 'The graph structure of task dependencies (what blocks what, circular dependency detection, priority-based routing) is useful regardless of model capability, especially across multi-session or multi-collaborator projects.' },
   { id: 'parallelism', name: 'Execution parallelism',
     desc: 'Wave-based dispatch, concurrent subagents',
     values: [85, 82, 70],
@@ -576,28 +683,52 @@ const TOOL_DURABILITY = {
   superpowers: { name: 'Superpowers', capabilities: ['discipline'],
     scores: [75, 55, 40], reason: 'Primarily a discipline tool. As models self-correct better, the value proposition narrows. Remains useful but less differentiated.' },
   speckit: { name: 'Spec Kit', capabilities: ['specquality'],
-    scores: [80, 82, 85], reason: 'Specification quality is the most durable capability. Value actually increases as AI implementation speed makes bad specs more costly.' }
+    scores: [80, 82, 85], reason: 'Specification quality is the most durable capability. Value actually increases as AI implementation speed makes bad specs more costly.' },
+  openspec: { name: 'OpenSpec', capabilities: ['specevol', 'specquality'],
+    scores: [82, 84, 87], reason: 'Spec evolution and specification quality are both durable. Managing how specs change over time becomes more valuable as codebases grow and AI generates changes faster.' },
+  taskmaster: { name: 'Taskmaster', capabilities: ['taskdecomp', 'depmgmt'],
+    scores: [80, 68, 52], reason: 'Task decomposition weakens as models self-plan better. Dependency management is more durable but can\'t fully offset declining decomposition value.' }
 };
 
 // Combinations
 const COMPATIBLE_COMBOS = {
   gsd: [
     { pair: 'superpowers', label: 'GSD + Superpowers', why: 'Project lifecycle (GSD) + per-task coding discipline (Superpowers). They don\'t conflict because GSD orchestrates phases while Superpowers operates within individual tasks.' },
-    { pair: 'speckit', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' }
+    { pair: 'speckit', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' },
+    { pair: 'openspec', label: 'OpenSpec + GSD', why: 'OpenSpec manages the living spec baseline; GSD handles project lifecycle and execution. Good for brownfield projects needing both spec evolution and parallel execution.' },
+    { pair: 'taskmaster', label: 'Taskmaster + GSD', why: 'Taskmaster decomposes a PRD into tasks; GSD manages execution with parallel dispatch and verification. Heavy combination for PRD-driven projects that need rigorous execution.' }
   ],
   superpowers: [
     { pair: 'gsd', label: 'GSD + Superpowers', why: 'GSD provides project structure and context scheduling. Superpowers adds TDD enforcement, systematic debugging, and code review discipline within each task.' },
     { pair: 'conductor', label: 'Conductor + Superpowers', why: 'Conductor\'s audit trail + Superpowers\' brainstorming and debugging skills. Superpowers fills skill gaps Conductor doesn\'t cover.' },
-    { pair: 'speckit', label: 'Spec Kit + Superpowers', why: 'Lightweight combination: good specs with flexible execution discipline. No lifecycle overhead.' }
+    { pair: 'speckit', label: 'Spec Kit + Superpowers', why: 'Lightweight combination: good specs with flexible execution discipline. No lifecycle overhead.' },
+    { pair: 'openspec', label: 'OpenSpec + Superpowers', why: 'OpenSpec tracks what\'s changing; Superpowers enforces how it\'s built. Spec management with coding discipline, no lifecycle overhead.' },
+    { pair: 'taskmaster', label: 'Taskmaster + Superpowers', why: 'Taskmaster decomposes and sequences work; Superpowers enforces coding discipline per task. Task structure without heavy lifecycle.' }
   ],
   conductor: [
     { pair: 'superpowers', label: 'Conductor + Superpowers', why: 'Conductor\'s audit trail and TDD lifecycle + Superpowers\' brainstorming, debugging, and review skills. Complementary coverage.' },
-    { pair: 'speckit', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end coverage from intent through verification.' }
+    { pair: 'speckit', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end coverage from intent through verification.' },
+    { pair: 'openspec', label: 'OpenSpec + Conductor', why: 'OpenSpec manages delta specs; Conductor enforces TDD execution with audit trail. Brownfield spec tracking with strict task-level rigor.' }
   ],
   speckit: [
     { pair: 'gsd', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' },
     { pair: 'conductor', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end from intent through verified implementation.' },
-    { pair: 'superpowers', label: 'Spec Kit + Superpowers', why: 'Lightweight: good specs with flexible execution discipline. Ideal for experienced teams.' }
+    { pair: 'superpowers', label: 'Spec Kit + Superpowers', why: 'Lightweight: good specs with flexible execution discipline. Ideal for experienced teams.' },
+    { pair: 'openspec', label: 'Spec Kit + OpenSpec', why: 'Spec Kit ensures initial spec quality through constitutional governance; OpenSpec manages how specs evolve over time. Quality-first creation with structured evolution.' },
+    { pair: 'taskmaster', label: 'Spec Kit + Taskmaster', why: 'Spec Kit produces high-quality specs; Taskmaster decomposes them into dependency-aware tasks. Spec quality pipeline feeding task sequencing.' }
+  ],
+  openspec: [
+    { pair: 'gsd', label: 'OpenSpec + GSD', why: 'OpenSpec manages the living spec baseline; GSD handles project lifecycle and execution. Good for brownfield projects needing both spec evolution and parallel execution.' },
+    { pair: 'superpowers', label: 'OpenSpec + Superpowers', why: 'OpenSpec tracks what\'s changing; Superpowers enforces how it\'s built. Spec management with coding discipline, no lifecycle overhead.' },
+    { pair: 'conductor', label: 'OpenSpec + Conductor', why: 'OpenSpec manages delta specs; Conductor enforces TDD execution with audit trail. Brownfield spec tracking with strict task-level rigor.' },
+    { pair: 'taskmaster', label: 'Taskmaster + OpenSpec', why: 'Taskmaster manages task decomposition; OpenSpec manages spec evolution. PRD-driven task flow with a living spec baseline.' },
+    { pair: 'speckit', label: 'Spec Kit + OpenSpec', why: 'Spec Kit ensures initial spec quality through constitutional governance; OpenSpec manages how specs evolve over time. Quality-first creation with structured evolution.' }
+  ],
+  taskmaster: [
+    { pair: 'superpowers', label: 'Taskmaster + Superpowers', why: 'Taskmaster decomposes and sequences work; Superpowers enforces coding discipline per task. Task structure without heavy lifecycle.' },
+    { pair: 'openspec', label: 'Taskmaster + OpenSpec', why: 'Taskmaster manages task decomposition; OpenSpec manages spec evolution. PRD-driven task flow with a living spec baseline.' },
+    { pair: 'gsd', label: 'Taskmaster + GSD', why: 'Taskmaster decomposes a PRD into tasks; GSD manages execution with parallel dispatch and verification. Heavy combination for PRD-driven projects that need rigorous execution.' },
+    { pair: 'speckit', label: 'Spec Kit + Taskmaster', why: 'Spec Kit produces high-quality specs; Taskmaster decomposes them into dependency-aware tasks. Spec quality pipeline feeding task sequencing.' }
   ]
 };
 
@@ -607,9 +738,14 @@ const AVOID_COMBOS = {
   ],
   superpowers: [],
   conductor: [
-    { pair: 'gsd', label: 'Conductor + GSD', why: 'Both manage full lifecycle. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) compose; lifecycle frameworks don\'t.' }
+    { pair: 'gsd', label: 'Conductor + GSD', why: 'Both manage full lifecycle. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) compose; lifecycle frameworks don\'t.' },
+    { pair: 'taskmaster', label: 'Conductor + Taskmaster', why: 'Conductor owns a gated TDD lifecycle; Taskmaster owns task decomposition and the task graph. They compete for workflow control and create redundant structure.' }
   ],
-  speckit: []
+  speckit: [],
+  openspec: [],
+  taskmaster: [
+    { pair: 'conductor', label: 'Taskmaster + Conductor', why: 'Taskmaster owns task decomposition and the task graph; Conductor owns a gated lifecycle. In combination they compete for workflow control and create redundant structure. Prefer Taskmaster with Superpowers or OpenSpec, or Conductor alone.' }
+  ]
 };
 
 const MATURITY_PROGRESSION = [
@@ -624,8 +760,10 @@ const RECON_QUESTIONS = [
   { id: 'req-verified', question: 'Was every requirement implemented and verified?', tool: 'gsd', mechanism: 'REQUIREMENTS.md \u2192 VERIFICATION.md cross-reference with orphan detection' },
   { id: 'step-by-step', question: 'How was this built, step by step?', tool: 'conductor', mechanism: 'Git notes on every task and phase, queryable via git log --notes' },
   { id: 'why-this-way', question: 'Why was this built this way, not another?', tool: 'speckit', mechanism: 'research.md captures alternatives considered and decisions made' },
+  { id: 'what-changed', question: 'What changed and why?', tool: 'openspec', mechanism: 'Archived change folders preserve proposal (intent) + delta specs (what changed)' },
   { id: 'standards', question: 'Did the team follow their own standards?', tool: 'conductor', secondaryTool: 'superpowers', mechanism: 'Style guide review + anti-pattern detection' },
-  { id: 'original-intent', question: 'What was the original intent of this feature?', tool: 'speckit', mechanism: 'spec.md with user stories, acceptance criteria, and edge cases' }
+  { id: 'original-intent', question: 'What was the original intent of this feature?', tool: 'speckit', mechanism: 'spec.md with user stories, acceptance criteria, and edge cases' },
+  { id: 'work-next', question: 'What should I work on next?', tool: 'taskmaster', mechanism: 'Dependency graph + priority + status in tasks.json drives next recommendation' }
 ];
 
 const TOOLTIPS = {
@@ -633,7 +771,11 @@ const TOOLTIPS = {
   'git notes': 'Git\'s built-in mechanism for attaching metadata to commits without modifying commit history. Queryable via git log --notes.',
   'wave-based execution': 'Dispatching multiple independent tasks simultaneously, waiting for all to complete before starting dependent tasks. Maximizes throughput.',
   'constitutional governance': 'Specs are validated against a set of predefined principles (a "constitution") before implementation begins. Catches misalignment early.',
-  'TDD hard gate': 'A mandatory checkpoint that prevents advancing to the next step unless tests are written first and passing. Cannot be bypassed.'
+  'TDD hard gate': 'A mandatory checkpoint that prevents advancing to the next step unless tests are written first and passing. Cannot be bypassed.',
+  'delta spec': 'A specification document that describes only what changed relative to the existing baseline, isolating the scope of a modification.',
+  'artifact DAG': 'A directed acyclic graph tracking dependencies between specification documents. Determines build order and context assembly.',
+  'MCP server': 'Model Context Protocol server exposing structured tool calls for AI agent integration. Taskmaster uses this for stateless task queries.',
+  'dependency graph': 'A directed graph of task dependencies determining execution order and blocking relationships. Used for next-task routing.'
 };
 
 // ============================================================
@@ -641,7 +783,7 @@ const TOOLTIPS = {
 // ============================================================
 let wizardStep = 0;
 let wizardAnswers = {};
-let wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+let wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0, openspec: 0, taskmaster: 0 };
 let contextTool = 'gsd';
 let codebaseSizeIdx = 2;
 let activeSpectrumTool = null;
@@ -653,7 +795,7 @@ let reconChecked = new Set();
 // UTILITIES
 // ============================================================
 function getWinner(answers) {
-  const scores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  const scores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0, openspec: 0, taskmaster: 0 };
   for (const q of QUESTIONS) {
     const ans = answers[q.id];
     if (!ans) continue;
@@ -683,7 +825,11 @@ const TERM_PATTERNS = [
   { re: /Constitutional governance/g, tip: TOOLTIPS['constitutional governance'] },
   { re: /Wave-based parallel execution|wave-based dispatch/g, tip: TOOLTIPS['wave-based execution'] },
   { re: /Git notes/g, tip: TOOLTIPS['git notes'] },
-  { re: /\bTDD\b|hard gates?/g, tip: TOOLTIPS['TDD hard gate'] }
+  { re: /\bTDD\b|hard gates?/g, tip: TOOLTIPS['TDD hard gate'] },
+  { re: /delta specs?/gi, tip: TOOLTIPS['delta spec'] },
+  { re: /artifact DAG/g, tip: TOOLTIPS['artifact DAG'] },
+  { re: /MCP (?:server|tool server)/g, tip: TOOLTIPS['MCP server'] },
+  { re: /dependency graph/gi, tip: TOOLTIPS['dependency graph'] }
 ];
 
 function escAttr(s) { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
@@ -776,7 +922,7 @@ function initNav() {
 // WIZARD
 // ============================================================
 function recalcScores() {
-  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0, openspec: 0, taskmaster: 0 };
   for (const q of QUESTIONS) {
     const ans = wizardAnswers[q.id];
     if (!ans) continue;
@@ -879,7 +1025,7 @@ function renderWizardResult(c) {
   const activeWarnings = WARNINGS.filter(w => {
     try { return w.condition(wizardAnswers); } catch (e) {
       console.error('Warning condition failed:', e, 'Warning:', w.msg);
-      return true;
+      return false;
     }
   });
 
@@ -907,7 +1053,7 @@ function renderWizardResult(c) {
     </div>`;
   }).join('');
 
-  const tradeoffHtml = TRADEOFFS[primary].map(t =>
+  const tradeoffHtml = (TRADEOFFS[primary] || []).map(t =>
     `<div class="wizard-tradeoff"><span>${t}</span></div>`
   ).join('');
 
@@ -954,7 +1100,7 @@ function renderWizardResult(c) {
 function resetWizard() {
   wizardStep = 0;
   wizardAnswers = {};
-  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0, openspec: 0, taskmaster: 0 };
   renderWizard();
 }
 
@@ -1069,7 +1215,77 @@ function renderContextScene() {
         </div>
       </div>
     `;
-  } else {
+  } else if (contextTool === 'openspec') {
+    const queryBlocks = Math.max(3, Math.round(totalBlocks * 0.03));
+    const depBlocks = Math.max(4, Math.round(totalBlocks * 0.08));
+    const assembledBlocks = queryBlocks + depBlocks;
+
+    scene.innerHTML = `
+      <div class="context-panel active">
+        <h4 style="margin-bottom:8px;font-size:0.9rem">Full codebase (${formatTokens(totalTokens)} tokens)</h4>
+        <div class="context-dispatch">
+          <div class="session-box" style="border-color:var(--accent5)">
+            <h4 style="color:var(--accent5)">1. Query artifact state</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px"><code style="color:var(--accent5)">openspec status --json</code></p>
+            <div class="codebase-grid" style="min-height:30px">
+              ${Array.from({ length: queryBlocks }, () => `<div class="codebase-block" style="background:var(--accent5);opacity:0.8"></div>`).join('')}
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">~${formatTokens(Math.round(totalTokens * 0.03))} tokens (artifact metadata)</div>
+          </div>
+          <div class="arrow" style="color:var(--accent5)">\u2192</div>
+          <div class="session-box" style="border-color:var(--accent5)">
+            <h4 style="color:var(--accent5)">2. Assemble per-artifact context</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px">Project config + rules + template + dependencies</p>
+            <div class="codebase-grid" style="min-height:30px">
+              ${Array.from({ length: assembledBlocks }, () => `<div class="codebase-block relevant"></div>`).join('')}
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">~${formatTokens(Math.round(totalTokens * 0.11))} tokens (assembled context)</div>
+          </div>
+        </div>
+        <div class="context-stats" style="margin-top:16px">
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent5)"></div> Queried: ${formatTokens(Math.round(totalTokens * 0.03))}</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent5)"></div> Assembled: ${formatTokens(Math.round(totalTokens * 0.11))}</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> Not loaded: ${formatTokens(Math.round(totalTokens * 0.86))}</div>
+        </div>
+        <div class="context-explanation">
+          The agent queries the CLI (<code style="color:var(--accent5)">openspec status --json</code>) to get <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['artifact DAG'] || 'A directed acyclic graph tracking dependencies between specification documents.')}">artifact</span> state, then explicitly reads dependency files before creating the next artifact. Context is assembled per-artifact from three layers: project config, per-artifact rules, and template + dependency content. No fresh window, but no bloated upfront load either.
+        </div>
+      </div>
+    `;
+  } else if (contextTool === 'taskmaster') {
+    const taskBlocks = Math.max(2, Math.round(totalBlocks * 0.015));
+
+    scene.innerHTML = `
+      <div class="context-panel active">
+        <h4 style="margin-bottom:8px;font-size:0.9rem">Full codebase (${formatTokens(totalTokens)} tokens)</h4>
+        <div class="context-dispatch">
+          <div class="session-box" style="border-color:var(--accent6)">
+            <h4 style="color:var(--accent6)">IDE / Agent Session</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px">Calls <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['MCP server'] || 'Model Context Protocol server exposing structured tool calls for AI agent integration.')}">MCP</span> tools: <code style="color:var(--accent6)">next</code>, <code style="color:var(--accent6)">show</code>, <code style="color:var(--accent6)">set-status</code></p>
+            <div class="codebase-grid" style="min-height:40px">
+              ${Array.from({ length: Math.min(totalBlocks, 60) }, () => `<div class="codebase-block file"></div>`).join('')}
+            </div>
+          </div>
+          <div class="arrow" style="color:var(--accent6)">\u2194</div>
+          <div class="session-box" style="border-color:var(--accent6)">
+            <h4 style="color:var(--accent6)">Taskmaster MCP Server</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px">Returns only requested structured data</p>
+            <div class="codebase-grid" style="min-height:30px">
+              ${Array.from({ length: taskBlocks }, () => `<div class="codebase-block" style="background:var(--accent6);opacity:0.8"></div>`).join('')}
+            </div>
+            <div style="font-size:0.78rem;color:var(--text-muted);margin-top:6px">~${formatTokens(Math.round(totalTokens * 0.015))} tokens (task + deps)</div>
+          </div>
+        </div>
+        <div class="context-stats" style="margin-top:16px">
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent6)"></div> Tool response: ~1-2K tokens</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> Taskmaster holds no context</div>
+        </div>
+        <div class="context-explanation">
+          The IDE calls the <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['MCP server'] || 'Model Context Protocol server exposing structured tool calls for AI agent integration.')}">MCP tool server</span> (<code style="color:var(--accent6)">next</code>, <code style="color:var(--accent6)">show</code>, <code style="color:var(--accent6)">set-status</code>). Taskmaster returns only the structured data requested -- a task, its details, its <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['dependency graph'] || 'A directed graph of task dependencies determining execution order and blocking relationships.')}">dependencies</span>. The implementing agent uses its own session window. Taskmaster never holds context; it answers queries.
+        </div>
+      </div>
+    `;
+  } else if (contextTool === 'conductor' || contextTool === 'speckit') {
     // Conductor / Spec Kit -- shared context
     const toolColor = contextTool === 'conductor' ? 'var(--accent3)' : 'var(--accent4)';
     const toolName = TOOLS[contextTool].name;
@@ -1110,6 +1326,9 @@ function renderContextScene() {
         </div>
       </div>
     `;
+  } else {
+    console.warn('renderContextScene: unrecognized tool:', contextTool);
+    scene.innerHTML = '<p style="color:var(--text-muted);padding:16px">Select a tool above to see its context strategy.</p>';
   }
 }
 
