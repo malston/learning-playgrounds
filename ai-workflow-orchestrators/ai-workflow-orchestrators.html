@@ -1,0 +1,1342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Workflow Orchestrators Playground</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0e17;--surface:#111827;--surface2:#1a2235;--surface3:#243049;
+  --border:#1f2d45;--accent:#38bdf8;--accent2:#a78bfa;--accent3:#34d399;--accent4:#fb923c;
+  --text:#e2e8f0;--text-muted:#64748b;--text-dim:#94a3b8;
+  --danger:#f43f5e;--yellow:#fbbf24;
+  --radius:8px;--radius-lg:12px;
+}
+html{scroll-behavior:smooth;scroll-padding-top:72px}
+body{background:var(--bg);color:var(--text);font-family:system-ui,-apple-system,sans-serif;line-height:1.6;min-height:100vh}
+::-webkit-scrollbar{width:6px;height:6px}
+::-webkit-scrollbar-track{background:var(--bg)}
+::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:3px}
+h2{font-size:1.6rem;font-weight:700;margin-bottom:8px}
+h3{font-size:1.15rem;font-weight:600;margin-bottom:6px}
+.mono{font-family:'SF Mono',Consolas,'Liberation Mono',monospace}
+
+/* Header */
+.site-header{text-align:center;padding:48px 24px 32px;max-width:800px;margin:0 auto}
+.title-gradient{font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;background:linear-gradient(90deg,var(--accent),var(--accent2));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;margin-bottom:8px}
+.site-header p{color:var(--text-dim);font-size:1.05rem;max-width:540px;margin:0 auto}
+
+/* Nav */
+.section-nav{position:sticky;top:0;z-index:100;display:flex;gap:4px;padding:10px 16px;background:rgba(10,14,23,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);overflow-x:auto;justify-content:center}
+.section-nav button{background:transparent;border:1px solid transparent;color:var(--text-muted);padding:6px 14px;border-radius:20px;font-size:0.82rem;cursor:pointer;white-space:nowrap;transition:all 0.2s}
+.section-nav button:hover{color:var(--text);border-color:var(--border)}
+.section-nav button.active{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+
+/* Sections */
+.section{padding:56px 24px;max-width:960px;margin:0 auto}
+.section-subtitle{color:var(--text-dim);max-width:640px;margin-bottom:32px;font-size:0.95rem}
+
+/* Tooltip terms */
+.term{color:var(--accent);border-bottom:1px dotted var(--accent);cursor:help;position:relative;display:inline-block}
+.term:hover::after,.term:focus::after{content:attr(data-tip);position:absolute;bottom:calc(100% + 6px);left:50%;transform:translateX(-50%);background:var(--surface2);color:var(--text);border:1px solid var(--border);padding:8px 12px;border-radius:var(--radius);font-size:0.78rem;line-height:1.4;width:max-content;max-width:280px;white-space:normal;z-index:200;pointer-events:none}
+.term[tabindex]:focus{outline:2px solid var(--accent);outline-offset:2px;border-radius:2px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;transition:border-color 0.2s}
+.card:hover{border-color:var(--surface3)}
+
+/* Buttons */
+.btn{padding:8px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);color:var(--text);cursor:pointer;font-size:0.88rem;transition:all 0.2s}
+.btn:hover{border-color:var(--text-muted)}
+.btn-primary{background:var(--accent);color:var(--bg);border-color:var(--accent);font-weight:600}
+.btn-primary:hover{opacity:0.9}
+.btn:disabled{opacity:0.35;cursor:not-allowed}
+
+/* Badges */
+.badge{display:inline-block;padding:2px 10px;border-radius:12px;font-size:0.75rem;font-weight:600}
+.badge-high{background:rgba(52,211,153,0.12);color:var(--accent3)}
+.badge-med{background:rgba(251,191,36,0.12);color:var(--yellow)}
+.badge-low{background:rgba(244,63,94,0.12);color:var(--danger)}
+
+/* Tool colors */
+.tool-gsd{color:var(--accent)}
+.tool-superpowers{color:var(--accent2)}
+.tool-conductor{color:var(--accent3)}
+.tool-speckit{color:var(--accent4)}
+.border-gsd{border-left:3px solid var(--accent)}
+.border-superpowers{border-left:3px solid var(--accent2)}
+.border-conductor{border-left:3px solid var(--accent3)}
+.border-speckit{border-left:3px solid var(--accent4)}
+
+/* Insight banners */
+.insight{background:rgba(56,189,248,0.06);border:1px solid rgba(56,189,248,0.2);border-radius:var(--radius);padding:14px 18px;margin:16px 0;font-size:0.88rem;color:var(--text-dim)}
+.insight strong{color:var(--text)}
+.insight.warn{background:rgba(251,191,36,0.06);border-color:rgba(251,191,36,0.2)}
+.insight.danger{background:rgba(244,63,94,0.06);border-color:rgba(244,63,94,0.2)}
+
+/* ==== WIZARD ==== */
+.wizard-progress{display:flex;gap:4px;margin-bottom:28px}
+.wizard-progress .step{flex:1;height:4px;border-radius:2px;background:var(--surface3);transition:background 0.3s}
+.wizard-progress .step.done{background:var(--accent)}
+.wizard-progress .step.current{background:var(--accent2)}
+.wizard-question{font-size:1.15rem;font-weight:600;margin-bottom:20px}
+.wizard-options{display:flex;flex-direction:column;gap:10px;margin-bottom:24px}
+.wizard-option{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 18px;cursor:pointer;transition:all 0.2s;text-align:left}
+.wizard-option:hover{border-color:var(--text-muted)}
+.wizard-option.selected{border-color:var(--accent);background:rgba(56,189,248,0.06)}
+.wizard-option .opt-label{font-weight:600;margin-bottom:2px}
+.wizard-option .opt-desc{font-size:0.84rem;color:var(--text-muted)}
+.wizard-option:focus{outline:2px solid var(--accent);outline-offset:2px}
+.wizard-nav{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.wizard-scores{display:flex;gap:16px;margin-top:20px;padding:14px;background:var(--surface);border-radius:var(--radius);flex-wrap:wrap}
+.wizard-score-item{display:flex;align-items:center;gap:8px;font-size:0.82rem}
+.wizard-score-bar{width:60px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.wizard-score-fill{height:100%;border-radius:3px;transition:width 0.4s ease}
+.wizard-result{display:none}
+.wizard-result.visible{display:block}
+.wizard-result .primary-rec{padding:24px;border-radius:var(--radius-lg);margin-bottom:16px}
+.wizard-result .complement-rec{padding:20px;border-radius:var(--radius-lg);margin-bottom:20px;background:var(--surface)}
+.wizard-result .elim-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.wizard-result .elim-item:last-child{border-bottom:0}
+.wizard-tradeoff{display:flex;gap:8px;align-items:flex-start;padding:8px 0;font-size:0.88rem}
+.wizard-tradeoff::before{content:'';display:block;width:6px;height:6px;border-radius:50%;background:var(--yellow);margin-top:8px;flex-shrink:0}
+.wizard-warning{background:rgba(244,63,94,0.06);border:1px solid rgba(244,63,94,0.2);border-radius:var(--radius);padding:14px 18px;margin-top:16px;font-size:0.88rem}
+
+/* ==== CONTEXT VIZ ==== */
+.context-controls{display:flex;align-items:center;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.context-controls label{font-size:0.88rem;color:var(--text-dim)}
+.context-slider{-webkit-appearance:none;appearance:none;width:240px;height:5px;background:var(--surface3);border-radius:3px;outline:none}
+.context-slider::-webkit-slider-thumb{-webkit-appearance:none;width:16px;height:16px;border-radius:50%;background:var(--accent);cursor:pointer}
+.context-size-label{font-family:'SF Mono',Consolas,monospace;font-size:0.9rem;color:var(--accent);min-width:80px}
+.context-tool-tabs{display:flex;gap:6px;margin-bottom:24px;flex-wrap:wrap}
+.context-tool-tab{padding:8px 16px;border-radius:var(--radius);border:1px solid var(--border);background:transparent;color:var(--text-muted);cursor:pointer;font-size:0.84rem;transition:all 0.2s}
+.context-tool-tab:hover{border-color:var(--text-muted);color:var(--text)}
+.context-tool-tab.active{font-weight:600}
+.context-tool-tab.active[data-tool="gsd"]{background:rgba(56,189,248,0.12);border-color:var(--accent);color:var(--accent)}
+.context-tool-tab.active[data-tool="superpowers"]{background:rgba(167,139,250,0.12);border-color:var(--accent2);color:var(--accent2)}
+.context-tool-tab.active[data-tool="conductor"]{background:rgba(52,211,153,0.12);border-color:var(--accent3);color:var(--accent3)}
+.context-tool-tab.active[data-tool="speckit"]{background:rgba(251,146,60,0.12);border-color:var(--accent4);color:var(--accent4)}
+.context-scene{position:relative;min-height:340px}
+.context-panel{display:none;animation:fadeIn 0.3s ease}
+.context-panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+.codebase-grid{display:flex;flex-wrap:wrap;gap:3px;margin-bottom:16px;padding:16px;background:var(--surface);border-radius:var(--radius);position:relative;min-height:80px}
+.codebase-block{width:12px;height:12px;border-radius:2px;transition:all 0.4s ease;flex-shrink:0}
+.codebase-block.file{background:var(--surface3)}
+.codebase-block.relevant{background:var(--accent);opacity:0.9}
+.codebase-block.dim{background:var(--surface3);opacity:0.2}
+.codebase-block.evicted{background:var(--danger);opacity:0.3}
+.codebase-block.loaded{background:var(--accent3);opacity:0.7}
+.context-window-box{border:2px dashed var(--accent);border-radius:var(--radius);padding:12px;margin-top:12px;position:relative}
+.context-window-box .label{position:absolute;top:-10px;left:12px;background:var(--bg);padding:0 6px;font-size:0.72rem;color:var(--accent);font-weight:600}
+.context-stats{display:flex;gap:20px;margin-top:12px;font-size:0.84rem;font-family:'SF Mono',Consolas,monospace;flex-wrap:wrap}
+.context-stat{display:flex;align-items:center;gap:6px}
+.stat-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.context-explanation{margin-top:16px;font-size:0.88rem;color:var(--text-dim);line-height:1.7}
+.context-dispatch{display:flex;gap:16px;align-items:flex-start;margin-top:12px;flex-wrap:wrap}
+.context-dispatch .session-box{flex:1;min-width:200px;padding:14px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--border)}
+.context-dispatch .session-box h4{font-size:0.82rem;margin-bottom:8px;color:var(--text-dim)}
+.context-dispatch .arrow{display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:var(--accent2);padding-top:30px}
+.context-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden;margin:8px 0}
+.context-bar-fill{height:100%;border-radius:4px;transition:width 0.6s ease}
+
+/* ==== SPECTRUM ==== */
+.spectrum-bar{position:relative;height:56px;background:linear-gradient(90deg,rgba(167,139,250,0.08),rgba(52,211,153,0.08));border-radius:28px;margin:32px 0 12px;border:1px solid var(--border)}
+.spectrum-labels{display:flex;justify-content:space-between;font-size:0.78rem;color:var(--text-muted);margin-bottom:32px;padding:0 8px}
+.spectrum-marker{position:absolute;top:50%;transform:translate(-50%,-50%);width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:0.72rem;font-weight:700;cursor:pointer;transition:all 0.25s;border:2px solid transparent}
+.spectrum-marker:hover{transform:translate(-50%,-50%) scale(1.15)}
+.spectrum-marker.active{transform:translate(-50%,-50%) scale(1.2);border-color:white;box-shadow:0 0 20px rgba(255,255,255,0.15)}
+.spectrum-marker:focus{outline:2px solid white;outline-offset:3px}
+.spectrum-panels{display:none;animation:fadeIn 0.3s ease}
+.spectrum-panels.visible{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px}
+.spectrum-panel{padding:18px;border-radius:var(--radius);background:var(--surface)}
+.spectrum-panel h3{font-size:0.92rem;margin-bottom:10px}
+.spectrum-panel ul{list-style:none;font-size:0.86rem;color:var(--text-dim)}
+.spectrum-panel ul li{padding:5px 0;padding-left:16px;position:relative}
+.spectrum-panel ul li::before{content:'';position:absolute;left:0;top:11px;width:6px;height:6px;border-radius:50%}
+.spectrum-panel.enforces li::before{background:var(--accent)}
+.spectrum-panel.freedom li::before{background:var(--accent3)}
+.spectrum-panel.breaks li::before{background:var(--danger)}
+
+/* ==== FUTURES ==== */
+.futures-slider-wrap{display:flex;align-items:center;gap:16px;margin-bottom:28px;flex-wrap:wrap}
+.futures-slider{-webkit-appearance:none;appearance:none;width:280px;height:5px;background:var(--surface3);border-radius:3px}
+.futures-slider::-webkit-slider-thumb{-webkit-appearance:none;width:18px;height:18px;border-radius:50%;background:var(--accent2);cursor:pointer}
+.futures-time-label{font-family:'SF Mono',Consolas,monospace;font-size:1rem;font-weight:600;min-width:80px}
+.futures-grid{display:grid;gap:12px;margin-bottom:24px}
+.futures-row{display:grid;grid-template-columns:200px 1fr 120px;gap:12px;align-items:center;padding:12px 16px;background:var(--surface);border-radius:var(--radius);font-size:0.88rem}
+.futures-row .cap-name{font-weight:600}
+.futures-row .cap-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.futures-row .cap-fill{height:100%;border-radius:4px;transition:width 0.5s ease,background 0.5s ease}
+.futures-row .cap-label{text-align:right;font-family:'SF Mono',Consolas,monospace;font-size:0.82rem;transition:color 0.3s}
+.futures-trajectory{font-size:0.84rem;color:var(--text-muted);margin-top:12px;padding:12px 16px;background:var(--surface);border-radius:var(--radius);line-height:1.7}
+.futures-durability{margin-top:24px}
+.futures-dur-row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--border);font-size:0.88rem}
+.futures-dur-row:last-child{border-bottom:0}
+.futures-dur-bar{width:120px;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.futures-dur-fill{height:100%;border-radius:3px;transition:width 0.5s ease}
+
+/* ==== COMBOS ==== */
+.combo-select{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.combo-btn{padding:10px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:0.88rem;font-weight:600;transition:all 0.2s}
+.combo-btn:hover{border-color:var(--text-muted)}
+.combo-btn.active{border-width:2px}
+.combo-results{display:none;animation:fadeIn 0.3s ease}
+.combo-results.visible{display:block}
+.combo-section{margin-bottom:24px}
+.combo-section h3{margin-bottom:12px}
+.combo-card{padding:14px 18px;border-radius:var(--radius);background:var(--surface);margin-bottom:10px;font-size:0.88rem}
+.combo-card .combo-pair{font-weight:600;margin-bottom:4px}
+.combo-card .combo-why{color:var(--text-dim)}
+.combo-avoid .combo-card{border-left:3px solid var(--danger)}
+.maturity-table{width:100%;border-collapse:separate;border-spacing:0;font-size:0.86rem}
+.maturity-table th{text-align:left;padding:10px 14px;background:var(--surface2);color:var(--text-dim);font-weight:600;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px}
+.maturity-table th:first-child{border-radius:var(--radius) 0 0 0}
+.maturity-table th:last-child{border-radius:0 var(--radius) 0 0}
+.maturity-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.maturity-table tr:last-child td{border-bottom:0}
+.maturity-table tr:last-child td:first-child{border-radius:0 0 0 var(--radius)}
+.maturity-table tr:last-child td:last-child{border-radius:0 0 var(--radius) 0}
+
+/* ==== RECONSTRUCTABILITY ==== */
+.recon-table{width:100%;border-collapse:separate;border-spacing:0;font-size:0.86rem;margin-bottom:20px}
+.recon-table th{text-align:left;padding:10px 14px;background:var(--surface2);color:var(--text-dim);font-weight:600;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px}
+.recon-table th:first-child{border-radius:var(--radius) 0 0 0;width:32px}
+.recon-table th:last-child{border-radius:0 var(--radius) 0 0}
+.recon-table td{padding:10px 14px;border-bottom:1px solid var(--border);vertical-align:top}
+.recon-table tr:last-child td{border-bottom:0}
+.recon-check{width:18px;height:18px;accent-color:var(--accent);cursor:pointer}
+.recon-rec{padding:20px;border-radius:var(--radius-lg);background:var(--surface);border:1px solid var(--border);min-height:80px}
+.recon-rec h3{margin-bottom:10px}
+.recon-rec-item{display:flex;gap:8px;padding:6px 0;font-size:0.88rem}
+.recon-rec-item .tool-name{font-weight:600;min-width:120px}
+
+/* Footer */
+footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.82rem;border-top:1px solid var(--border);margin-top:40px}
+
+/* Responsive */
+@media(max-width:700px){
+  .section{padding:36px 16px}
+  .futures-row{grid-template-columns:1fr;gap:6px}
+  .spectrum-panels.visible{grid-template-columns:1fr}
+  .maturity-table,.recon-table{display:block;overflow-x:auto}
+  .context-slider{width:160px}
+  .wizard-scores{gap:10px}
+}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <h1 class="title-gradient">AI Workflow Orchestrators</h1>
+  <p>Choose and combine the orchestration layer above your AI coding assistant</p>
+</header>
+
+<nav class="section-nav" id="nav" aria-label="Playground sections"></nav>
+
+<main>
+  <section id="wizard" class="section">
+    <h2>Orchestrator Selector</h2>
+    <p class="section-subtitle">Answer six questions to get a ranked recommendation. Each answer narrows the field and explains why.</p>
+    <div id="wizard-container" aria-live="polite"></div>
+  </section>
+
+  <section id="context" class="section">
+    <h2>Context Management Visualizer</h2>
+    <p class="section-subtitle">The most important and least understood distinction between these tools. Watch how each handles a growing codebase.</p>
+    <div id="context-container" aria-live="polite"></div>
+  </section>
+
+  <section id="spectrum" class="section">
+    <h2>The Flexibility Spectrum</h2>
+    <p class="section-subtitle">Four tools spanning from flexible to opinionated. Click a tool to see what it enforces, what it leaves to you, and what breaks if you choose wrong.</p>
+    <div id="spectrum-container" aria-live="polite"></div>
+  </section>
+
+  <section id="survives" class="section">
+    <h2>What Survives Better Models</h2>
+    <p class="section-subtitle">Some capabilities become less valuable as models improve. Others become more valuable. Drag the slider to see which investments hold up.</p>
+    <div id="futures-container" aria-live="polite"></div>
+  </section>
+
+  <section id="combos" class="section">
+    <h2>Combination Recommender</h2>
+    <p class="section-subtitle">Many teams run two tools together. Select your primary tool to see what stacks cleanly, what conflicts, and how combinations evolve with team maturity.</p>
+    <div id="combos-container" aria-live="polite"></div>
+  </section>
+
+  <section id="reconstruct" class="section">
+    <h2>Reconstructability Matrix</h2>
+    <p class="section-subtitle">Six months from now, when the original developer is gone, what questions can you answer about how this codebase was built?</p>
+    <div id="recon-container" aria-live="polite"></div>
+  </section>
+</main>
+
+<footer>Built with Claude Code Playground Plugin</footer>
+
+<script>
+// ============================================================
+// DATA
+// ============================================================
+const TOOLS = {
+  gsd: { name: 'GSD', color: '#38bdf8', cls: 'tool-gsd' },
+  superpowers: { name: 'Superpowers', color: '#a78bfa', cls: 'tool-superpowers' },
+  conductor: { name: 'Conductor', color: '#34d399', cls: 'tool-conductor' },
+  speckit: { name: 'Spec Kit', color: '#fb923c', cls: 'tool-speckit' }
+};
+
+const TOOL_KEYS = ['gsd', 'superpowers', 'conductor', 'speckit'];
+
+const QUESTIONS = [
+  {
+    id: 'painpoint',
+    question: "What's your primary pain point with AI-assisted development today?",
+    options: [
+      { value: 'wrong-thing', label: 'We build the wrong thing', desc: 'Vague requirements turn into wasted sprints',
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3 },
+        eliminates: { superpowers: 'Superpowers doesn\'t address specification quality', conductor: 'Conductor enforces execution process, not requirement clarity' }
+      },
+      { value: 'sloppily', label: 'We build it sloppily', desc: 'Skipped tests, inconsistent quality, shortcuts under pressure',
+        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0 },
+        eliminates: { speckit: 'Spec Kit focuses on specs, not execution discipline', gsd: 'GSD provides structure but not per-task quality gates' }
+      },
+      { value: 'momentum', label: "We can't maintain momentum on large projects", desc: 'Context gets lost across sessions',
+        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 0 },
+        eliminates: { superpowers: 'Superpowers has no project-level structure', speckit: 'Spec Kit doesn\'t manage execution across sessions' }
+      },
+      { value: 'prove', label: "We can't prove what we did or why", desc: 'Compliance, audits, team turnover',
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 1 },
+        eliminates: { superpowers: 'Superpowers produces design plans, not formal compliance artifacts' }
+      }
+    ]
+  },
+  {
+    id: 'project-size',
+    question: 'How large and long-running are the projects you\'re orchestrating?',
+    options: [
+      { value: 'small', label: 'Single features or bug fixes', desc: 'Hours to days',
+        scores: { gsd: 0, superpowers: 3, conductor: 1, speckit: 1 },
+        eliminates: { gsd: 'GSD\'s full lifecycle is overhead for short tasks' }
+      },
+      { value: 'medium', label: 'Multi-phase projects', desc: 'Weeks, multiple milestones',
+        scores: { gsd: 3, superpowers: 0, conductor: 2, speckit: 1 },
+        eliminates: { superpowers: 'Superpowers doesn\'t track milestones or phases' }
+      },
+      { value: 'large', label: 'Large codebases that outlive the context window', desc: 'Context management is the bottleneck',
+        scores: { gsd: 3, superpowers: 0, conductor: 0, speckit: 0 },
+        eliminates: { superpowers: 'No context scheduling', conductor: 'Shared context saturates on large codebases', speckit: 'No selective file loading' }
+      }
+    ]
+  },
+  {
+    id: 'tdd',
+    question: 'Is TDD non-negotiable on your team?',
+    options: [
+      { value: 'enforce', label: 'Yes \u2014 we need structural enforcement', desc: 'Not encouragement, hard gates',
+        scores: { gsd: 0, superpowers: 2, conductor: 3, speckit: 0 },
+        eliminates: { gsd: 'GSD doesn\'t enforce TDD within tasks', speckit: 'Spec Kit focuses on specs, not test discipline' }
+      },
+      { value: 'practice', label: 'We practice it but don\'t need guardrails', desc: 'The team is disciplined enough',
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 1 },
+        eliminates: {}
+      },
+      { value: 'no', label: 'Not a priority', desc: 'Other concerns come first',
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 1 },
+        eliminates: {}
+      }
+    ]
+  },
+  {
+    id: 'compliance',
+    question: 'What\'s your compliance and audit situation?',
+    options: [
+      { value: 'external', label: 'External auditors', desc: 'We need to prove process compliance to third parties',
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0 },
+        eliminates: { superpowers: 'Superpowers produces plans, not formal compliance evidence', speckit: 'Captures intent, not process compliance' }
+      },
+      { value: 'internal', label: 'Internal traceability', desc: 'Requirements \u2192 implementation \u2192 verification',
+        scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 1 },
+        eliminates: { superpowers: 'No requirements traceability' }
+      },
+      { value: 'neither', label: 'Neither applies', desc: 'Move fast, ship features',
+        scores: { gsd: 0, superpowers: 2, conductor: 0, speckit: 1 },
+        eliminates: {}
+      }
+    ]
+  },
+  {
+    id: 'cross-assistant',
+    question: 'Do you need this to work across multiple AI coding assistants?',
+    options: [
+      { value: 'yes', label: 'Yes \u2014 our team uses different tools', desc: 'Cursor, Copilot, Claude Code, etc.',
+        scores: { gsd: 1, superpowers: 0, conductor: 0, speckit: 3 },
+        eliminates: { conductor: 'Conductor is tightly coupled to Claude Code', superpowers: 'Superpowers is Claude Code specific' }
+      },
+      { value: 'no', label: 'No \u2014 we\'re standardized on one', desc: 'Everyone uses the same tool',
+        scores: { gsd: 1, superpowers: 1, conductor: 1, speckit: 0 },
+        eliminates: {}
+      }
+    ]
+  },
+  {
+    id: 'maturity',
+    question: 'Where does your team fall on the AI-assisted dev maturity curve?',
+    options: [
+      { value: 'new', label: 'New to it', desc: 'We need guardrails and mandatory gates',
+        scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0 },
+        eliminates: { superpowers: 'Too flexible for teams needing mandatory structure' }
+      },
+      { value: 'building', label: 'Building confidence', desc: 'Structure helps but we can handle some autonomy',
+        scores: { gsd: 2, superpowers: 1, conductor: 1, speckit: 1 },
+        eliminates: {}
+      },
+      { value: 'experienced', label: 'Experienced', desc: 'We want discipline without lifecycle overhead',
+        scores: { gsd: 0, superpowers: 3, conductor: 0, speckit: 2 },
+        eliminates: { gsd: 'Full lifecycle feels like overhead for experienced teams', conductor: 'Mandatory 11-step process slows experienced teams' }
+      }
+    ]
+  }
+];
+
+const TRADEOFFS = {
+  gsd: [
+    'Full lifecycle overhead for small tasks \u2014 overkill when you just need a quick fix',
+    'No built-in TDD enforcement \u2014 task-level coding discipline is left to the developer or a companion tool'
+  ],
+  superpowers: [
+    'No project-level structure or planning \u2014 discipline without direction on multi-phase work',
+    'No formal compliance artifacts \u2014 design and implementation plans exist but aren\'t structured for audit evidence'
+  ],
+  conductor: [
+    'Track isolation limits cross-phase visibility \u2014 integration gaps surface late',
+    'Manual phase transitions require human judgment at every gate \u2014 no automated progression'
+  ],
+  speckit: [
+    'Strong on specification, weak on execution rigor \u2014 great specs don\'t guarantee great implementation',
+    'Adds specification overhead to fast-moving prototyping \u2014 premature formality can slow exploration'
+  ]
+};
+
+const COMPLEMENT_MAP = {
+  gsd: { tool: 'superpowers', reason: 'GSD orchestrates phases; Superpowers enforces coding discipline within each task' },
+  superpowers: { tool: 'speckit', reason: 'Superpowers enforces per-task discipline; Spec Kit ensures you\'re building the right thing' },
+  conductor: { tool: 'superpowers', reason: 'Conductor provides audit trail and TDD gates; Superpowers fills brainstorming and debugging gaps' },
+  speckit: { tool: 'gsd', reason: 'Spec Kit produces high-quality specifications; GSD\'s execution engine parallelizes implementation' }
+};
+
+const WARNINGS = [
+  { condition: (a) => a.tdd === 'enforce' && getWinner(a).tool === 'gsd',
+    msg: 'GSD provides project structure but doesn\'t enforce TDD gates within tasks. Pair with Conductor or Superpowers for mandatory test-first enforcement.' },
+  { condition: (a) => a.compliance === 'external' && getWinner(a).tool === 'superpowers',
+    msg: 'Superpowers produces design and implementation plans but not formal compliance evidence. If external auditors need structured process proof, pair with Conductor for git-based audit trails.' },
+  { condition: (a) => a['project-size'] === 'medium' && getWinner(a).tool === 'conductor',
+    msg: 'Conductor\'s track isolation means cross-phase integration gaps won\'t surface until late. For multi-phase projects, consider GSD for cross-phase verification.' },
+  { condition: (a) => a['cross-assistant'] === 'yes' && getWinner(a).tool === 'conductor',
+    msg: 'Conductor is tightly coupled to Claude Code. If your team uses multiple AI assistants, Spec Kit\'s assistant-agnostic specifications may be a better foundation.' },
+  { condition: (a) => a.maturity === 'experienced' && getWinner(a).tool === 'conductor',
+    msg: 'Conductor\'s mandatory 11-step TDD lifecycle can feel heavy for experienced teams. Consider Superpowers for lighter discipline or Spec Kit for specification-focused workflow.' }
+];
+
+// Context Visualizer
+const CODEBASE_SIZES = [
+  { tokens: 10000, label: '10K', blocks: 30 },
+  { tokens: 50000, label: '50K', blocks: 60 },
+  { tokens: 100000, label: '100K', blocks: 100 },
+  { tokens: 250000, label: '250K', blocks: 160 },
+  { tokens: 500000, label: '500K', blocks: 220 },
+  { tokens: 1000000, label: '1M', blocks: 280 },
+  { tokens: 2000000, label: '2M', blocks: 340 }
+];
+
+// Flexibility Spectrum
+const SPECTRUM_DATA = {
+  superpowers: {
+    position: 12,
+    enforces: [
+      'TDD red-green-refactor cycle per task',
+      'Systematic debugging framework (no guessing)',
+      'Two-stage code review (self-review + guideline check)',
+      'Anti-pattern detection during implementation'
+    ],
+    freedom: [
+      'Project structure and directory layout',
+      'Branching strategy and git workflow',
+      'Milestone cadence and release planning',
+      'Everything above the individual task level'
+    ],
+    breaks: [
+      'Team that needs project-level structure \u2192 discipline without direction',
+      'Multi-phase projects \u2192 no way to track progress across sessions',
+      'Formal compliance \u2192 plans exist but aren\'t structured for auditor consumption'
+    ]
+  },
+  speckit: {
+    position: 37,
+    enforces: [
+      'Specification quality before implementation begins',
+      'Constitutional governance \u2014 specs validated against team principles',
+      'Decision rationale capture (alternatives considered, why rejected)',
+      'Requirement completeness checks'
+    ],
+    freedom: [
+      'Execution approach and task sequencing',
+      'Testing strategy and coverage thresholds',
+      'Verification and sign-off process',
+      'Coding style and implementation patterns'
+    ],
+    breaks: [
+      'Team that needs execution rigor \u2192 great specs, inconsistent implementation',
+      'Fast prototyping \u2192 specification overhead slows exploration',
+      'Solo developers \u2192 formal spec process may be premature'
+    ]
+  },
+  gsd: {
+    position: 63,
+    enforces: [
+      'Full project lifecycle: milestone \u2192 phase \u2192 plan \u2192 task \u2192 verification',
+      'Selective context loading per task (information retrieval)',
+      'Requirement-to-verification traceability with orphan detection',
+      'Wave-based parallel execution for independent tasks'
+    ],
+    freedom: [
+      'Coding style and formatting preferences',
+      'TDD enforcement within tasks',
+      'Commit granularity and message format',
+      'Team collaboration and review process'
+    ],
+    breaks: [
+      'Team that needs mandatory TDD gates \u2192 structure without task-level enforcement',
+      'Small, quick tasks \u2192 lifecycle overhead for a simple bug fix',
+      'Teams wanting lightweight tools \u2192 full framework feels heavy'
+    ]
+  },
+  conductor: {
+    position: 88,
+    enforces: [
+      'Mandatory 11-step TDD lifecycle per task (no shortcuts)',
+      'Git notes on every task and phase (queryable audit trail)',
+      'Manual phase gates requiring human approval',
+      'Style guide and anti-pattern enforcement'
+    ],
+    freedom: [
+      'Project-level milestone planning and scoping',
+      'Cross-track integration strategy',
+      'Specification quality and completeness',
+      'Technology choices and architectural decisions'
+    ],
+    breaks: [
+      'Projects needing cross-phase integration checking \u2192 track isolation becomes a blind spot',
+      'Experienced teams \u2192 mandatory 11-step process creates friction',
+      'Cross-assistant teams \u2192 tightly coupled to Claude Code'
+    ]
+  }
+};
+
+// Futures / Durability
+const CAPABILITIES = [
+  { id: 'discipline', name: 'Discipline enforcement',
+    desc: 'TDD gates, anti-pattern detection, mandatory review',
+    values: [85, 55, 35],
+    labels: ['High', 'Medium', 'Low-Med'],
+    colors: ['#34d399', '#fbbf24', '#f43f5e'],
+    trajectory: 'Models are getting better at writing tests first and avoiding shortcuts without structural enforcement. The gap between "with hard gates" and "without" narrows with each generation.' },
+  { id: 'context', name: 'Context scheduling',
+    desc: 'Selective file loading, fresh context windows',
+    values: [85, 88, 92],
+    labels: ['High', 'High', 'High'],
+    colors: ['#34d399', '#34d399', '#34d399'],
+    trajectory: 'Projects grow with time, not with model capability. A 2M-token codebase today will be a 3M-token codebase next year. Context scheduling is an information retrieval problem that gets harder as codebases grow.' },
+  { id: 'audit', name: 'Audit trails',
+    desc: 'Git notes, requirements traceability, process evidence',
+    values: [85, 87, 90],
+    labels: ['High', 'High', 'High'],
+    colors: ['#34d399', '#34d399', '#34d399'],
+    trajectory: 'Compliance requirements don\'t relax because models improve. AI-generated code faces more scrutiny as adoption grows, not less. Audit trails become more valuable over time.' },
+  { id: 'specquality', name: 'Specification quality',
+    desc: 'Spec \u2192 clarify \u2192 analyze pipeline',
+    values: [85, 86, 88],
+    labels: ['High', 'High', 'High'],
+    colors: ['#34d399', '#34d399', '#34d399'],
+    trajectory: 'Garbage in, garbage out regardless of model capability. A model 10x better at code generation still builds the wrong thing if the spec is vague. Specification quality is durable.' },
+  { id: 'parallelism', name: 'Execution parallelism',
+    desc: 'Wave-based dispatch, concurrent subagents',
+    values: [85, 82, 70],
+    labels: ['High', 'High', 'Med-High'],
+    colors: ['#34d399', '#34d399', '#fbbf24'],
+    trajectory: 'Models may eventually handle multi-file changes in a single pass, reducing the need for explicit wave-based dispatch. But parallelism still matters for truly independent workstreams.' }
+];
+
+const TOOL_DURABILITY = {
+  gsd: { name: 'GSD', capabilities: ['context', 'audit', 'discipline', 'parallelism'],
+    scores: [85, 80, 72], reason: 'Bundles context scheduling + audit trails + discipline. Context scheduling and audit trails are durable; discipline value declines but is a smaller share.' },
+  conductor: { name: 'Conductor', capabilities: ['discipline', 'audit'],
+    scores: [80, 70, 60], reason: 'Heavy on discipline enforcement which weakens. Audit trails are durable but don\'t offset declining discipline value alone.' },
+  superpowers: { name: 'Superpowers', capabilities: ['discipline'],
+    scores: [75, 55, 40], reason: 'Primarily a discipline tool. As models self-correct better, the value proposition narrows. Remains useful but less differentiated.' },
+  speckit: { name: 'Spec Kit', capabilities: ['specquality'],
+    scores: [80, 82, 85], reason: 'Specification quality is the most durable capability. Value actually increases as AI implementation speed makes bad specs more costly.' }
+};
+
+// Combinations
+const COMPATIBLE_COMBOS = {
+  gsd: [
+    { pair: 'superpowers', label: 'GSD + Superpowers', why: 'Project lifecycle (GSD) + per-task coding discipline (Superpowers). They don\'t conflict because GSD orchestrates phases while Superpowers operates within individual tasks.' },
+    { pair: 'speckit', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' }
+  ],
+  superpowers: [
+    { pair: 'gsd', label: 'GSD + Superpowers', why: 'GSD provides project structure and context scheduling. Superpowers adds TDD enforcement, systematic debugging, and code review discipline within each task.' },
+    { pair: 'conductor', label: 'Conductor + Superpowers', why: 'Conductor\'s audit trail + Superpowers\' brainstorming and debugging skills. Superpowers fills skill gaps Conductor doesn\'t cover.' },
+    { pair: 'speckit', label: 'Spec Kit + Superpowers', why: 'Lightweight combination: good specs with flexible execution discipline. No lifecycle overhead.' }
+  ],
+  conductor: [
+    { pair: 'superpowers', label: 'Conductor + Superpowers', why: 'Conductor\'s audit trail and TDD lifecycle + Superpowers\' brainstorming, debugging, and review skills. Complementary coverage.' },
+    { pair: 'speckit', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end coverage from intent through verification.' }
+  ],
+  speckit: [
+    { pair: 'gsd', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' },
+    { pair: 'conductor', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end from intent through verified implementation.' },
+    { pair: 'superpowers', label: 'Spec Kit + Superpowers', why: 'Lightweight: good specs with flexible execution discipline. Ideal for experienced teams.' }
+  ]
+};
+
+const AVOID_COMBOS = {
+  gsd: [
+    { pair: 'conductor', label: 'GSD + Conductor', why: 'Both manage full lifecycle; they conflict on who owns the workflow. Choose one based on whether you need context scheduling (GSD) or mandatory TDD gates (Conductor).' }
+  ],
+  superpowers: [],
+  conductor: [
+    { pair: 'gsd', label: 'Conductor + GSD', why: 'Both manage full lifecycle. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) compose; lifecycle frameworks don\'t.' }
+  ],
+  speckit: []
+};
+
+const MATURITY_PROGRESSION = [
+  { stage: 'New to AI-assisted dev', combo: 'Conductor or GSD alone', rationale: 'Mandatory gates prevent costly mistakes while the team builds intuition for AI-assisted workflows' },
+  { stage: 'Building confidence', combo: 'GSD + Superpowers', rationale: 'Project structure + per-task discipline. Gates become optional as the team internalizes good practices' },
+  { stage: 'Experienced team', combo: 'Superpowers or Spec Kit alone', rationale: 'Discipline without lifecycle overhead. The team knows how to structure work; they need sharpness, not scaffolding' },
+  { stage: 'Mixed maturity team', combo: 'Spec Kit + team-appropriate execution', rationale: 'Standardize on specification quality. Vary execution flexibility per team member\'s experience level' }
+];
+
+// Reconstructability
+const RECON_QUESTIONS = [
+  { id: 'req-verified', question: 'Was every requirement implemented and verified?', tool: 'gsd', mechanism: 'REQUIREMENTS.md \u2192 VERIFICATION.md cross-reference with orphan detection' },
+  { id: 'step-by-step', question: 'How was this built, step by step?', tool: 'conductor', mechanism: 'Git notes on every task and phase, queryable via git log --notes' },
+  { id: 'why-this-way', question: 'Why was this built this way, not another?', tool: 'speckit', mechanism: 'research.md captures alternatives considered and decisions made' },
+  { id: 'standards', question: 'Did the team follow their own standards?', tool: 'conductor', secondaryTool: 'superpowers', mechanism: 'Style guide review + anti-pattern detection' },
+  { id: 'original-intent', question: 'What was the original intent of this feature?', tool: 'speckit', mechanism: 'spec.md with user stories, acceptance criteria, and edge cases' }
+];
+
+const TOOLTIPS = {
+  'context window': 'The maximum text (measured in tokens) an AI model can process in a single interaction. Typically 100K\u2013200K tokens for current models.',
+  'git notes': 'Git\'s built-in mechanism for attaching metadata to commits without modifying commit history. Queryable via git log --notes.',
+  'wave-based execution': 'Dispatching multiple independent tasks simultaneously, waiting for all to complete before starting dependent tasks. Maximizes throughput.',
+  'constitutional governance': 'Specs are validated against a set of predefined principles (a "constitution") before implementation begins. Catches misalignment early.',
+  'TDD hard gate': 'A mandatory checkpoint that prevents advancing to the next step unless tests are written first and passing. Cannot be bypassed.'
+};
+
+// ============================================================
+// STATE
+// ============================================================
+let wizardStep = 0;
+let wizardAnswers = {};
+let wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+let contextTool = 'gsd';
+let codebaseSizeIdx = 2;
+let activeSpectrumTool = null;
+let futuresIdx = 0;
+let primaryComboTool = null;
+let reconChecked = new Set();
+
+// ============================================================
+// UTILITIES
+// ============================================================
+function getWinner(answers) {
+  const scores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  for (const q of QUESTIONS) {
+    const ans = answers[q.id];
+    if (!ans) continue;
+    const opt = q.options.find(o => o.value === ans);
+    if (opt) {
+      for (const t of TOOL_KEYS) scores[t] += opt.scores[t];
+    }
+  }
+  let best = TOOL_KEYS[0];
+  for (const t of TOOL_KEYS) { if (scores[t] > scores[best]) best = t; }
+  return { tool: best, scores };
+}
+
+function formatTokens(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(n % 1000000 === 0 ? 0 : 1) + 'M';
+  if (n >= 1000) return (n / 1000).toFixed(0) + 'K';
+  return n.toString();
+}
+
+function toolSpan(key) {
+  const t = TOOLS[key];
+  if (!t) return `<span style="font-weight:600">${key}</span>`;
+  return `<span class="${t.cls}" style="font-weight:600">${t.name}</span>`;
+}
+
+const TERM_PATTERNS = [
+  { re: /Constitutional governance/g, tip: TOOLTIPS['constitutional governance'] },
+  { re: /Wave-based parallel execution|wave-based dispatch/g, tip: TOOLTIPS['wave-based execution'] },
+  { re: /Git notes/g, tip: TOOLTIPS['git notes'] },
+  { re: /\bTDD\b|hard gates?/g, tip: TOOLTIPS['TDD hard gate'] }
+];
+
+function applyTermTips(text) {
+  let out = text;
+  for (const { re, tip } of TERM_PATTERNS) {
+    out = out.replace(re, m => `<span class="term" tabindex="0" data-tip="${tip}">${m}</span>`);
+  }
+  return out;
+}
+
+function scrollToSection(id) {
+  const el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth' });
+}
+
+// ============================================================
+// NAV
+// ============================================================
+function initNav() {
+  const sections = [
+    { id: 'wizard', label: 'Selector' },
+    { id: 'context', label: 'Context' },
+    { id: 'spectrum', label: 'Spectrum' },
+    { id: 'survives', label: 'Durability' },
+    { id: 'combos', label: 'Combinations' },
+    { id: 'reconstruct', label: 'Reconstructability' }
+  ];
+  const nav = document.getElementById('nav');
+  if (!nav) return;
+  nav.innerHTML = sections.map(s =>
+    `<button data-section="${s.id}" onclick="scrollToSection('${s.id}')">${s.label}</button>`
+  ).join('');
+
+  const observer = new IntersectionObserver(entries => {
+    for (const entry of entries) {
+      if (entry.isIntersecting) {
+        nav.querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.section === entry.target.id));
+      }
+    }
+  }, { threshold: 0.25, rootMargin: '-60px 0px -40% 0px' });
+  sections.forEach(s => {
+    const el = document.getElementById(s.id);
+    if (el) observer.observe(el);
+  });
+}
+
+// ============================================================
+// WIZARD
+// ============================================================
+function recalcScores() {
+  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  for (const q of QUESTIONS) {
+    const ans = wizardAnswers[q.id];
+    if (!ans) continue;
+    const opt = q.options.find(o => o.value === ans);
+    if (opt) {
+      for (const t of TOOL_KEYS) wizardScores[t] += opt.scores[t];
+    }
+  }
+}
+
+function renderWizard() {
+  const c = document.getElementById('wizard-container');
+  if (!c) return;
+  if (wizardStep >= QUESTIONS.length) {
+    renderWizardResult(c);
+    return;
+  }
+  const q = QUESTIONS[wizardStep];
+  const maxPossible = (wizardStep + 1) * 3;
+  const progress = QUESTIONS.map((_, i) =>
+    `<div class="step ${i < wizardStep ? 'done' : i === wizardStep ? 'current' : ''}"></div>`
+  ).join('');
+
+  const scoreBar = TOOL_KEYS.map(t => {
+    const pct = maxPossible > 0 ? Math.round((wizardScores[t] / maxPossible) * 100) : 0;
+    return `<div class="wizard-score-item">
+      <span class="${TOOLS[t].cls}" style="font-weight:600;min-width:90px">${TOOLS[t].name}</span>
+      <div class="wizard-score-bar"><div class="wizard-score-fill" style="width:${pct}%;background:${TOOLS[t].color}"></div></div>
+      <span class="mono" style="font-size:0.78rem;color:var(--text-muted);min-width:24px">${wizardScores[t]}</span>
+    </div>`;
+  }).join('');
+
+  const options = q.options.map(o => {
+    const sel = wizardAnswers[q.id] === o.value ? 'selected' : '';
+    return `<div class="wizard-option ${sel}" tabindex="0" role="button"
+      aria-pressed="${sel ? 'true' : 'false'}"
+      onclick="selectWizardOption('${q.id}','${o.value}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectWizardOption('${q.id}','${o.value}')}">
+      <div class="opt-label">${o.label}</div>
+      <div class="opt-desc">${o.desc}</div>
+    </div>`;
+  }).join('');
+
+  c.innerHTML = `
+    <div class="wizard-progress">${progress}</div>
+    <div class="wizard-question">${q.question}</div>
+    <div class="wizard-options">${options}</div>
+    <div class="wizard-nav">
+      <button class="btn" onclick="prevWizardStep()" ${wizardStep === 0 ? 'disabled' : ''}>Back</button>
+      <span class="mono" style="font-size:0.82rem;color:var(--text-muted)">${wizardStep + 1} / ${QUESTIONS.length}</span>
+      <button class="btn btn-primary" onclick="nextWizardStep()" ${!wizardAnswers[q.id] ? 'disabled' : ''}>
+        ${wizardStep === QUESTIONS.length - 1 ? 'See Recommendation' : 'Next'}
+      </button>
+    </div>
+    ${wizardStep > 0 ? `<div class="wizard-scores">${scoreBar}</div>` : ''}
+  `;
+}
+
+function selectWizardOption(qId, val) {
+  wizardAnswers[qId] = val;
+  recalcScores();
+  renderWizard();
+}
+
+function nextWizardStep() {
+  if (wizardStep < QUESTIONS.length) {
+    wizardStep++;
+    renderWizard();
+  }
+}
+
+function prevWizardStep() {
+  if (wizardStep > 0) {
+    wizardStep--;
+    renderWizard();
+  }
+}
+
+function renderWizardResult(c) {
+  recalcScores();
+  const sorted = TOOL_KEYS.slice().sort((a, b) => wizardScores[b] - wizardScores[a]);
+  const primary = sorted[0];
+  const comp = COMPLEMENT_MAP[primary] || { tool: sorted[1] || primary, reason: '' };
+
+  // Elimination logic
+  const eliminations = [];
+  for (const q of QUESTIONS) {
+    const ans = wizardAnswers[q.id];
+    if (!ans) continue;
+    const opt = q.options.find(o => o.value === ans);
+    if (!opt) continue;
+    for (const [tool, reason] of Object.entries(opt.eliminates || {})) {
+      if (tool !== primary) {
+        eliminations.push({ question: q.question, answer: opt.label, tool, reason });
+      }
+    }
+  }
+
+  // Warnings
+  const activeWarnings = WARNINGS.filter(w => {
+    try { return w.condition(wizardAnswers); } catch (e) {
+      console.error('Warning condition failed:', e, 'Warning:', w.msg);
+      return true;
+    }
+  });
+
+  // Driving answers
+  const drivingAnswers = QUESTIONS.map(q => {
+    const ans = wizardAnswers[q.id];
+    const opt = q.options.find(o => o.value === ans);
+    const score = opt ? opt.scores[primary] : 0;
+    return { question: q.question, answer: opt ? opt.label : '', score, maxScore: 3 };
+  }).filter(d => d.score > 0).sort((a, b) => b.score - a.score);
+
+  const maxScore = Math.max(...Object.values(wizardScores));
+  const progress = QUESTIONS.map((_, i) =>
+    `<div class="step done"></div>`
+  ).join('');
+
+  const rankBars = sorted.map((t, i) => {
+    const pct = maxScore > 0 ? Math.round((wizardScores[t] / maxScore) * 100) : 0;
+    return `<div style="display:flex;align-items:center;gap:10px;padding:4px 0">
+      <span style="min-width:100px;font-weight:${i===0?'700':'400'}" class="${TOOLS[t].cls}">${TOOLS[t].name}</span>
+      <div style="flex:1;height:8px;background:var(--surface3);border-radius:4px;overflow:hidden">
+        <div style="width:${pct}%;height:100%;background:${TOOLS[t].color};border-radius:4px;transition:width 0.5s"></div>
+      </div>
+      <span class="mono" style="font-size:0.82rem;color:var(--text-dim);min-width:24px">${wizardScores[t]}</span>
+    </div>`;
+  }).join('');
+
+  const tradeoffHtml = TRADEOFFS[primary].map(t =>
+    `<div class="wizard-tradeoff"><span>${t}</span></div>`
+  ).join('');
+
+  const drivingHtml = drivingAnswers.map(d =>
+    `<div class="elim-item"><strong>"${d.answer}"</strong> <span style="color:var(--text-muted)">\u2192 +${d.score} for ${TOOLS[primary].name}</span></div>`
+  ).join('');
+
+  const elimHtml = eliminations.slice(0, 6).map(e =>
+    `<div class="elim-item"><span class="${TOOLS[e.tool].cls}">${TOOLS[e.tool].name}</span> <span style="color:var(--text-muted)">\u2014 ${e.reason}</span></div>`
+  ).join('');
+
+  const warningHtml = activeWarnings.map(w =>
+    `<div class="wizard-warning"><strong>Heads up:</strong> ${w.msg}</div>`
+  ).join('');
+
+  c.innerHTML = `
+    <div class="wizard-progress">${progress}</div>
+    <div class="wizard-result visible">
+      <div class="primary-rec border-${primary}" style="background:var(--surface)">
+        <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Primary Recommendation</div>
+        <h3 class="${TOOLS[primary].cls}" style="font-size:1.3rem;margin-bottom:8px">${TOOLS[primary].name}</h3>
+        <div style="margin-bottom:16px">${rankBars}</div>
+        <h4 style="font-size:0.88rem;color:var(--text-dim);margin-bottom:6px">Answers that drove this recommendation:</h4>
+        ${drivingHtml}
+        <h4 style="font-size:0.88rem;color:var(--text-dim);margin:16px 0 6px">Tradeoffs you're accepting:</h4>
+        ${tradeoffHtml}
+        ${warningHtml}
+      </div>
+      <div class="complement-rec border-${comp.tool}">
+        <div style="font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-muted);margin-bottom:4px">Stack On Top</div>
+        <h3 class="${TOOLS[comp.tool].cls}" style="margin-bottom:6px">${TOOLS[comp.tool].name}</h3>
+        <p style="font-size:0.88rem;color:var(--text-dim)">${comp.reason}</p>
+      </div>
+      ${eliminations.length > 0 ? `
+        <details style="margin-bottom:16px">
+          <summary style="cursor:pointer;font-weight:600;font-size:0.92rem;margin-bottom:8px;color:var(--text-dim)">Elimination logic \u2014 which answers ruled out which tools</summary>
+          <div style="padding:8px 0">${elimHtml}</div>
+        </details>` : ''}
+      <button class="btn" onclick="resetWizard()">Start Over</button>
+    </div>
+  `;
+}
+
+function resetWizard() {
+  wizardStep = 0;
+  wizardAnswers = {};
+  wizardScores = { gsd: 0, superpowers: 0, conductor: 0, speckit: 0 };
+  renderWizard();
+}
+
+// ============================================================
+// CONTEXT VISUALIZER
+// ============================================================
+function renderContext() {
+  const c = document.getElementById('context-container');
+  if (!c) return;
+  const size = CODEBASE_SIZES[codebaseSizeIdx] || CODEBASE_SIZES[0];
+
+  const tabs = TOOL_KEYS.map(t =>
+    `<button class="context-tool-tab ${contextTool === t ? 'active' : ''}" role="tab" aria-selected="${contextTool === t}" data-tool="${t}" onclick="setContextTool('${t}')">${TOOLS[t].name}</button>`
+  ).join('');
+
+  c.innerHTML = `
+    <div class="context-controls">
+      <label for="codebase-slider">Codebase size:</label>
+      <input id="codebase-slider" type="range" class="context-slider" min="0" max="${CODEBASE_SIZES.length - 1}" value="${codebaseSizeIdx}"
+        aria-label="Codebase size" aria-valuemin="0" aria-valuemax="${CODEBASE_SIZES.length - 1}" aria-valuenow="${codebaseSizeIdx}" aria-valuetext="${size.label} tokens"
+        oninput="updateCodebaseSize(this.value)">
+      <span class="context-size-label">${size.label} tokens</span>
+    </div>
+    <div class="context-tool-tabs" role="tablist" aria-label="Context strategy by tool">${tabs}</div>
+    <div class="context-scene" id="context-scene"></div>
+    <div class="insight" style="margin-top:20px">
+      <strong><span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">Context scheduling</span></strong> is an information retrieval problem that scales with project size, not model capability. Larger context windows help but don't eliminate the need for orchestrators to decide what's relevant.
+    </div>
+  `;
+  renderContextScene();
+}
+
+function setContextTool(t) {
+  contextTool = t;
+  renderContext();
+}
+
+function updateCodebaseSize(idx) {
+  const i = parseInt(idx);
+  codebaseSizeIdx = Math.max(0, Math.min(i, CODEBASE_SIZES.length - 1));
+  renderContext();
+}
+
+function renderContextScene() {
+  const scene = document.getElementById('context-scene');
+  if (!scene) return;
+  const size = CODEBASE_SIZES[codebaseSizeIdx];
+  const totalBlocks = size.blocks;
+  const totalTokens = size.tokens;
+  const contextWindowTokens = 200000;
+  const relevantRatio = 0.15;
+  const relevantBlocks = Math.max(4, Math.round(totalBlocks * relevantRatio));
+  const relevantTokens = Math.round(totalTokens * relevantRatio);
+  const contextBlocks = Math.min(totalBlocks, Math.round((contextWindowTokens / totalTokens) * totalBlocks));
+  const evictedBlocks = Math.max(0, totalBlocks - contextBlocks);
+
+  if (contextTool === 'gsd') {
+    const allBlocks = Array.from({ length: totalBlocks }, (_, i) => {
+      const isRelevant = i < relevantBlocks;
+      return `<div class="codebase-block ${isRelevant ? 'relevant' : 'dim'}"></div>`;
+    }).join('');
+
+    const windowBlocks = Array.from({ length: relevantBlocks }, () =>
+      `<div class="codebase-block relevant"></div>`
+    ).join('');
+
+    scene.innerHTML = `
+      <div class="context-panel active">
+        <h4 style="margin-bottom:8px;font-size:0.9rem">Full codebase (${formatTokens(totalTokens)} tokens)</h4>
+        <div class="codebase-grid">${allBlocks}</div>
+        <div class="context-window-box">
+          <span class="label">Fresh 200K context window</span>
+          <div class="codebase-grid" style="min-height:40px">${windowBlocks}</div>
+        </div>
+        <div class="context-stats">
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent)"></div> Loaded: ${formatTokens(Math.min(relevantTokens, contextWindowTokens))}</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> Not loaded: ${formatTokens(totalTokens - Math.min(relevantTokens, contextWindowTokens))}</div>
+        </div>
+        <div class="context-explanation">
+          GSD identifies which files are relevant to the task (auth module, config, tests, API contracts). A fresh <span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">context window</span> opens containing only those files + the task XML block + phase context. The rest of the codebase is not loaded.
+        </div>
+      </div>
+    `;
+  } else if (contextTool === 'superpowers') {
+    const taskBlocks = Array.from({ length: Math.min(8, Math.round(totalBlocks * 0.02)) }, () =>
+      `<div class="codebase-block" style="background:var(--accent2);opacity:0.8"></div>`
+    ).join('');
+
+    scene.innerHTML = `
+      <div class="context-panel active">
+        <div class="context-dispatch">
+          <div class="session-box">
+            <h4>Controlling Session</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px">Full task text and conversation context</p>
+            <div class="codebase-grid" style="min-height:40px">
+              ${Array.from({ length: Math.min(totalBlocks, 60) }, () => `<div class="codebase-block file"></div>`).join('')}
+            </div>
+          </div>
+          <div class="arrow">\u2192</div>
+          <div class="session-box" style="border-color:var(--accent2)">
+            <h4 style="color:var(--accent2)">Dispatched Subagent</h4>
+            <p style="font-size:0.84rem;color:var(--text-dim);margin-bottom:8px">Receives task text only</p>
+            <div class="codebase-grid" style="min-height:40px">${taskBlocks}</div>
+          </div>
+        </div>
+        <div class="context-stats" style="margin-top:16px">
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent2)"></div> Task dispatched: ~2K tokens</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> No selective file loading</div>
+        </div>
+        <div class="context-explanation">
+          A fresh subagent is dispatched with the full task text from the controlling session. No selective file loading -- the controlling session provides context. The subagent works within whatever context is available in its session.
+        </div>
+      </div>
+    `;
+  } else {
+    // Conductor / Spec Kit -- shared context
+    const toolColor = contextTool === 'conductor' ? 'var(--accent3)' : 'var(--accent4)';
+    const toolName = TOOLS[contextTool].name;
+    const pctFull = Math.min(100, Math.round((totalTokens / contextWindowTokens) * 100));
+    const overflowing = totalTokens > contextWindowTokens;
+
+    const loadedBlocks = Array.from({ length: Math.min(totalBlocks, contextBlocks) }, () =>
+      `<div class="codebase-block loaded"></div>`
+    ).join('');
+    const evictedHtml = evictedBlocks > 0 ? Array.from({ length: Math.min(evictedBlocks, 100) }, () =>
+      `<div class="codebase-block evicted"></div>`
+    ).join('') : '';
+
+    scene.innerHTML = `
+      <div class="context-panel active">
+        <h4 style="margin-bottom:8px;font-size:0.9rem">${toolName}: Host session context (${formatTokens(totalTokens)} codebase)</h4>
+        <div class="context-window-box" style="border-color:${toolColor}">
+          <span class="label" style="color:${toolColor}">Shared context window (200K limit)</span>
+          <div class="context-bar">
+            <div class="context-bar-fill" style="width:${Math.min(pctFull, 100)}%;background:${overflowing ? 'var(--danger)' : toolColor}"></div>
+          </div>
+          <div style="font-size:0.78rem;color:var(--text-muted);margin-bottom:8px">${pctFull}% utilized</div>
+          <div class="codebase-grid" style="min-height:40px">${loadedBlocks}</div>
+        </div>
+        ${evictedBlocks > 0 ? `
+          <div style="margin-top:12px">
+            <h4 style="font-size:0.85rem;color:var(--danger);margin-bottom:6px">Evicted from context (${formatTokens(Math.max(0, totalTokens - contextWindowTokens))} tokens)</h4>
+            <div class="codebase-grid" style="min-height:30px">${evictedHtml}</div>
+          </div>` : ''}
+        <div class="context-stats" style="margin-top:16px">
+          <div class="context-stat"><div class="stat-dot" style="background:${toolColor}"></div> In context: ${formatTokens(Math.min(totalTokens, contextWindowTokens))}</div>
+          ${evictedBlocks > 0 ? `<div class="context-stat"><div class="stat-dot" style="background:var(--danger)"></div> Evicted: ${formatTokens(Math.max(0, totalTokens - contextWindowTokens))}</div>` : ''}
+        </div>
+        <div class="context-explanation">
+          The task runs in the host session's shared <span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">context window</span>. ${overflowing
+            ? `At ${size.label} tokens, the context window is saturated -- earlier decisions are evicted, file contents are no longer in scope. The model is operating on partial information.`
+            : `At ${size.label} tokens, the context window can hold the full codebase. But as the project grows, earlier context will be evicted.`}
+        </div>
+      </div>
+    `;
+  }
+}
+
+// ============================================================
+// FLEXIBILITY SPECTRUM
+// ============================================================
+function renderSpectrum() {
+  const c = document.getElementById('spectrum-container');
+  if (!c) return;
+  const markers = TOOL_KEYS.map(t => {
+    const d = SPECTRUM_DATA[t];
+    if (!d) return '';
+    const active = activeSpectrumTool === t ? 'active' : '';
+    return `<div class="spectrum-marker ${active}" tabindex="0" role="button"
+      aria-pressed="${active ? 'true' : 'false'}"
+      style="left:${d.position}%;background:${TOOLS[t].color}"
+      onclick="selectSpectrumTool('${t}')"
+      onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSpectrumTool('${t}')}"
+      aria-label="${TOOLS[t].name}">${TOOLS[t].name.slice(0, 3)}</div>`;
+  }).join('');
+
+  let panelsHtml = '';
+  if (activeSpectrumTool && SPECTRUM_DATA[activeSpectrumTool]) {
+    const d = SPECTRUM_DATA[activeSpectrumTool];
+    const t = activeSpectrumTool;
+    panelsHtml = `
+      <div class="spectrum-panels visible">
+        <div class="spectrum-panel enforces card border-${t}">
+          <h3>What it enforces</h3>
+          <ul>${d.enforces.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
+        </div>
+        <div class="spectrum-panel freedom card" style="border-left:3px solid var(--accent3)">
+          <h3>What it leaves to you</h3>
+          <ul>${d.freedom.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
+        </div>
+        <div class="spectrum-panel breaks card" style="border-left:3px solid var(--danger)">
+          <h3>What breaks if you choose wrong</h3>
+          <ul>${d.breaks.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
+        </div>
+      </div>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="spectrum-bar">${markers}</div>
+    <div class="spectrum-labels"><span>\u2190 Flexible</span><span>Opinionated \u2192</span></div>
+    ${panelsHtml}
+  `;
+}
+
+function selectSpectrumTool(t) {
+  activeSpectrumTool = activeSpectrumTool === t ? null : t;
+  renderSpectrum();
+}
+
+// ============================================================
+// FUTURES / DURABILITY
+// ============================================================
+function renderFutures() {
+  const c = document.getElementById('futures-container');
+  if (!c) return;
+  const timeLabels = ['Today', '2 Years', '5 Years'];
+
+  const capRows = CAPABILITIES.map(cap => {
+    const val = cap.values[futuresIdx];
+    const label = cap.labels[futuresIdx];
+    const color = cap.colors[futuresIdx];
+    return `<div class="futures-row">
+      <div class="cap-name">${cap.name}</div>
+      <div class="cap-bar"><div class="cap-fill" style="width:${val}%;background:${color}"></div></div>
+      <div class="cap-label" style="color:${color}">${label}</div>
+    </div>`;
+  }).join('');
+
+  const trajectoryHtml = CAPABILITIES.map(cap =>
+    `<div style="margin-bottom:8px"><strong>${cap.name}:</strong> ${applyTermTips(cap.trajectory)}</div>`
+  ).join('');
+
+  // Tool durability
+  const durRows = TOOL_KEYS.map(t => {
+    const d = TOOL_DURABILITY[t];
+    if (!d) return '';
+    const score = d.scores[futuresIdx];
+    const color = score >= 75 ? 'var(--accent3)' : score >= 55 ? 'var(--yellow)' : 'var(--danger)';
+    return `<div class="futures-dur-row">
+      <span style="min-width:100px;font-weight:600" class="${TOOLS[t].cls}">${TOOLS[t].name}</span>
+      <div class="futures-dur-bar"><div class="futures-dur-fill" style="width:${score}%;background:${color}"></div></div>
+      <span class="mono" style="font-size:0.82rem;color:${color};min-width:32px">${score}%</span>
+      <span style="font-size:0.82rem;color:var(--text-muted);flex:1">${d.reason}</span>
+    </div>`;
+  }).join('');
+
+  c.innerHTML = `
+    <div class="futures-slider-wrap">
+      <label for="futures-slider" style="font-size:0.88rem;color:var(--text-dim)">Model capability timeline:</label>
+      <input id="futures-slider" type="range" class="futures-slider" min="0" max="2" step="1" value="${futuresIdx}"
+        aria-label="Model capability timeline" aria-valuemin="0" aria-valuemax="2" aria-valuenow="${futuresIdx}" aria-valuetext="${timeLabels[futuresIdx]}"
+        oninput="updateFutures(this.value)">
+      <span class="futures-time-label" style="color:var(--accent2)">${timeLabels[futuresIdx]}</span>
+    </div>
+    <h3 style="margin-bottom:12px">Capability Value Over Time</h3>
+    <div class="futures-grid">${capRows}</div>
+    <details style="margin:16px 0">
+      <summary style="cursor:pointer;font-weight:600;font-size:0.92rem;color:var(--text-dim)">Why each capability trends this way</summary>
+      <div class="futures-trajectory">${trajectoryHtml}</div>
+    </details>
+    <h3 style="margin-bottom:12px">Tool Durability</h3>
+    <p style="font-size:0.86rem;color:var(--text-dim);margin-bottom:16px">Tools that bundle multiple durable capabilities hold value better than single-capability tools.</p>
+    <div class="futures-durability">${durRows}</div>
+    <div class="insight" style="margin-top:20px">
+      <strong>The punchline:</strong> Tools that bundle multiple capabilities (GSD: context scheduling + audit trails + discipline) are more durable than single-capability tools. ${toolSpan('speckit')} gains relative advantage because specification quality becomes more valuable as AI implementation speed makes bad specs more costly.
+    </div>
+  `;
+}
+
+function updateFutures(idx) {
+  const i = parseInt(idx);
+  futuresIdx = Math.max(0, Math.min(i, 2));
+  renderFutures();
+}
+
+// ============================================================
+// COMBINATIONS
+// ============================================================
+function renderCombos() {
+  const c = document.getElementById('combos-container');
+  if (!c) return;
+
+  const btns = TOOL_KEYS.map(t => {
+    const active = primaryComboTool === t ? 'active' : '';
+    return `<button class="combo-btn ${active}" aria-pressed="${active ? 'true' : 'false'}"
+      style="${primaryComboTool === t ? `border-color:${TOOLS[t].color};color:${TOOLS[t].color}` : ''}"
+      onclick="selectComboTool('${t}')">${TOOLS[t].name}</button>`;
+  }).join('');
+
+  let resultsHtml = '';
+  if (primaryComboTool) {
+    const compat = COMPATIBLE_COMBOS[primaryComboTool] || [];
+    const avoid = AVOID_COMBOS[primaryComboTool] || [];
+
+    const compatCards = compat.map(c => `
+      <div class="combo-card border-${c.pair}">
+        <div class="combo-pair">${c.label}</div>
+        <div class="combo-why">${c.why}</div>
+      </div>
+    `).join('');
+
+    const avoidCards = avoid.length > 0 ? avoid.map(a => `
+      <div class="combo-card">
+        <div class="combo-pair">${a.label}</div>
+        <div class="combo-why">${a.why}</div>
+      </div>
+    `).join('') : '<p style="font-size:0.88rem;color:var(--text-muted);padding:8px 0">No incompatible pairings. This tool composes freely.</p>';
+
+    resultsHtml = `
+      <div class="combo-results visible">
+        <div class="combo-section">
+          <h3 style="color:var(--accent3)">Compatible combinations</h3>
+          ${compatCards}
+        </div>
+        <div class="combo-section combo-avoid">
+          <h3 style="color:var(--danger)">Pairings to avoid</h3>
+          ${avoidCards}
+        </div>
+      </div>
+    `;
+  }
+
+  const maturityRows = MATURITY_PROGRESSION.map(m => `
+    <tr>
+      <td style="font-weight:600;white-space:nowrap">${m.stage}</td>
+      <td class="mono" style="font-size:0.84rem">${m.combo}</td>
+      <td style="color:var(--text-dim)">${m.rationale}</td>
+    </tr>
+  `).join('');
+
+  c.innerHTML = `
+    <h3 style="margin-bottom:12px">Select your primary tool</h3>
+    <div class="combo-select">${btns}</div>
+    ${resultsHtml}
+    <h3 style="margin-top:32px;margin-bottom:12px">Enterprise Maturity Progression</h3>
+    <p style="font-size:0.86rem;color:var(--text-dim);margin-bottom:16px">The right combination evolves as team maturity grows.</p>
+    <table class="maturity-table">
+      <thead><tr><th>Stage</th><th>Combination</th><th>Rationale</th></tr></thead>
+      <tbody>${maturityRows}</tbody>
+    </table>
+  `;
+}
+
+function selectComboTool(t) {
+  primaryComboTool = primaryComboTool === t ? null : t;
+  renderCombos();
+}
+
+// ============================================================
+// RECONSTRUCTABILITY
+// ============================================================
+function renderRecon() {
+  const c = document.getElementById('recon-container');
+  if (!c) return;
+
+  const rows = RECON_QUESTIONS.map(q => {
+    const checked = reconChecked.has(q.id) ? 'checked' : '';
+    const secondary = q.secondaryTool ? ` + ${toolSpan(q.secondaryTool)}` : '';
+    return `<tr>
+      <td><input type="checkbox" class="recon-check" ${checked} aria-label="${q.question}" onchange="toggleRecon('${q.id}')"></td>
+      <td>${q.question}</td>
+      <td>${toolSpan(q.tool)}${secondary}</td>
+      <td style="color:var(--text-dim);font-size:0.82rem">${q.mechanism}</td>
+    </tr>`;
+  }).join('');
+
+  // Build recommendation from checked items
+  const toolCounts = {};
+  for (const id of reconChecked) {
+    const q = RECON_QUESTIONS.find(r => r.id === id);
+    if (q) {
+      toolCounts[q.tool] = (toolCounts[q.tool] || 0) + 1;
+      if (q.secondaryTool) toolCounts[q.secondaryTool] = (toolCounts[q.secondaryTool] || 0) + 0.5;
+    }
+  }
+  const sortedTools = Object.entries(toolCounts).sort((a, b) => b[1] - a[1]);
+
+  let recHtml = '<p style="color:var(--text-muted);font-size:0.88rem">Check the questions that matter to your team to see which tools produce the artifacts you need.</p>';
+  if (sortedTools.length > 0) {
+    recHtml = sortedTools.map(([t, count]) =>
+      `<div class="recon-rec-item">
+        <span class="tool-name ${TOOLS[t].cls}">${TOOLS[t].name}</span>
+        <span style="color:var(--text-dim)">Covers ${Math.round(count)} of your ${reconChecked.size} selected questions</span>
+      </div>`
+    ).join('');
+  }
+
+  c.innerHTML = `
+    <table class="recon-table">
+      <thead><tr><th></th><th>Question</th><th>Best Tool</th><th>Mechanism</th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>
+    <div class="insight warn" style="margin-bottom:20px">
+      <strong>The insight:</strong> Most teams capture <em>compliance</em> (did we do it?) or <em>execution</em> (how did we do it?) but not <em>intent</em> (why did we choose this approach over alternatives?). Intent is the hardest to reconstruct and the most valuable when it's gone. ${toolSpan('speckit')} is the only tool that systematically captures decision rationale.
+    </div>
+    <div class="recon-rec">
+      <h3>Your Reconstructability Coverage</h3>
+      ${recHtml}
+    </div>
+  `;
+}
+
+function toggleRecon(id) {
+  if (reconChecked.has(id)) reconChecked.delete(id);
+  else reconChecked.add(id);
+  renderRecon();
+}
+
+// ============================================================
+// INIT
+// ============================================================
+const _initErrors = [];
+[initNav, renderWizard, renderContext, renderSpectrum, renderFutures, renderCombos, renderRecon].forEach(fn => {
+  try { fn(); } catch (e) {
+    console.error('Init failed:', fn.name, e);
+    _initErrors.push(fn.name);
+  }
+});
+if (_initErrors.length > 0) {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:12px 20px;background:#f43f5e;color:white;font-size:14px;z-index:9999;text-align:center';
+  b.textContent = _initErrors.length + ' section(s) failed to load: ' + _initErrors.join(', ') + '. Open browser console for details.';
+  document.body.prepend(b);
+}
+</script>
+</body>
+</html>
