@@ -307,7 +307,7 @@ const QUESTIONS = [
       },
       { value: 'prove', label: "We can't prove what we did or why", desc: 'Compliance, audits, team turnover',
         scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 1 },
-        eliminates: { superpowers: 'Superpowers produces no audit artifacts' }
+        eliminates: { superpowers: 'Superpowers produces design plans, not formal compliance artifacts' }
       }
     ]
   },
@@ -353,7 +353,7 @@ const QUESTIONS = [
     options: [
       { value: 'external', label: 'External auditors', desc: 'We need to prove process compliance to third parties',
         scores: { gsd: 2, superpowers: 0, conductor: 3, speckit: 0 },
-        eliminates: { superpowers: 'No audit trail artifacts', speckit: 'Captures intent, not process compliance' }
+        eliminates: { superpowers: 'Superpowers produces plans, not formal compliance evidence', speckit: 'Captures intent, not process compliance' }
       },
       { value: 'internal', label: 'Internal traceability', desc: 'Requirements \u2192 implementation \u2192 verification',
         scores: { gsd: 3, superpowers: 0, conductor: 1, speckit: 1 },
@@ -406,7 +406,7 @@ const TRADEOFFS = {
   ],
   superpowers: [
     'No project-level structure or planning \u2014 discipline without direction on multi-phase work',
-    'No audit trail or compliance artifacts \u2014 invisible to anyone reviewing process after the fact'
+    'No formal compliance artifacts \u2014 design and implementation plans exist but aren\'t structured for audit evidence'
   ],
   conductor: [
     'Track isolation limits cross-phase visibility \u2014 integration gaps surface late',
@@ -429,7 +429,7 @@ const WARNINGS = [
   { condition: (a) => a.tdd === 'enforce' && getWinner(a).tool === 'gsd',
     msg: 'GSD provides project structure but doesn\'t enforce TDD gates within tasks. Pair with Conductor or Superpowers for mandatory test-first enforcement.' },
   { condition: (a) => a.compliance === 'external' && getWinner(a).tool === 'superpowers',
-    msg: 'Superpowers doesn\'t produce audit artifacts. If external auditors need evidence of process compliance, pair with Conductor for git-based audit trails.' },
+    msg: 'Superpowers produces design and implementation plans but not formal compliance evidence. If external auditors need structured process proof, pair with Conductor for git-based audit trails.' },
   { condition: (a) => a['project-size'] === 'medium' && getWinner(a).tool === 'conductor',
     msg: 'Conductor\'s track isolation means cross-phase integration gaps won\'t surface until late. For multi-phase projects, consider GSD for cross-phase verification.' },
   { condition: (a) => a['cross-assistant'] === 'yes' && getWinner(a).tool === 'conductor',
@@ -468,7 +468,7 @@ const SPECTRUM_DATA = {
     breaks: [
       'Team that needs project-level structure \u2192 discipline without direction',
       'Multi-phase projects \u2192 no way to track progress across sessions',
-      'Compliance requirements \u2192 no audit artifacts produced'
+      'Formal compliance \u2192 plans exist but aren\'t structured for auditor consumption'
     ]
   },
   speckit: {
