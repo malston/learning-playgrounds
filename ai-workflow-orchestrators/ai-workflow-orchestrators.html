@@ -233,43 +233,43 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.8
   <p>Choose and combine the orchestration layer above your AI coding assistant</p>
 </header>
 
-<nav class="section-nav" id="nav"></nav>
+<nav class="section-nav" id="nav" aria-label="Playground sections"></nav>
 
 <main>
   <section id="wizard" class="section">
     <h2>Orchestrator Selector</h2>
     <p class="section-subtitle">Answer six questions to get a ranked recommendation. Each answer narrows the field and explains why.</p>
-    <div id="wizard-container"></div>
+    <div id="wizard-container" aria-live="polite"></div>
   </section>
 
   <section id="context" class="section">
     <h2>Context Management Visualizer</h2>
     <p class="section-subtitle">The most important and least understood distinction between these tools. Watch how each handles a growing codebase.</p>
-    <div id="context-container"></div>
+    <div id="context-container" aria-live="polite"></div>
   </section>
 
   <section id="spectrum" class="section">
     <h2>The Flexibility Spectrum</h2>
     <p class="section-subtitle">Four tools spanning from flexible to opinionated. Click a tool to see what it enforces, what it leaves to you, and what breaks if you choose wrong.</p>
-    <div id="spectrum-container"></div>
+    <div id="spectrum-container" aria-live="polite"></div>
   </section>
 
   <section id="survives" class="section">
     <h2>What Survives Better Models</h2>
     <p class="section-subtitle">Some capabilities become less valuable as models improve. Others become more valuable. Drag the slider to see which investments hold up.</p>
-    <div id="futures-container"></div>
+    <div id="futures-container" aria-live="polite"></div>
   </section>
 
   <section id="combos" class="section">
     <h2>Combination Recommender</h2>
     <p class="section-subtitle">Many teams run two tools together. Select your primary tool to see what stacks cleanly, what conflicts, and how combinations evolve with team maturity.</p>
-    <div id="combos-container"></div>
+    <div id="combos-container" aria-live="polite"></div>
   </section>
 
   <section id="reconstruct" class="section">
     <h2>Reconstructability Matrix</h2>
     <p class="section-subtitle">Six months from now, when the original developer is gone, what questions can you answer about how this codebase was built?</p>
-    <div id="recon-container"></div>
+    <div id="recon-container" aria-live="polite"></div>
   </section>
 </main>
 
@@ -673,7 +673,24 @@ function formatTokens(n) {
 }
 
 function toolSpan(key) {
-  return `<span class="${TOOLS[key].cls}" style="font-weight:600">${TOOLS[key].name}</span>`;
+  const t = TOOLS[key];
+  if (!t) return `<span style="font-weight:600">${key}</span>`;
+  return `<span class="${t.cls}" style="font-weight:600">${t.name}</span>`;
+}
+
+const TERM_PATTERNS = [
+  { re: /Constitutional governance/g, tip: TOOLTIPS['constitutional governance'] },
+  { re: /Wave-based parallel execution|wave-based dispatch/g, tip: TOOLTIPS['wave-based execution'] },
+  { re: /Git notes/g, tip: TOOLTIPS['git notes'] },
+  { re: /\bTDD\b|hard gates?/g, tip: TOOLTIPS['TDD hard gate'] }
+];
+
+function applyTermTips(text) {
+  let out = text;
+  for (const { re, tip } of TERM_PATTERNS) {
+    out = out.replace(re, m => `<span class="term" tabindex="0" data-tip="${tip}">${m}</span>`);
+  }
+  return out;
 }
 
 function scrollToSection(id) {
@@ -694,6 +711,7 @@ function initNav() {
     { id: 'reconstruct', label: 'Reconstructability' }
   ];
   const nav = document.getElementById('nav');
+  if (!nav) return;
   nav.innerHTML = sections.map(s =>
     `<button data-section="${s.id}" onclick="scrollToSection('${s.id}')">${s.label}</button>`
   ).join('');
@@ -728,6 +746,7 @@ function recalcScores() {
 
 function renderWizard() {
   const c = document.getElementById('wizard-container');
+  if (!c) return;
   if (wizardStep >= QUESTIONS.length) {
     renderWizardResult(c);
     return;
@@ -750,6 +769,7 @@ function renderWizard() {
   const options = q.options.map(o => {
     const sel = wizardAnswers[q.id] === o.value ? 'selected' : '';
     return `<div class="wizard-option ${sel}" tabindex="0" role="button"
+      aria-pressed="${sel ? 'true' : 'false'}"
       onclick="selectWizardOption('${q.id}','${o.value}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectWizardOption('${q.id}','${o.value}')}">
       <div class="opt-label">${o.label}</div>
@@ -796,7 +816,7 @@ function renderWizardResult(c) {
   recalcScores();
   const sorted = TOOL_KEYS.slice().sort((a, b) => wizardScores[b] - wizardScores[a]);
   const primary = sorted[0];
-  const comp = COMPLEMENT_MAP[primary];
+  const comp = COMPLEMENT_MAP[primary] || { tool: sorted[1] || primary, reason: '' };
 
   // Elimination logic
   const eliminations = [];
@@ -900,19 +920,22 @@ function resetWizard() {
 // ============================================================
 function renderContext() {
   const c = document.getElementById('context-container');
-  const size = CODEBASE_SIZES[codebaseSizeIdx];
+  if (!c) return;
+  const size = CODEBASE_SIZES[codebaseSizeIdx] || CODEBASE_SIZES[0];
 
   const tabs = TOOL_KEYS.map(t =>
-    `<button class="context-tool-tab ${contextTool === t ? 'active' : ''}" data-tool="${t}" onclick="setContextTool('${t}')">${TOOLS[t].name}</button>`
+    `<button class="context-tool-tab ${contextTool === t ? 'active' : ''}" role="tab" aria-selected="${contextTool === t}" data-tool="${t}" onclick="setContextTool('${t}')">${TOOLS[t].name}</button>`
   ).join('');
 
   c.innerHTML = `
     <div class="context-controls">
-      <label>Codebase size:</label>
-      <input type="range" class="context-slider" min="0" max="${CODEBASE_SIZES.length - 1}" value="${codebaseSizeIdx}" oninput="updateCodebaseSize(this.value)">
+      <label for="codebase-slider">Codebase size:</label>
+      <input id="codebase-slider" type="range" class="context-slider" min="0" max="${CODEBASE_SIZES.length - 1}" value="${codebaseSizeIdx}"
+        aria-label="Codebase size" aria-valuemin="0" aria-valuemax="${CODEBASE_SIZES.length - 1}" aria-valuenow="${codebaseSizeIdx}" aria-valuetext="${size.label} tokens"
+        oninput="updateCodebaseSize(this.value)">
       <span class="context-size-label">${size.label} tokens</span>
     </div>
-    <div class="context-tool-tabs">${tabs}</div>
+    <div class="context-tool-tabs" role="tablist" aria-label="Context strategy by tool">${tabs}</div>
     <div class="context-scene" id="context-scene"></div>
     <div class="insight" style="margin-top:20px">
       <strong><span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">Context scheduling</span></strong> is an information retrieval problem that scales with project size, not model capability. Larger context windows help but don't eliminate the need for orchestrators to decide what's relevant.
@@ -927,7 +950,8 @@ function setContextTool(t) {
 }
 
 function updateCodebaseSize(idx) {
-  codebaseSizeIdx = parseInt(idx);
+  const i = parseInt(idx);
+  codebaseSizeIdx = Math.max(0, Math.min(i, CODEBASE_SIZES.length - 1));
   renderContext();
 }
 
@@ -1051,10 +1075,13 @@ function renderContextScene() {
 // ============================================================
 function renderSpectrum() {
   const c = document.getElementById('spectrum-container');
+  if (!c) return;
   const markers = TOOL_KEYS.map(t => {
     const d = SPECTRUM_DATA[t];
+    if (!d) return '';
     const active = activeSpectrumTool === t ? 'active' : '';
     return `<div class="spectrum-marker ${active}" tabindex="0" role="button"
+      aria-pressed="${active ? 'true' : 'false'}"
       style="left:${d.position}%;background:${TOOLS[t].color}"
       onclick="selectSpectrumTool('${t}')"
       onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();selectSpectrumTool('${t}')}"
@@ -1062,22 +1089,22 @@ function renderSpectrum() {
   }).join('');
 
   let panelsHtml = '';
-  if (activeSpectrumTool) {
+  if (activeSpectrumTool && SPECTRUM_DATA[activeSpectrumTool]) {
     const d = SPECTRUM_DATA[activeSpectrumTool];
     const t = activeSpectrumTool;
     panelsHtml = `
       <div class="spectrum-panels visible">
         <div class="spectrum-panel enforces card border-${t}">
           <h3>What it enforces</h3>
-          <ul>${d.enforces.map(e => `<li>${e}</li>`).join('')}</ul>
+          <ul>${d.enforces.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
         </div>
         <div class="spectrum-panel freedom card" style="border-left:3px solid var(--accent3)">
           <h3>What it leaves to you</h3>
-          <ul>${d.freedom.map(e => `<li>${e}</li>`).join('')}</ul>
+          <ul>${d.freedom.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
         </div>
         <div class="spectrum-panel breaks card" style="border-left:3px solid var(--danger)">
           <h3>What breaks if you choose wrong</h3>
-          <ul>${d.breaks.map(e => `<li>${e}</li>`).join('')}</ul>
+          <ul>${d.breaks.map(e => `<li>${applyTermTips(e)}</li>`).join('')}</ul>
         </div>
       </div>
     `;
@@ -1100,6 +1127,7 @@ function selectSpectrumTool(t) {
 // ============================================================
 function renderFutures() {
   const c = document.getElementById('futures-container');
+  if (!c) return;
   const timeLabels = ['Today', '2 Years', '5 Years'];
 
   const capRows = CAPABILITIES.map(cap => {
@@ -1114,12 +1142,13 @@ function renderFutures() {
   }).join('');
 
   const trajectoryHtml = CAPABILITIES.map(cap =>
-    `<div style="margin-bottom:8px"><strong>${cap.name}:</strong> ${cap.trajectory}</div>`
+    `<div style="margin-bottom:8px"><strong>${cap.name}:</strong> ${applyTermTips(cap.trajectory)}</div>`
   ).join('');
 
   // Tool durability
   const durRows = TOOL_KEYS.map(t => {
     const d = TOOL_DURABILITY[t];
+    if (!d) return '';
     const score = d.scores[futuresIdx];
     const color = score >= 75 ? 'var(--accent3)' : score >= 55 ? 'var(--yellow)' : 'var(--danger)';
     return `<div class="futures-dur-row">
@@ -1132,8 +1161,10 @@ function renderFutures() {
 
   c.innerHTML = `
     <div class="futures-slider-wrap">
-      <label style="font-size:0.88rem;color:var(--text-dim)">Model capability timeline:</label>
-      <input type="range" class="futures-slider" min="0" max="2" step="1" value="${futuresIdx}" oninput="updateFutures(this.value)">
+      <label for="futures-slider" style="font-size:0.88rem;color:var(--text-dim)">Model capability timeline:</label>
+      <input id="futures-slider" type="range" class="futures-slider" min="0" max="2" step="1" value="${futuresIdx}"
+        aria-label="Model capability timeline" aria-valuemin="0" aria-valuemax="2" aria-valuenow="${futuresIdx}" aria-valuetext="${timeLabels[futuresIdx]}"
+        oninput="updateFutures(this.value)">
       <span class="futures-time-label" style="color:var(--accent2)">${timeLabels[futuresIdx]}</span>
     </div>
     <h3 style="margin-bottom:12px">Capability Value Over Time</h3>
@@ -1152,7 +1183,8 @@ function renderFutures() {
 }
 
 function updateFutures(idx) {
-  futuresIdx = parseInt(idx);
+  const i = parseInt(idx);
+  futuresIdx = Math.max(0, Math.min(i, 2));
   renderFutures();
 }
 
@@ -1161,10 +1193,12 @@ function updateFutures(idx) {
 // ============================================================
 function renderCombos() {
   const c = document.getElementById('combos-container');
+  if (!c) return;
 
   const btns = TOOL_KEYS.map(t => {
     const active = primaryComboTool === t ? 'active' : '';
-    return `<button class="combo-btn ${active}" style="${primaryComboTool === t ? `border-color:${TOOLS[t].color};color:${TOOLS[t].color}` : ''}"
+    return `<button class="combo-btn ${active}" aria-pressed="${active ? 'true' : 'false'}"
+      style="${primaryComboTool === t ? `border-color:${TOOLS[t].color};color:${TOOLS[t].color}` : ''}"
       onclick="selectComboTool('${t}')">${TOOLS[t].name}</button>`;
   }).join('');
 
@@ -1232,12 +1266,13 @@ function selectComboTool(t) {
 // ============================================================
 function renderRecon() {
   const c = document.getElementById('recon-container');
+  if (!c) return;
 
   const rows = RECON_QUESTIONS.map(q => {
     const checked = reconChecked.has(q.id) ? 'checked' : '';
     const secondary = q.secondaryTool ? ` + ${toolSpan(q.secondaryTool)}` : '';
     return `<tr>
-      <td><input type="checkbox" class="recon-check" ${checked} onchange="toggleRecon('${q.id}')"></td>
+      <td><input type="checkbox" class="recon-check" ${checked} aria-label="${q.question}" onchange="toggleRecon('${q.id}')"></td>
       <td>${q.question}</td>
       <td>${toolSpan(q.tool)}${secondary}</td>
       <td style="color:var(--text-dim);font-size:0.82rem">${q.mechanism}</td>
