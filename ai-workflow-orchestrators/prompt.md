@@ -10,7 +10,7 @@ The audience is senior engineers and tech leads who are already using AI coding 
 
 ### 1. Orchestrator Selector — Guided Questionnaire
 
-A multi-step wizard that produces a ranked recommendation. Questions should feel like a conversation with a principal engineer who has used all four tools, not a feature checklist. Each answer narrows the option space and explains why.
+A multi-step wizard that produces a ranked recommendation. Questions should feel like a conversation with a principal engineer who has used all six tools, not a feature checklist. Each answer narrows the option space and explains why.
 
 **Questions in sequence (branch based on answers):**
 

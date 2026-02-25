@@ -713,18 +713,22 @@ const COMPATIBLE_COMBOS = {
   speckit: [
     { pair: 'gsd', label: 'Spec Kit + GSD', why: 'Spec Kit\'s specification pipeline feeds GSD\'s execution engine. Strongest combination for projects needing both spec quality and parallel execution throughput.' },
     { pair: 'conductor', label: 'Spec Kit + Conductor', why: 'Spec Kit produces the spec; Conductor enforces TDD execution with audit trails. End-to-end from intent through verified implementation.' },
-    { pair: 'superpowers', label: 'Spec Kit + Superpowers', why: 'Lightweight: good specs with flexible execution discipline. Ideal for experienced teams.' }
+    { pair: 'superpowers', label: 'Spec Kit + Superpowers', why: 'Lightweight: good specs with flexible execution discipline. Ideal for experienced teams.' },
+    { pair: 'openspec', label: 'Spec Kit + OpenSpec', why: 'Spec Kit ensures initial spec quality through constitutional governance; OpenSpec manages how specs evolve over time. Quality-first creation with structured evolution.' },
+    { pair: 'taskmaster', label: 'Spec Kit + Taskmaster', why: 'Spec Kit produces high-quality specs; Taskmaster decomposes them into dependency-aware tasks. Spec quality pipeline feeding task sequencing.' }
   ],
   openspec: [
     { pair: 'gsd', label: 'OpenSpec + GSD', why: 'OpenSpec manages the living spec baseline; GSD handles project lifecycle and execution. Good for brownfield projects needing both spec evolution and parallel execution.' },
     { pair: 'superpowers', label: 'OpenSpec + Superpowers', why: 'OpenSpec tracks what\'s changing; Superpowers enforces how it\'s built. Spec management with coding discipline, no lifecycle overhead.' },
     { pair: 'conductor', label: 'OpenSpec + Conductor', why: 'OpenSpec manages delta specs; Conductor enforces TDD execution with audit trail. Brownfield spec tracking with strict task-level rigor.' },
-    { pair: 'taskmaster', label: 'Taskmaster + OpenSpec', why: 'Taskmaster manages task decomposition; OpenSpec manages spec evolution. PRD-driven task flow with a living spec baseline.' }
+    { pair: 'taskmaster', label: 'Taskmaster + OpenSpec', why: 'Taskmaster manages task decomposition; OpenSpec manages spec evolution. PRD-driven task flow with a living spec baseline.' },
+    { pair: 'speckit', label: 'Spec Kit + OpenSpec', why: 'Spec Kit ensures initial spec quality through constitutional governance; OpenSpec manages how specs evolve over time. Quality-first creation with structured evolution.' }
   ],
   taskmaster: [
     { pair: 'superpowers', label: 'Taskmaster + Superpowers', why: 'Taskmaster decomposes and sequences work; Superpowers enforces coding discipline per task. Task structure without heavy lifecycle.' },
     { pair: 'openspec', label: 'Taskmaster + OpenSpec', why: 'Taskmaster manages task decomposition; OpenSpec manages spec evolution. PRD-driven task flow with a living spec baseline.' },
-    { pair: 'gsd', label: 'Taskmaster + GSD', why: 'Taskmaster decomposes a PRD into tasks; GSD manages execution with parallel dispatch and verification. Heavy combination for PRD-driven projects that need rigorous execution.' }
+    { pair: 'gsd', label: 'Taskmaster + GSD', why: 'Taskmaster decomposes a PRD into tasks; GSD manages execution with parallel dispatch and verification. Heavy combination for PRD-driven projects that need rigorous execution.' },
+    { pair: 'speckit', label: 'Spec Kit + Taskmaster', why: 'Spec Kit produces high-quality specs; Taskmaster decomposes them into dependency-aware tasks. Spec quality pipeline feeding task sequencing.' }
   ]
 };
 
@@ -734,7 +738,8 @@ const AVOID_COMBOS = {
   ],
   superpowers: [],
   conductor: [
-    { pair: 'gsd', label: 'Conductor + GSD', why: 'Both manage full lifecycle. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) compose; lifecycle frameworks don\'t.' }
+    { pair: 'gsd', label: 'Conductor + GSD', why: 'Both manage full lifecycle. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) compose; lifecycle frameworks don\'t.' },
+    { pair: 'taskmaster', label: 'Conductor + Taskmaster', why: 'Conductor owns a gated TDD lifecycle; Taskmaster owns task decomposition and the task graph. They compete for workflow control and create redundant structure.' }
   ],
   speckit: [],
   openspec: [],
@@ -1020,7 +1025,7 @@ function renderWizardResult(c) {
   const activeWarnings = WARNINGS.filter(w => {
     try { return w.condition(wizardAnswers); } catch (e) {
       console.error('Warning condition failed:', e, 'Warning:', w.msg);
-      return true;
+      return false;
     }
   });
 
@@ -1048,7 +1053,7 @@ function renderWizardResult(c) {
     </div>`;
   }).join('');
 
-  const tradeoffHtml = TRADEOFFS[primary].map(t =>
+  const tradeoffHtml = (TRADEOFFS[primary] || []).map(t =>
     `<div class="wizard-tradeoff"><span>${t}</span></div>`
   ).join('');
 
@@ -1239,7 +1244,7 @@ function renderContextScene() {
         </div>
         <div class="context-stats" style="margin-top:16px">
           <div class="context-stat"><div class="stat-dot" style="background:var(--accent5)"></div> Queried: ${formatTokens(Math.round(totalTokens * 0.03))}</div>
-          <div class="context-stat"><div class="stat-dot" style="background:var(--accent)"></div> Assembled: ${formatTokens(Math.round(totalTokens * 0.11))}</div>
+          <div class="context-stat"><div class="stat-dot" style="background:var(--accent5)"></div> Assembled: ${formatTokens(Math.round(totalTokens * 0.11))}</div>
           <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> Not loaded: ${formatTokens(Math.round(totalTokens * 0.86))}</div>
         </div>
         <div class="context-explanation">
@@ -1280,7 +1285,7 @@ function renderContextScene() {
         </div>
       </div>
     `;
-  } else {
+  } else if (contextTool === 'conductor' || contextTool === 'speckit') {
     // Conductor / Spec Kit -- shared context
     const toolColor = contextTool === 'conductor' ? 'var(--accent3)' : 'var(--accent4)';
     const toolName = TOOLS[contextTool].name;
@@ -1321,6 +1326,9 @@ function renderContextScene() {
         </div>
       </div>
     `;
+  } else {
+    console.warn('renderContextScene: unrecognized tool:', contextTool);
+    scene.innerHTML = '<p style="color:var(--text-muted);padding:16px">Select a tool above to see its context strategy.</p>';
   }
 }
 
