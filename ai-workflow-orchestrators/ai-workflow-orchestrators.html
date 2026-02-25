@@ -686,10 +686,12 @@ const TERM_PATTERNS = [
   { re: /\bTDD\b|hard gates?/g, tip: TOOLTIPS['TDD hard gate'] }
 ];
 
+function escAttr(s) { return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;'); }
+
 function applyTermTips(text) {
   let out = text;
   for (const { re, tip } of TERM_PATTERNS) {
-    out = out.replace(re, m => `<span class="term" tabindex="0" data-tip="${tip}">${m}</span>`);
+    out = out.replace(re, m => `<span class="term" tabindex="0" data-tip="${escAttr(tip)}">${m}</span>`);
   }
   return out;
 }
@@ -979,7 +981,7 @@ function renderContext() {
     <div class="context-tool-tabs" role="tablist" aria-label="Context strategy by tool">${tabs}</div>
     <div class="context-scene" id="context-scene"></div>
     <div class="insight" style="margin-top:20px">
-      <strong><span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">Context scheduling</span></strong> is an information retrieval problem that scales with project size, not model capability. Larger context windows help but don't eliminate the need for orchestrators to decide what's relevant.
+      <strong><span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['context window'])}">Context scheduling</span></strong> is an information retrieval problem that scales with project size, not model capability. Larger context windows help but don't eliminate the need for orchestrators to decide what's relevant.
     </div>
   `;
   renderContextScene();
@@ -1032,7 +1034,7 @@ function renderContextScene() {
           <div class="context-stat"><div class="stat-dot" style="background:var(--surface3)"></div> Not loaded: ${formatTokens(totalTokens - Math.min(relevantTokens, contextWindowTokens))}</div>
         </div>
         <div class="context-explanation">
-          GSD identifies which files are relevant to the task (auth module, config, tests, API contracts). A fresh <span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">context window</span> opens containing only those files + the task XML block + phase context. The rest of the codebase is not loaded.
+          GSD identifies which files are relevant to the task (auth module, config, tests, API contracts). A fresh <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['context window'])}">context window</span> opens containing only those files + the task XML block + phase context. The rest of the codebase is not loaded.
         </div>
       </div>
     `;
@@ -1102,7 +1104,7 @@ function renderContextScene() {
           ${evictedBlocks > 0 ? `<div class="context-stat"><div class="stat-dot" style="background:var(--danger)"></div> Evicted: ${formatTokens(Math.max(0, totalTokens - contextWindowTokens))}</div>` : ''}
         </div>
         <div class="context-explanation">
-          The task runs in the host session's shared <span class="term" tabindex="0" data-tip="${TOOLTIPS['context window']}">context window</span>. ${overflowing
+          The task runs in the host session's shared <span class="term" tabindex="0" data-tip="${escAttr(TOOLTIPS['context window'])}">context window</span>. ${overflowing
             ? `At ${size.label} tokens, the context window is saturated -- earlier decisions are evicted, file contents are no longer in scope. The model is operating on partial information.`
             : `At ${size.label} tokens, the context window can hold the full codebase. But as the project grows, earlier context will be evicted.`}
         </div>
