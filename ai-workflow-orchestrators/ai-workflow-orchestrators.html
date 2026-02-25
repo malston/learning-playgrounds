@@ -739,7 +739,7 @@ const AVOID_COMBOS = {
   speckit: [],
   openspec: [],
   taskmaster: [
-    { pair: 'conductor', label: 'Taskmaster + Conductor', why: 'Multiple heavy orchestrators. Lifecycle management doesn\'t compose. Discipline tools (Superpowers) and spec tools (OpenSpec, Taskmaster) compose with lifecycle frameworks; two lifecycle frameworks don\'t.' }
+    { pair: 'conductor', label: 'Taskmaster + Conductor', why: 'Taskmaster owns task decomposition and the task graph; Conductor owns a gated lifecycle. In combination they compete for workflow control and create redundant structure. Prefer Taskmaster with Superpowers or OpenSpec, or Conductor alone.' }
   ]
 };
 

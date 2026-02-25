@@ -2,7 +2,7 @@
 
 Build an interactive decision-making playground for choosing and combining AI development workflow orchestrators. The six tools covered are **GSD**, **Superpowers**, **Conductor**, **Spec Kit**, **OpenSpec**, and **Taskmaster** — an emerging category that sits between coding assistants (Claude Code, Cursor, Copilot) and general agent frameworks (LangChain, CrewAI).
 
-The audience is senior engineers and tech leads who are already using AI coding assistants and want to add structured workflow orchestration. They understand software development processes, git, and multi-agent concepts. They don't need definitions of basic terms — they need help distinguishing between four tools that look similar on the surface and making a defensible choice for their context.
+The audience is senior engineers and tech leads who are already using AI coding assistants and want to add structured workflow orchestration. They understand software development processes, git, and multi-agent concepts. They don't need definitions of basic terms — they need help distinguishing between six tools that look similar on the surface and making a defensible choice for their context.
 
 ---
 
@@ -85,7 +85,7 @@ The most important and least understood distinction between these tools. This se
 
 ### 3. The Flexibility Spectrum — Interactive Explorer
 
-The four tools span a spectrum from flexible to opinionated. Make this navigable.
+The six tools span a spectrum from flexible to opinionated. Make this navigable.
 
 ```text
 Flexible ←——————————————————————————————————————————→ Opinionated
@@ -131,23 +131,23 @@ The most distinctive and forward-looking section. Make it interactive.
 
 **An interactive matrix** where the user can drag a "model capability" slider from Today → 2 years → 5 years and watch the value of each capability category shift:
 
-| Capability | Today | 2 Years | 5 Years |
-| --- | --- | --- | --- |
-| Discipline enforcement (TDD gates, anti-patterns) | High | Medium | Low-Medium |
-| Task decomposition (PRD parsing, complexity analysis) | High | Medium | Low-Medium |
-| Context scheduling (selective loading, fresh windows) | High | High | High |
-| Audit trails (git notes, requirements traceability) | High | High | High |
-| Specification quality (spec → clarify → analyze) | High | High | High |
-| Spec evolution (delta specs, living baseline) | High | High | High |
-| Dependency management (task graph, `next` routing) | High | High | Medium-High |
-| Execution parallelism (wave-based dispatch) | High | High | Medium-High |
+| Capability                                            | Today | 2 Years | 5 Years     |
+| ----------------------------------------------------- | ----- | ------- | ----------- |
+| Discipline enforcement (TDD gates, anti-patterns)     | High  | Medium  | Low-Medium  |
+| Task decomposition (PRD parsing, complexity analysis) | High  | Medium  | Low-Medium  |
+| Context scheduling (selective loading, fresh windows) | High  | High    | High        |
+| Audit trails (git notes, requirements traceability)   | High  | High    | High        |
+| Specification quality (spec → clarify → analyze)      | High  | High    | High        |
+| Spec evolution (delta specs, living baseline)         | High  | High    | High        |
+| Dependency management (task graph, `next` routing)    | High  | High    | Medium-High |
+| Execution parallelism (wave-based dispatch)           | High  | High    | Medium-High |
 
 **For each capability, explain the trajectory:**
 
 - **Discipline enforcement** weakens because models are getting better at writing tests first and avoiding shortcuts without structural enforcement. The gap between "with hard gates" and "without" narrows with each generation.
 - **Task decomposition** weakens because models are improving at self-planning — breaking a problem into steps, identifying dependencies, sequencing their own work. Taskmaster's PRD parsing and complexity analysis solve a problem that's shrinking. The value shifts from "the model can't plan" to "the model's plan isn't persistent or shareable."
 - **Context scheduling** strengthens because projects grow with time, not with model capability. A 2M-token codebase today will be a 3M-token codebase next year.
-- **Audit trails** are stable — compliance requirements don't relax because models improve. AI-generated code faces *more* scrutiny as adoption grows, not less.
+- **Audit trails** are stable — compliance requirements don't relax because models improve. AI-generated code faces _more_ scrutiny as adoption grows, not less.
 - **Specification quality** is durable — garbage in, garbage out regardless of model capability. A model 10x better at code generation still builds the wrong thing if the spec is vague.
 - **Spec evolution** is durable — for long-lived codebases, keeping specs accurate as the system changes is a workflow problem, not a model capability problem. OpenSpec's archive-and-merge cycle builds spec maintenance into development as a side effect of normal work.
 - **Dependency management** is stable — the graph structure of task dependencies (what blocks what, circular dependency detection, priority-based routing) is useful regardless of model capability, especially across multi-session or multi-collaborator projects.
@@ -183,12 +183,12 @@ Many teams run two tools in combination. Show the valid combinations, what each 
 
 **Enterprise maturity progression** — show how the right combination evolves as team maturity grows:
 
-| Stage | Combination | Rationale |
-| --- | --- | --- |
-| New to AI-assisted dev | Conductor or GSD alone | Mandatory gates prevent costly mistakes |
-| Building confidence | GSD + Superpowers | Project structure + per-task discipline, gates optional |
-| Experienced team | Superpowers or Spec Kit alone | Discipline without lifecycle overhead |
-| Mixed maturity team | Spec Kit + team-appropriate execution | Standardize on specs, vary execution flexibility |
+| Stage                  | Combination                           | Rationale                                               |
+| ---------------------- | ------------------------------------- | ------------------------------------------------------- |
+| New to AI-assisted dev | Conductor or GSD alone                | Mandatory gates prevent costly mistakes                 |
+| Building confidence    | GSD + Superpowers                     | Project structure + per-task discipline, gates optional |
+| Experienced team       | Superpowers or Spec Kit alone         | Discipline without lifecycle overhead                   |
+| Mixed maturity team    | Spec Kit + team-appropriate execution | Standardize on specs, vary execution flexibility        |
 
 ---
 
@@ -198,17 +198,17 @@ Frame this as: "Six months from now, when the original developer is gone, what q
 
 **An interactive table where the user checks which questions matter to them:**
 
-| Question | Best Tool | Mechanism |
-| --- | --- | --- |
-| Was every requirement implemented and verified? | GSD | REQUIREMENTS.md → VERIFICATION.md cross-reference with orphan detection |
-| How was this built, step by step? | Conductor | Git notes on every task and phase, queryable via `git log --notes` |
-| Why was this built this way, not another? | Spec Kit | research.md captures alternatives considered and decisions made |
-| What changed and why? | OpenSpec | Archived change folders preserve proposal (intent) + delta specs (what changed) |
-| Did the team follow their own standards? | Conductor + Superpowers | Style guide review + anti-pattern detection |
-| What was the original intent of this feature? | Spec Kit | spec.md with user stories, acceptance criteria, and edge cases |
-| What should I work on next? | Taskmaster | Dependency graph + priority + status in tasks.json drives `next` recommendation |
+| Question                                        | Best Tool               | Mechanism                                                                       |
+| ----------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
+| Was every requirement implemented and verified? | GSD                     | REQUIREMENTS.md → VERIFICATION.md cross-reference with orphan detection         |
+| How was this built, step by step?               | Conductor               | Git notes on every task and phase, queryable via `git log --notes`              |
+| Why was this built this way, not another?       | Spec Kit                | research.md captures alternatives considered and decisions made                 |
+| What changed and why?                           | OpenSpec                | Archived change folders preserve proposal (intent) + delta specs (what changed) |
+| Did the team follow their own standards?        | Conductor + Superpowers | Style guide review + anti-pattern detection                                     |
+| What was the original intent of this feature?   | Spec Kit                | spec.md with user stories, acceptance criteria, and edge cases                  |
+| What should I work on next?                     | Taskmaster              | Dependency graph + priority + status in tasks.json drives `next` recommendation |
 
-**The insight to surface explicitly:** Most teams capture *compliance* (did we do it?) or *execution* (how did we do it?) but not *intent* (why did we choose this approach over alternatives?). Intent is the hardest to reconstruct and the most valuable when it's gone. Spec Kit is the only tool that systematically captures decision rationale.
+**The insight to surface explicitly:** Most teams capture _compliance_ (did we do it?) or _execution_ (how did we do it?) but not _intent_ (why did we choose this approach over alternatives?). Intent is the hardest to reconstruct and the most valuable when it's gone. Spec Kit is the only tool that systematically captures decision rationale.
 
 Checking boxes in this table should update a recommendation that emphasizes which tools produce the artifacts for those questions.
 
