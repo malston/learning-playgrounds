@@ -814,7 +814,10 @@ function renderWizardResult(c) {
 
   // Warnings
   const activeWarnings = WARNINGS.filter(w => {
-    try { return w.condition(wizardAnswers); } catch { return false; }
+    try { return w.condition(wizardAnswers); } catch (e) {
+      console.error('Warning condition failed:', e, 'Warning:', w.msg);
+      return true;
+    }
   });
 
   // Driving answers
@@ -1286,9 +1289,19 @@ function toggleRecon(id) {
 // ============================================================
 // INIT
 // ============================================================
+const _initErrors = [];
 [initNav, renderWizard, renderContext, renderSpectrum, renderFutures, renderCombos, renderRecon].forEach(fn => {
-  try { fn(); } catch (e) { console.error('Init failed:', fn.name, e); }
+  try { fn(); } catch (e) {
+    console.error('Init failed:', fn.name, e);
+    _initErrors.push(fn.name);
+  }
 });
+if (_initErrors.length > 0) {
+  const b = document.createElement('div');
+  b.style.cssText = 'position:fixed;top:0;left:0;right:0;padding:12px 20px;background:#f43f5e;color:white;font-size:14px;z-index:9999;text-align:center';
+  b.textContent = _initErrors.length + ' section(s) failed to load: ' + _initErrors.join(', ') + '. Open browser console for details.';
+  document.body.prepend(b);
+}
 </script>
 </body>
 </html>
