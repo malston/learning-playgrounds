@@ -662,7 +662,7 @@ const CAPABILITIES = [
     values: [85, 55, 35],
     labels: ['High', 'Medium', 'Low-Med'],
     colors: ['#34d399', '#fbbf24', '#f43f5e'],
-    trajectory: 'Discipline enforcement weakens on two axes. First, models are improving at self-compliance -- writing tests first, following patterns without structural enforcement. Second, most tools\' "enforcement" is prompt-level: a request the model usually honors, not a mechanism that executes deterministically. Host-level enforcement (git notes, CLI-driven dispatch, file-system state) is more durable because the model isn\'t in the execution path. See the Control Levels section for which controls are host-level vs. prompt-level per tool.' },
+    trajectory: 'Discipline enforcement weakens on two axes. First, models are improving at self-compliance -- writing tests first, following patterns without structural enforcement. Second, most tools\' "enforcement" is prompt-level: a request the model usually honors, not a mechanism that executes deterministically. Host-level enforcement (git notes, CLI-driven dispatch, file-system state) is more durable because the model isn\'t in the execution path. See the <a href="#cl" style="color:var(--accent);text-decoration:underline" onclick="event.preventDefault();scrollToSection(\'cl\')">Control Levels</a> section for which controls are host-level vs. prompt-level per tool.' },
   { id: 'context', name: 'Context scheduling',
     desc: 'Selective file loading, fresh context windows',
     values: [85, 88, 92],
@@ -1678,7 +1678,7 @@ function renderControlLevels() {
         </div>
       </div>
       <div class="insight" style="margin-top:4px">
-        <strong>${TOOLS[activeClTool].name}:</strong> ${cl.insight} See the <a href="#spectrum" style="color:var(--accent);text-decoration:underline" onclick="scrollToSection('spectrum')">Flexibility Spectrum</a> for what each tool enforces vs. leaves to you.
+        <strong>${TOOLS[activeClTool].name}:</strong> ${cl.insight} See the <a href="#spectrum" style="color:var(--accent);text-decoration:underline" onclick="event.preventDefault();scrollToSection('spectrum')">Flexibility Spectrum</a> for what each tool enforces vs. leaves to you.
       </div>
     `;
   }
