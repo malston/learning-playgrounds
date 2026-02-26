@@ -144,7 +144,7 @@ The most distinctive and forward-looking section. Make it interactive.
 
 **For each capability, explain the trajectory:**
 
-- **Discipline enforcement** weakens because models are getting better at writing tests first and avoiding shortcuts without structural enforcement. The gap between "with hard gates" and "without" narrows with each generation.
+- **Discipline enforcement** weakens on two axes: models are getting better at following good practices without structural enforcement, _and_ prompt-level controls were never guaranteed to begin with. Hard gates and mandatory step sequences are requests the model usually honors — they degrade under context pressure regardless of model capability. Host-level enforcement (hooks, CLI dispatch, file-based state gates) is more durable because the model isn't in the execution path.
 - **Task decomposition** weakens because models are improving at self-planning — breaking a problem into steps, identifying dependencies, sequencing their own work. Taskmaster's PRD parsing and complexity analysis solve a problem that's shrinking. The value shifts from "the model can't plan" to "the model's plan isn't persistent or shareable."
 - **Context scheduling** strengthens because projects grow with time, not with model capability. A 2M-token codebase today will be a 3M-token codebase next year.
 - **Audit trails** are stable — compliance requirements don't relax because models improve. AI-generated code faces _more_ scrutiny as adoption grows, not less.
@@ -192,7 +192,33 @@ Many teams run two tools in combination. Show the valid combinations, what each 
 
 ---
 
-### 6. Reconstructability Matrix — What Questions Can You Answer Later?
+### 6. Prompt-Level vs. Host-Level Controls
+
+An often-missed distinction when evaluating orchestrators: not all controls are equally reliable.
+
+**The core concept to establish first:**
+Prompts are requests, not constraints. The model is a probabilistic system — it follows workflow instructions because it was trained to treat them as authoritative, but there's no enforcement mechanism that guarantees compliance. Every hard gate, mandatory step, XML task structure, and constitutional check in these tools is a request the model usually honors, not a rule it's forced to obey. Failure modes include skipping steps when context is compressed, ignoring structure under token pressure, or partially following multi-step instructions.
+
+Host-level mechanisms are architecturally different: once the model requests a file write or tool call, the host executes it deterministically. The model isn't involved in the execution.
+
+**An interactive breakdown for each tool showing which controls are prompt-level vs. host-level:**
+
+| Tool        | Prompt-Level Controls (reliable, not guaranteed)                                       | Host-Level Controls (deterministic)                                                                      |
+| ----------- | -------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| GSD         | Phase planning quality, task breakdown structure, verification thoroughness            | Wave dispatch via CLI (OS process isolation), .planning/ directory (file state), selective file loading  |
+| Superpowers | TDD enforcement, systematic debugging, code review checklist, brainstorming structure  | Subagent dispatch (process isolation)                                                                    |
+| Conductor   | 11-step TDD lifecycle, style guide compliance, anti-pattern detection                  | Git notes (CLI writes), manual phase gates (human checkpoint)                                            |
+| Spec Kit    | Spec/clarify/analyze pipeline, constitutional compliance checks, clarification forcing | Spec files on disk, CLI template generation                                                              |
+| OpenSpec    | Deciding when to create delta specs, quality of spec content                           | CLI state tracking (openspec status --json), archive-and-merge lifecycle, artifact DAG in file system    |
+| Taskmaster  | Task implementation quality, interpretation of task requirements                       | MCP server (external process), tasks.json file state, dependency graph computation, next command routing |
+
+**The key insight to surface:** When a tool claims to "enforce" something, ask whether that enforcement happens in the prompt (the model decides to comply) or in the host (compliance is structural). Conductor's mandatory 11-step lifecycle is a prompt-level control — highly reliable, but the model can skip steps under context pressure. GSD's agent dispatch is a host-level control — the CLI actually spawns the subagent regardless of what the model "wants" to do.
+
+**Practical implication for the flexibility spectrum:** The tools that appear most opinionated (Conductor, GSD) are opinionated at different layers. Conductor's strictness is primarily prompt-level. GSD's strictness is a mix — some controls are prompt-level (verification agent instructions), some are host-level (wave dispatch, file state). This affects how much you can rely on the controls holding under adverse conditions (long sessions, large context, complex codebases).
+
+---
+
+### 7. Reconstructability Matrix — What Questions Can You Answer Later?
 
 Frame this as: "Six months from now, when the original developer is gone, what questions can you answer about how this codebase was built?"
 
