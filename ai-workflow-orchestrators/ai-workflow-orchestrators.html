@@ -207,6 +207,27 @@ h3{font-size:1.15rem;font-weight:600;margin-bottom:6px}
 .maturity-table tr:last-child td:first-child{border-radius:0 0 0 var(--radius)}
 .maturity-table tr:last-child td:last-child{border-radius:0 0 var(--radius) 0}
 
+/* ==== CONTROL LEVELS ==== */
+.cl-tool-tabs{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap}
+.cl-tab{padding:10px 20px;border-radius:var(--radius);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-size:0.88rem;font-weight:600;transition:all 0.2s}
+.cl-tab:hover{border-color:var(--text-muted)}
+.cl-tab.active{border-width:2px}
+.cl-tab.active[data-tool="gsd"]{background:rgba(56,189,248,0.12);border-color:var(--accent);color:var(--accent)}
+.cl-tab.active[data-tool="superpowers"]{background:rgba(167,139,250,0.12);border-color:var(--accent2);color:var(--accent2)}
+.cl-tab.active[data-tool="conductor"]{background:rgba(52,211,153,0.12);border-color:var(--accent3);color:var(--accent3)}
+.cl-tab.active[data-tool="speckit"]{background:rgba(251,146,60,0.12);border-color:var(--accent4);color:var(--accent4)}
+.cl-tab.active[data-tool="openspec"]{background:rgba(244,114,182,0.12);border-color:var(--accent5);color:var(--accent5)}
+.cl-tab.active[data-tool="taskmaster"]{background:rgba(34,211,238,0.12);border-color:var(--accent6);color:var(--accent6)}
+.cl-columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:20px;animation:fadeIn 0.3s ease}
+.cl-col-head{font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px;font-weight:600;padding:8px 0;margin-bottom:8px;border-bottom:2px solid}
+.cl-col-head.host{color:var(--accent3);border-color:var(--accent3)}
+.cl-col-head.prompt{color:var(--yellow);border-color:var(--yellow)}
+.cl-item{padding:12px 16px;border-radius:var(--radius);background:var(--surface);margin-bottom:8px;border-left:3px solid}
+.cl-item.host{border-color:var(--accent3)}
+.cl-item.prompt{border-color:var(--yellow)}
+.cl-item-label{font-weight:600;font-size:0.88rem;margin-bottom:4px}
+.cl-item-detail{font-size:0.82rem;color:var(--text-dim);line-height:1.5}
+
 /* ==== RECONSTRUCTABILITY ==== */
 .recon-table{width:100%;border-collapse:separate;border-spacing:0;font-size:0.86rem;margin-bottom:20px}
 .recon-table th{text-align:left;padding:10px 14px;background:var(--surface2);color:var(--text-dim);font-weight:600;font-size:0.78rem;text-transform:uppercase;letter-spacing:0.5px}
@@ -231,6 +252,7 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.8
   .maturity-table,.recon-table{display:block;overflow-x:auto}
   .context-slider{width:160px}
   .wizard-scores{gap:10px}
+  .cl-columns{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -272,6 +294,16 @@ footer{text-align:center;padding:40px 24px;color:var(--text-muted);font-size:0.8
     <h2>Combination Recommender</h2>
     <p class="section-subtitle">Many teams run two tools together. Select your primary tool to see what stacks cleanly, what conflicts, and how combinations evolve with team maturity.</p>
     <div id="combos-container" aria-live="polite"></div>
+  </section>
+
+  <section id="cl" class="section">
+    <h2>Prompt-Level vs. Host-Level Controls</h2>
+    <p class="section-subtitle">
+      Not all controls are equally reliable. Prompts are requests the model
+      usually honors. Host-level mechanisms execute deterministically outside the
+      model's reasoning path.
+    </p>
+    <div id="cl-container" aria-live="polite"></div>
   </section>
 
   <section id="reconstruct" class="section">
@@ -630,7 +662,7 @@ const CAPABILITIES = [
     values: [85, 55, 35],
     labels: ['High', 'Medium', 'Low-Med'],
     colors: ['#34d399', '#fbbf24', '#f43f5e'],
-    trajectory: 'Models are getting better at writing tests first and avoiding shortcuts without structural enforcement. The gap between "with hard gates" and "without" narrows with each generation.' },
+    trajectory: 'Discipline enforcement weakens on two axes. First, models are improving at self-compliance -- writing tests first, following patterns without structural enforcement. Second, most tools\' "enforcement" is prompt-level: a request the model usually honors, not a mechanism that executes deterministically. Host-level enforcement (git notes, CLI-driven dispatch, file-system state) is more durable because the model isn\'t in the execution path. See the Control Levels section for which controls are host-level vs. prompt-level per tool.' },
   { id: 'context', name: 'Context scheduling',
     desc: 'Selective file loading, fresh context windows',
     values: [85, 88, 92],
@@ -688,6 +720,84 @@ const TOOL_DURABILITY = {
     scores: [82, 84, 87], reason: 'Spec evolution and specification quality are both durable. Managing how specs change over time becomes more valuable as codebases grow and AI generates changes faster.' },
   taskmaster: { name: 'Taskmaster', capabilities: ['taskdecomp', 'depmgmt'],
     scores: [80, 68, 52], reason: 'Task decomposition weakens as models self-plan better. Dependency management is more durable but can\'t fully offset declining decomposition value.' }
+};
+
+// Control Levels (host vs. prompt)
+const CONTROL_LEVELS = {
+  gsd: {
+    host: [
+      { label: 'Wave dispatch via CLI', detail: 'OS process isolation -- each subagent runs in its own process. The orchestrator dispatches deterministically; the model never decides whether to spawn.' },
+      { label: '.planning/ directory', detail: 'Persistent file state on disk. Phase plans, research, verification docs survive context resets because they exist in the file system, not in the prompt.' },
+      { label: 'Selective file loading', detail: 'The orchestrator decides which files enter each fresh context window. File selection is a retrieval operation, not a model judgment call.' }
+    ],
+    prompt: [
+      { label: 'Phase planning quality', detail: 'The model decides how to decompose a milestone into phases. Good decomposition requires judgment about scope, risk, and dependencies.' },
+      { label: 'Task breakdown structure', detail: 'Within a phase, the model decides task granularity and ordering. Two models may produce very different task lists from the same phase plan.' },
+      { label: 'Verification thoroughness', detail: 'The model decides what to check during verification. It may miss edge cases or accept superficial coverage under token pressure.' }
+    ],
+    insight: 'GSD\'s durability comes from host-level context scheduling and file persistence. Its discipline enforcement (planning, verification) operates at the prompt level.'
+  },
+  superpowers: {
+    host: [
+      { label: 'Subagent dispatch', detail: 'Process isolation via the Task tool. The controlling session spawns a separate process for each specialized task (test, review, debug).' }
+    ],
+    prompt: [
+      { label: 'TDD enforcement', detail: 'The model is instructed to write tests first, but nothing prevents it from writing implementation first under pressure. Enforcement is a prompt-level request.' },
+      { label: 'Systematic debugging', detail: 'The debugging framework is a prompt pattern. The model usually follows it, but may skip hypothesis formation and jump to fixes when context is tight.' },
+      { label: 'Code review checklist', detail: 'Review thoroughness depends on the model following the checklist completely. Under token pressure, reviews may become shallow.' },
+      { label: 'Brainstorming structure', detail: 'The model is asked to generate multiple approaches before choosing. It may converge on one approach early and skip genuine exploration.' }
+    ],
+    insight: 'Superpowers is primarily a prompt-level discipline tool. Its only host-level mechanism is subagent dispatch for process isolation.'
+  },
+  conductor: {
+    host: [
+      { label: 'Git notes', detail: 'The git CLI writes metadata to every task and phase commit. This happens through shell commands, not model reasoning. The audit trail exists in git, not in the prompt.' },
+      { label: 'Manual phase gates', detail: 'Human checkpoint -- the developer must explicitly approve phase transitions. The model cannot bypass a gate it doesn\'t control.' }
+    ],
+    prompt: [
+      { label: '11-step TDD lifecycle', detail: 'The model is instructed to follow red-green-refactor in 11 steps. Compliance depends on the model\'s willingness to complete all steps without shortcuts.' },
+      { label: 'Style guide compliance', detail: 'The model checks code against the project\'s style guide. Thoroughness varies with context pressure and model capability.' },
+      { label: 'Anti-pattern detection', detail: 'The model is asked to identify anti-patterns during review. Detection quality depends on the model\'s training and available context.' }
+    ],
+    insight: 'Conductor\'s git notes and manual gates are deterministic. Its TDD lifecycle and style enforcement operate at the prompt level -- the model is instructed to follow them.'
+  },
+  speckit: {
+    host: [
+      { label: 'Spec files on disk', detail: 'Specifications persist as files in the repository. They exist independently of any model session and survive context resets.' },
+      { label: 'CLI template generation', detail: 'The CLI scaffolds spec documents from templates. File creation is a deterministic operation, not a model judgment.' }
+    ],
+    prompt: [
+      { label: 'Spec/clarify/analyze pipeline', detail: 'The model is guided through a multi-stage specification process. Stage transitions and quality depend on the model following the pipeline faithfully.' },
+      { label: 'Constitutional compliance checks', detail: 'The model validates specs against team principles. Whether it catches all violations depends on its reasoning, not a deterministic checker.' },
+      { label: 'Clarification forcing', detail: 'The model is instructed to ask clarifying questions before proceeding. Under pressure, it may assume answers instead of asking.' }
+    ],
+    insight: 'Spec Kit\'s file-based persistence is host-level. Its specification quality pipeline -- the part that makes specs good -- is prompt-level.'
+  },
+  openspec: {
+    host: [
+      { label: 'CLI state tracking', detail: 'openspec status --json returns artifact state from the file system. State queries are deterministic CLI operations.' },
+      { label: 'Archive-and-merge lifecycle', detail: 'The CLI manages spec versioning through file operations: archiving completed changes, merging into baseline. File mutations are deterministic.' },
+      { label: 'Artifact DAG in file system', detail: 'Dependencies between spec documents are tracked as file relationships. The DAG structure persists on disk and drives context assembly.' }
+    ],
+    prompt: [
+      { label: 'Deciding when to create delta specs', detail: 'The model judges whether a change warrants a new delta spec or modifies an existing one. This is a judgment call, not a rule.' },
+      { label: 'Quality of spec content', detail: 'The model writes the actual specification text. Clarity, completeness, and accuracy depend on model capability and available context.' }
+    ],
+    insight: 'OpenSpec has the strongest host-level foundation: CLI state, file-based lifecycle, and a persistent artifact DAG. Only spec authoring judgment is prompt-level.'
+  },
+  taskmaster: {
+    host: [
+      { label: 'MCP server', detail: 'An external process serving structured tool calls. The server runs independently of the model session -- it computes, not reasons.' },
+      { label: 'tasks.json file state', detail: 'Task definitions, statuses, and metadata persist in a JSON file. State survives model session boundaries.' },
+      { label: 'Dependency graph computation', detail: 'Circular dependency detection, topological sorting, and blocking analysis are computed by code, not reasoned about by the model.' },
+      { label: 'next command routing', detail: 'Priority-based task selection follows deterministic rules: highest priority unblocked task. The model doesn\'t choose what to work on.' }
+    ],
+    prompt: [
+      { label: 'Task implementation quality', detail: 'The model builds each task. How well it codes, tests, and handles edge cases is entirely prompt-level -- Taskmaster sequences work, not quality.' },
+      { label: 'Interpretation of task requirements', detail: 'The model reads task descriptions and decides what to build. Ambiguous requirements produce different implementations across models.' }
+    ],
+    insight: 'Taskmaster has the most host-level mechanisms of any tool: MCP server, file state, graph computation, and deterministic routing. Only implementation quality is prompt-level.'
+  }
 };
 
 // Combinations
@@ -789,6 +899,7 @@ let codebaseSizeIdx = 2;
 let activeSpectrumTool = null;
 let futuresIdx = 0;
 let primaryComboTool = null;
+let activeClTool = null;
 let reconChecked = new Set();
 
 // ============================================================
@@ -897,6 +1008,7 @@ function initNav() {
     { id: 'spectrum', label: 'Spectrum' },
     { id: 'survives', label: 'Durability' },
     { id: 'combos', label: 'Combinations' },
+    { id: 'cl', label: 'Control Levels' },
     { id: 'reconstruct', label: 'Reconstructability' }
   ];
   const nav = document.getElementById('nav');
@@ -1524,6 +1636,69 @@ function selectComboTool(t) {
 }
 
 // ============================================================
+// CONTROL LEVELS
+// ============================================================
+function renderControlLevels() {
+  const c = document.getElementById('cl-container');
+  if (!c) return;
+
+  const tabs = TOOL_KEYS.map(t => {
+    const active = activeClTool === t ? 'active' : '';
+    return `<button class="cl-tab ${active}" data-tool="${t}"
+      aria-pressed="${active ? 'true' : 'false'}"
+      onclick="selectClTool('${t}')">${TOOLS[t].name}</button>`;
+  }).join('');
+
+  let bodyHtml = '';
+  if (activeClTool && CONTROL_LEVELS[activeClTool]) {
+    const cl = CONTROL_LEVELS[activeClTool];
+    const hostItems = cl.host.map(h =>
+      `<div class="cl-item host">
+        <div class="cl-item-label">${h.label}</div>
+        <div class="cl-item-detail">${applyTermTips(h.detail)}</div>
+      </div>`
+    ).join('');
+
+    const promptItems = cl.prompt.map(p =>
+      `<div class="cl-item prompt">
+        <div class="cl-item-label">${p.label}</div>
+        <div class="cl-item-detail">${applyTermTips(p.detail)}</div>
+      </div>`
+    ).join('');
+
+    bodyHtml = `
+      <div class="cl-columns">
+        <div>
+          <div class="cl-col-head host">Host-level (deterministic)</div>
+          ${hostItems}
+        </div>
+        <div>
+          <div class="cl-col-head prompt">Prompt-level (best-effort)</div>
+          ${promptItems}
+        </div>
+      </div>
+      <div class="insight" style="margin-top:4px">
+        <strong>${TOOLS[activeClTool].name}:</strong> ${cl.insight} See the <a href="#spectrum" style="color:var(--accent);text-decoration:underline" onclick="scrollToSection('spectrum')">Flexibility Spectrum</a> for what each tool enforces vs. leaves to you.
+      </div>
+    `;
+  }
+
+  c.innerHTML = `
+    <div class="insight warn" style="margin-bottom:24px">
+      <strong>The key question:</strong> When a tool claims to "enforce" something, ask whether enforcement happens in the prompt (a request the model usually honors) or in the host (a mechanism that executes regardless of what the model does).
+    </div>
+    <h3 style="margin-bottom:12px">Select a tool to see its control breakdown</h3>
+    <div class="cl-tool-tabs">${tabs}</div>
+    ${bodyHtml}
+  `;
+}
+
+function selectClTool(t) {
+  activeClTool = activeClTool === t ? null : t;
+  renderControlLevels();
+}
+
+// ============================================================
 // RECONSTRUCTABILITY
 // ============================================================
 function renderRecon() {
@@ -1587,7 +1762,7 @@ function toggleRecon(id) {
 // INIT
 // ============================================================
 const _initErrors = [];
-[initNav, renderWizard, renderContext, renderSpectrum, renderFutures, renderCombos, renderRecon].forEach(fn => {
+[initNav, renderWizard, renderContext, renderSpectrum, renderFutures, renderCombos, renderControlLevels, renderRecon].forEach(fn => {
   try { fn(); } catch (e) {
     console.error('Init failed:', fn.name, e);
     _initErrors.push(fn.name);
