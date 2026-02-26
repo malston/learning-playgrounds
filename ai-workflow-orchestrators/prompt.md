@@ -85,7 +85,7 @@ The most important and least understood distinction between these tools. This se
 
 ### 3. The Flexibility Spectrum — Interactive Explorer
 
-The six tools span a spectrum from flexible to opinionated. Make this navigable.
+The four tools span a spectrum from flexible to opinionated. Make this navigable.
 
 ```text
 Flexible ←——————————————————————————————————————————→ Opinionated
@@ -131,23 +131,23 @@ The most distinctive and forward-looking section. Make it interactive.
 
 **An interactive matrix** where the user can drag a "model capability" slider from Today → 2 years → 5 years and watch the value of each capability category shift:
 
-| Capability                                            | Today | 2 Years | 5 Years     |
-| ----------------------------------------------------- | ----- | ------- | ----------- |
-| Discipline enforcement (TDD gates, anti-patterns)     | High  | Medium  | Low-Medium  |
-| Task decomposition (PRD parsing, complexity analysis) | High  | Medium  | Low-Medium  |
-| Context scheduling (selective loading, fresh windows) | High  | High    | High        |
-| Audit trails (git notes, requirements traceability)   | High  | High    | High        |
-| Specification quality (spec → clarify → analyze)      | High  | High    | High        |
-| Spec evolution (delta specs, living baseline)         | High  | High    | High        |
-| Dependency management (task graph, `next` routing)    | High  | High    | Medium-High |
-| Execution parallelism (wave-based dispatch)           | High  | High    | Medium-High |
+| Capability | Today | 2 Years | 5 Years |
+| --- | --- | --- | --- |
+| Discipline enforcement (TDD gates, anti-patterns) | High | Medium | Low-Medium |
+| Task decomposition (PRD parsing, complexity analysis) | High | Medium | Low-Medium |
+| Context scheduling (selective loading, fresh windows) | High | High | High |
+| Audit trails (git notes, requirements traceability) | High | High | High |
+| Specification quality (spec → clarify → analyze) | High | High | High |
+| Spec evolution (delta specs, living baseline) | High | High | High |
+| Dependency management (task graph, `next` routing) | High | High | Medium-High |
+| Execution parallelism (wave-based dispatch) | High | High | Medium-High |
 
 **For each capability, explain the trajectory:**
 
-- **Discipline enforcement** weakens because models are getting better at writing tests first and avoiding shortcuts without structural enforcement. The gap between "with hard gates" and "without" narrows with each generation.
+- **Discipline enforcement** weakens on two axes: models are getting better at following good practices without structural enforcement, *and* prompt-level controls were never guaranteed to begin with. Hard gates and mandatory step sequences are requests the model usually honors — they degrade under context pressure regardless of model capability. Host-level enforcement (hooks, CLI dispatch, file-based state gates) is more durable because the model isn't in the execution path.
 - **Task decomposition** weakens because models are improving at self-planning — breaking a problem into steps, identifying dependencies, sequencing their own work. Taskmaster's PRD parsing and complexity analysis solve a problem that's shrinking. The value shifts from "the model can't plan" to "the model's plan isn't persistent or shareable."
 - **Context scheduling** strengthens because projects grow with time, not with model capability. A 2M-token codebase today will be a 3M-token codebase next year.
-- **Audit trails** are stable — compliance requirements don't relax because models improve. AI-generated code faces _more_ scrutiny as adoption grows, not less.
+- **Audit trails** are stable — compliance requirements don't relax because models improve. AI-generated code faces *more* scrutiny as adoption grows, not less.
 - **Specification quality** is durable — garbage in, garbage out regardless of model capability. A model 10x better at code generation still builds the wrong thing if the spec is vague.
 - **Spec evolution** is durable — for long-lived codebases, keeping specs accurate as the system changes is a workflow problem, not a model capability problem. OpenSpec's archive-and-merge cycle builds spec maintenance into development as a side effect of normal work.
 - **Dependency management** is stable — the graph structure of task dependencies (what blocks what, circular dependency detection, priority-based routing) is useful regardless of model capability, especially across multi-session or multi-collaborator projects.
@@ -183,32 +183,58 @@ Many teams run two tools in combination. Show the valid combinations, what each 
 
 **Enterprise maturity progression** — show how the right combination evolves as team maturity grows:
 
-| Stage                  | Combination                           | Rationale                                               |
-| ---------------------- | ------------------------------------- | ------------------------------------------------------- |
-| New to AI-assisted dev | Conductor or GSD alone                | Mandatory gates prevent costly mistakes                 |
-| Building confidence    | GSD + Superpowers                     | Project structure + per-task discipline, gates optional |
-| Experienced team       | Superpowers or Spec Kit alone         | Discipline without lifecycle overhead                   |
-| Mixed maturity team    | Spec Kit + team-appropriate execution | Standardize on specs, vary execution flexibility        |
+| Stage | Combination | Rationale |
+| --- | --- | --- |
+| New to AI-assisted dev | Conductor or GSD alone | Mandatory gates prevent costly mistakes |
+| Building confidence | GSD + Superpowers | Project structure + per-task discipline, gates optional |
+| Experienced team | Superpowers or Spec Kit alone | Discipline without lifecycle overhead |
+| Mixed maturity team | Spec Kit + team-appropriate execution | Standardize on specs, vary execution flexibility |
 
 ---
 
-### 6. Reconstructability Matrix — What Questions Can You Answer Later?
+### 6. Prompt-Level vs. Host-Level Controls
+
+An often-missed distinction when evaluating orchestrators: not all controls are equally reliable.
+
+**The core concept to establish first:**
+Prompts are requests, not constraints. The model is a probabilistic system — it follows workflow instructions because it was trained to treat them as authoritative, but there's no enforcement mechanism that guarantees compliance. Every hard gate, mandatory step, XML task structure, and constitutional check in these tools is a request the model usually honors, not a rule it's forced to obey. Failure modes include skipping steps when context is compressed, ignoring structure under token pressure, or partially following multi-step instructions.
+
+Host-level mechanisms are architecturally different: once the model requests a file write or tool call, the host executes it deterministically. The model isn't involved in the execution.
+
+**An interactive breakdown for each tool showing which controls are prompt-level vs. host-level:**
+
+| Tool | Prompt-Level Controls (reliable, not guaranteed) | Host-Level Controls (deterministic) |
+| --- | --- | --- |
+| GSD | Agent instructions, XML task structure, verification prompts | Wave dispatch via CLI, file writes, hook execution |
+| Superpowers | Hard gates, anti-pattern warnings, skill chaining | SessionStart hook injection, file writes via host |
+| Conductor | 11-step TDD sequence, phase gate confirmation requests | Git operations via host, hook execution |
+| Spec Kit | Constitutional compliance checks, clarification forcing | CLI template generation, branch creation |
+| OpenSpec | Artifact DAG ordering, delta spec format, verify checklist | CLI state tracking (file-exists = done), archive merge |
+| Taskmaster | Task expansion quality, testStrategy guidance | MCP tool calls (stateless, deterministic), dependency validation |
+
+**The key insight to surface:** When a tool claims to "enforce" something, ask whether that enforcement happens in the prompt (the model decides to comply) or in the host (compliance is structural). Conductor's mandatory 11-step lifecycle is a prompt-level control — highly reliable, but the model can skip steps under context pressure. GSD's agent dispatch is a host-level control — the CLI actually spawns the subagent regardless of what the model "wants" to do.
+
+**Practical implication for the flexibility spectrum:** The tools that appear most opinionated (Conductor, GSD) are opinionated at different layers. Conductor's strictness is primarily prompt-level. GSD's strictness is a mix — some controls are prompt-level (verification agent instructions), some are host-level (wave dispatch, file state). This affects how much you can rely on the controls holding under adverse conditions (long sessions, large context, complex codebases).
+
+---
+
+### 7. Reconstructability Matrix — What Questions Can You Answer Later?
 
 Frame this as: "Six months from now, when the original developer is gone, what questions can you answer about how this codebase was built?"
 
 **An interactive table where the user checks which questions matter to them:**
 
-| Question                                        | Best Tool               | Mechanism                                                                       |
-| ----------------------------------------------- | ----------------------- | ------------------------------------------------------------------------------- |
-| Was every requirement implemented and verified? | GSD                     | REQUIREMENTS.md → VERIFICATION.md cross-reference with orphan detection         |
-| How was this built, step by step?               | Conductor               | Git notes on every task and phase, queryable via `git log --notes`              |
-| Why was this built this way, not another?       | Spec Kit                | research.md captures alternatives considered and decisions made                 |
-| What changed and why?                           | OpenSpec                | Archived change folders preserve proposal (intent) + delta specs (what changed) |
-| Did the team follow their own standards?        | Conductor + Superpowers | Style guide review + anti-pattern detection                                     |
-| What was the original intent of this feature?   | Spec Kit                | spec.md with user stories, acceptance criteria, and edge cases                  |
-| What should I work on next?                     | Taskmaster              | Dependency graph + priority + status in tasks.json drives `next` recommendation |
+| Question | Best Tool | Mechanism |
+| --- | --- | --- |
+| Was every requirement implemented and verified? | GSD | REQUIREMENTS.md → VERIFICATION.md cross-reference with orphan detection |
+| How was this built, step by step? | Conductor | Git notes on every task and phase, queryable via `git log --notes` |
+| Why was this built this way, not another? | Spec Kit | research.md captures alternatives considered and decisions made |
+| What changed and why? | OpenSpec | Archived change folders preserve proposal (intent) + delta specs (what changed) |
+| Did the team follow their own standards? | Conductor + Superpowers | Style guide review + anti-pattern detection |
+| What was the original intent of this feature? | Spec Kit | spec.md with user stories, acceptance criteria, and edge cases |
+| What should I work on next? | Taskmaster | Dependency graph + priority + status in tasks.json drives `next` recommendation |
 
-**The insight to surface explicitly:** Most teams capture _compliance_ (did we do it?) or _execution_ (how did we do it?) but not _intent_ (why did we choose this approach over alternatives?). Intent is the hardest to reconstruct and the most valuable when it's gone. Spec Kit is the only tool that systematically captures decision rationale.
+**The insight to surface explicitly:** Most teams capture *compliance* (did we do it?) or *execution* (how did we do it?) but not *intent* (why did we choose this approach over alternatives?). Intent is the hardest to reconstruct and the most valuable when it's gone. Spec Kit is the only tool that systematically captures decision rationale.
 
 Checking boxes in this table should update a recommendation that emphasizes which tools produce the artifacts for those questions.
 
