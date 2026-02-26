@@ -85,7 +85,7 @@ The most important and least understood distinction between these tools. This se
 
 ### 3. The Flexibility Spectrum — Interactive Explorer
 
-The four tools span a spectrum from flexible to opinionated. Make this navigable.
+The six tools span a spectrum from flexible to opinionated. Make this navigable.
 
 ```text
 Flexible ←——————————————————————————————————————————→ Opinionated
