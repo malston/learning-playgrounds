@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>6L-G Deep Dive Explorer — AI Governance</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #1a1a2e;
+  --bg-panel: #16162a;
+  --bg-card: #1e1e36;
+  --bg-hover: #252544;
+  --bg-expanded: #141428;
+  --text: #e0e0e0;
+  --text-dim: #8888aa;
+  --text-muted: #555577;
+  --border: #2a2a4a;
+  --accent-1: #4a8abf;
+  --accent-2: #4a8a5f;
+  --accent-3: #8a6a3f;
+  --accent-4: #8a4a6f;
+  --accent-5: #6a4a8a;
+  --accent-6: #4a6a8a;
+  --pill-procedural: #4a8abf;
+  --pill-technical: #bf8a4a;
+  --pill-organizational: #4abf6a;
+  --walkthrough-active: #bf6a4a;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.5;
+  min-height: 100vh;
+}
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px 20px; background: var(--bg-panel);
+  border-bottom: 1px solid var(--border); flex-wrap: wrap; gap: 10px;
+}
+.header h1 { font-size: 16px; font-weight: 600; white-space: nowrap; }
+.header h1 span { color: var(--text-dim); font-weight: 400; }
+.header h1 .framework-ref {
+  border-bottom: 1px dotted var(--text-muted); cursor: help; position: relative;
+}
+.header h1 .framework-ref .framework-tip {
+  display: none; position: absolute; top: calc(100% + 8px); left: 0;
+  background: #2a2a4a; border: 1px solid var(--border); border-radius: 6px; padding: 12px 16px;
+  font-size: 12px; font-weight: 400; color: var(--text); width: 480px; white-space: normal;
+  z-index: 100; pointer-events: none; line-height: 1.6;
+}
+.header h1 .framework-ref:hover .framework-tip { display: block; }
+.filter-group { display: flex; align-items: center; gap: 8px; }
+.filter-group .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.filter-pill {
+  padding: 4px 12px; border-radius: 14px; font-size: 12px;
+  border: 1px solid var(--border); background: transparent;
+  color: var(--text-dim); cursor: pointer; transition: all 0.2s;
+  position: relative;
+}
+.filter-pill:hover { border-color: var(--text-dim); color: var(--text); }
+.filter-pill.active { background: var(--accent-1); border-color: var(--accent-1); color: #fff; }
+.filter-pill .filter-tip {
+  display: none; position: absolute; top: calc(100% + 8px); left: 50%; transform: translateX(-50%);
+  background: #2a2a4a; border: 1px solid var(--border); border-radius: 6px; padding: 10px 14px;
+  font-size: 11px; color: var(--text); max-width: 300px; white-space: normal; z-index: 100;
+  pointer-events: none; font-weight: 400; min-width: 240px; line-height: 1.5;
+}
+.filter-pill:hover .filter-tip,
+.filter-pill:focus .filter-tip,
+.filter-pill:focus-within .filter-tip { display: block; }
+body { display: flex; flex-direction: column; height: 100vh; }
+.main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
+.left-panel {
+  width: 35%; min-width: 280px; max-width: 400px;
+  border-right: 1px solid var(--border); display: flex;
+  flex-direction: column; overflow-y: auto; background: var(--bg-panel);
+}
+.flowchart { flex: 1; padding: 16px; position: relative; }
+.node-stack { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; gap: 0; }
+.level-node {
+  width: 100%; padding: 10px 14px; border-radius: 8px;
+  border: 2px solid var(--border); background: var(--bg-card);
+  cursor: pointer; transition: all 0.2s; position: relative;
+}
+.level-node:hover { background: var(--bg-hover); }
+.level-node.active { background: var(--bg-hover); }
+.level-node.dimmed { opacity: 0.4; }
+.level-node .level-num { font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+.level-node .level-name { font-size: 14px; font-weight: 600; }
+.level-node .level-summary { font-size: 11px; color: var(--text-dim); margin-top: 2px; }
+.level-node .erasure-badge {
+  display: none; font-size: 10px; margin-top: 4px; padding: 3px 8px; border-radius: 4px;
+  background: rgba(191, 106, 74, 0.15); color: var(--walkthrough-active);
+  border: 1px solid rgba(191, 106, 74, 0.3);
+}
+.level-node .step-indicator {
+  display: none; position: absolute; top: 8px; right: 10px;
+  font-size: 10px; color: var(--walkthrough-active); font-weight: 600;
+}
+.walkthrough-on .level-node .erasure-badge { display: block; }
+.walkthrough-on .level-node .step-indicator { display: block; }
+.level-node .vendor-note { display: none; font-size: 10px; color: var(--text-muted); margin-top: 3px; font-style: italic; }
+.down-arrow { color: var(--text-muted); font-size: 16px; line-height: 1; padding: 2px 0; text-align: center; }
+.feedback-label { text-align: center; font-size: 11px; color: var(--text-muted); margin-top: 6px; }
+.walkthrough-section { padding: 12px 16px; border-top: 1px solid var(--border); }
+.walkthrough-toggle {
+  display: flex; align-items: center; gap: 10px; padding: 8px 14px;
+  border-radius: 8px; border: 1px dashed var(--border); background: transparent;
+  cursor: pointer; transition: all 0.2s; width: 100%; color: var(--text-dim);
+  font-size: 13px; text-align: left;
+}
+.walkthrough-toggle:hover { border-color: var(--walkthrough-active); color: var(--text); }
+.walkthrough-toggle.active {
+  border-style: solid; border-color: var(--walkthrough-active);
+  background: rgba(191, 106, 74, 0.1); color: var(--walkthrough-active);
+}
+.walkthrough-toggle .icon { font-size: 16px; }
+.walkthrough-toggle .wt-label { font-weight: 600; }
+.walkthrough-toggle .wt-sub { font-size: 11px; display: block; color: var(--text-dim); }
+.step-nav { display: none; justify-content: space-between; margin-top: 10px; gap: 8px; }
+.step-nav.visible { display: flex; }
+.step-btn {
+  flex: 1; padding: 6px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-dim); cursor: pointer; font-size: 12px; transition: all 0.2s;
+}
+.step-btn:hover { background: var(--bg-hover); color: var(--text); }
+.step-btn:disabled { opacity: 0.3; cursor: default; }
+.right-panel { flex: 1; overflow-y: auto; padding: 24px 28px; }
+.detail-header { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+.detail-header .level-label { font-size: 12px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 4px; }
+.detail-header h2 { font-size: 22px; font-weight: 600; margin-bottom: 8px; }
+.detail-header .purpose { color: var(--text-dim); font-size: 14px; line-height: 1.6; }
+.section-label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); margin-bottom: 10px; }
+.question-row {
+  border-left: 3px solid var(--border); padding: 10px 14px; margin-bottom: 6px;
+  border-radius: 0 6px 6px 0; background: var(--bg-card); cursor: pointer; transition: all 0.2s;
+}
+.question-row:hover { background: var(--bg-hover); }
+.question-row.expanded { background: var(--bg-hover); }
+.question-row.dimmed { opacity: 0.35; }
+.question-header { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+.question-text { font-size: 13px; flex: 1; }
+.chevron { font-size: 12px; color: var(--text-muted); transition: transform 0.2s; flex-shrink: 0; margin-top: 2px; }
+.question-row.expanded .chevron { transform: rotate(90deg); color: var(--text); }
+.question-detail { display: none; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+.question-row.expanded .question-detail { display: block; }
+.vendor-badge { display: none; font-size: 10px; color: var(--text-muted); font-style: italic; margin-top: 4px; }
+.question-row.dimmed .vendor-badge { display: block; }
+.tools-row { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tool-pill { padding: 3px 10px; border-radius: 10px; font-size: 11px; font-weight: 500; cursor: help; position: relative; }
+.tool-pill.procedural { background: rgba(74, 138, 191, 0.2); color: var(--pill-procedural); }
+.tool-pill.technical { background: rgba(191, 138, 74, 0.2); color: var(--pill-technical); }
+.tool-pill.organizational { background: rgba(74, 191, 106, 0.2); color: var(--pill-organizational); }
+.tool-pill .tip {
+  display: none; position: absolute; bottom: calc(100% + 6px); left: 50%; transform: translateX(-50%);
+  background: #2a2a4a; border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px;
+  font-size: 11px; color: var(--text); max-width: 260px; white-space: normal; z-index: 100;
+  pointer-events: none; font-weight: 400; min-width: 180px;
+}
+.tool-pill:hover .tip,
+.tool-pill:focus .tip,
+.tool-pill:focus-within .tip { display: block; }
+.owner-row { font-size: 12px; color: var(--text-dim); }
+.owner-row strong { color: var(--text); font-weight: 500; }
+.context-row { font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
+.applies-note { font-size: 11px; color: var(--text-muted); font-style: italic; margin-top: 4px; }
+.erasure-section {
+  background: var(--bg-card); border-radius: 8px; padding: 16px;
+  margin-bottom: 12px; border-left: 3px solid var(--walkthrough-active);
+}
+.erasure-section h4 { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+.erasure-section h4.control-label { color: var(--walkthrough-active); }
+.erasure-section h4.practice-label { color: var(--accent-2); }
+.erasure-section h4.skip-label { color: #bf4a4a; }
+.erasure-section p { font-size: 13px; line-height: 1.6; color: var(--text-dim); }
+.prompt-section { border-top: 1px solid var(--border); padding: 16px 28px; background: var(--bg-panel); }
+.prompt-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+.prompt-header .label { font-size: 11px; text-transform: uppercase; letter-spacing: 1px; color: var(--text-dim); }
+.copy-btn {
+  padding: 4px 12px; border-radius: 4px; border: 1px solid var(--border);
+  background: var(--bg-card); color: var(--text-dim); cursor: pointer; font-size: 11px; transition: all 0.2s;
+}
+.copy-btn:hover { background: var(--bg-hover); color: var(--text); }
+#promptOutput {
+  font-family: "SF Mono", "Fira Code", "Cascadia Code", monospace;
+  font-size: 12px; color: var(--text-dim); line-height: 1.6; min-height: 40px;
+}
+@media (max-width: 768px) {
+  .main { flex-direction: column; height: auto; }
+  .left-panel { width: 100%; max-width: none; min-width: 0; border-right: none; border-bottom: 1px solid var(--border); max-height: 50vh; }
+  .right-panel { padding: 16px; }
+  .header { flex-direction: column; align-items: flex-start; }
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <h1><span class="framework-ref">6L-G<span class="framework-tip">The Six-Level GenAI Governance framework was developed by Engin Bozdag and Stefano Bennati in AI Governance (Manning, 2026). It adapts the Plan-Do-Check-Act (PDCA) cycle from ISO/IEC 42001 and the NIST AI Risk Management Framework, making it specific to generative AI with six named checkpoints and concrete controls at each level.</span></span> Deep Dive Explorer <span>— AI Governance Framework</span></h1>
+  <div class="filter-group">
+    <span class="label">Deployment:</span>
+    <button class="filter-pill" data-filter="saas">SaaS<span class="filter-tip">Using a vendor-hosted AI tool (ChatGPT Enterprise, Copilot, Claude console, etc.). The vendor runs the model -- your governance role is vendor due diligence and verifying their controls.</span></button>
+    <button class="filter-pill" data-filter="api">API Integrator<span class="filter-tip">Building on AI APIs (OpenAI, Anthropic, etc.) within your own application. You control prompts, output handling, and data pipelines. Responsibility is shared with the provider.</span></button>
+    <button class="filter-pill" data-filter="self">Self-Hosted<span class="filter-tip">Running or fine-tuning models on your own infrastructure. The full governance stack -- from training data to production monitoring -- is your responsibility.</span></button>
+  </div>
+</div>
+
+<div class="main">
+  <div class="left-panel">
+    <div class="flowchart" id="flowchart">
+      <div class="node-stack" id="nodeStack"></div>
+      <div class="feedback-label">↻ Continuous Feedback to Level 1</div>
+    </div>
+    <div class="walkthrough-section">
+      <button class="walkthrough-toggle" id="walkthroughToggle">
+        <span class="icon">▶</span>
+        <span>
+          <span class="wt-label">GDPR Erasure Walkthrough</span>
+          <span class="wt-sub">Follow a deletion request through all 6 levels</span>
+        </span>
+      </button>
+      <div class="step-nav" id="stepNav">
+        <button class="step-btn" id="prevBtn">← Previous</button>
+        <button class="step-btn" id="nextBtn">Next →</button>
+      </div>
+    </div>
+  </div>
+  <div class="right-panel" id="rightPanel"></div>
+</div>
+
+<div class="prompt-section">
+  <div class="prompt-header">
+    <span class="label">Prompt Output</span>
+    <button class="copy-btn" id="copyBtn">Copy</button>
+  </div>
+  <div id="promptOutput"></div>
+</div>
+
+<script>
+// NOTE: All content rendered via DOM APIs (textContent, createElement) to avoid XSS risk from innerHTML.
+// The data below is static, trusted content from the book — no user input is rendered as HTML.
+
+const LEVELS = [
+  {
+    id: 1, name: "Strategy & Policy", color: "#4a8abf",
+    summary: "Charter, sponsorship, principles",
+    purpose: "The policies, leadership, and oversight that guide AI use. Includes Responsible AI principles, governance committee, executive sponsorship, and ownership of AI risk. This foundational level sets the stage for everything below.",
+    questions: [
+      { text: "Do you have an AI governance charter or responsible AI principles?", tools: [{n:"Responsible AI Charters",t:"procedural"},{n:"Policy Workshops",t:"procedural"},{n:"Cross-functional committees",t:"organizational"}], owner: "Executive leadership, legal", applies: ["saas","api","self"], context: "Without a charter, teams lack a shared definition of what responsible AI means and governance efforts fragment across departments." },
+      { text: "Is there executive sponsorship and clear ownership of AI risk?", tools: [{n:"Accountability mapping",t:"organizational"}], owner: "C-suite, board", applies: ["saas","api","self"], context: "AI risk ownership that isn\u2019t assigned to a named executive defaults to no one \u2014 and unowned risks don\u2019t get managed." },
+      { text: "Do you have a committee or process for reviewing high-risk AI initiatives?", tools: [{n:"Risk Tiers",t:"procedural"},{n:"Cross-functional decision bodies",t:"organizational"}], owner: "Governance committee", applies: ["saas","api","self"], context: "Without a review gate, high-risk AI projects can reach production with no cross-functional scrutiny." },
+      { text: "Have you defined what \u201Cresponsible AI\u201D means for your organization?", tools: [{n:"Responsible AI Charters",t:"procedural"}], owner: "Executive leadership, ethics lead", applies: ["saas","api","self"], context: "Generic principles like \u2018be ethical\u2019 are unenforceable. Specificity turns values into operational criteria." }
+    ],
+    erasure: { control: "Charter forbids training on identifiable user data without consent; policy states erased data must be expunged from models.", practice: "The governance charter explicitly names \u201Cright to erasure\u201D as a supported data subject right and assigns ownership to the DPO (Data Protection Officer).", skip: "Teams have no mandate to act on erasure requests \u2014 each request becomes an ad-hoc crisis with no defined process or responsible party." },
+    erasureBadge: "Charter forbids training on PII without consent"
+  },
+  {
+    id: 2, name: "Risk & Impact Assessment", color: "#4a8a5f",
+    summary: "Risk tiers, go/no-go, impact analysis",
+    purpose: "Classify the risk profile of a proposed AI system and make a go/no-go decision. Multiple roles contribute: product managers run impact worksheets, legal reviews vendor compliance, data scientists outline data handling.",
+    questions: [
+      { text: "Do you classify AI use cases by risk tier before deployment?", tools: [{n:"Regulatory Checklists",t:"procedural"},{n:"Risk assessment questionnaires",t:"technical"},{n:"Cross-functional decision bodies",t:"organizational"}], owner: "Product managers, legal, compliance", applies: ["saas","api","self"], context: "Without tiering, a low-risk summarization tool gets the same scrutiny (or lack thereof) as a high-risk hiring screener." },
+      { text: "Do you conduct impact assessments for AI systems affecting vulnerable populations?", tools: [{n:"Impact Assessment Templates",t:"procedural"}], owner: "Legal, ethics lead, product", applies: ["api","self"], context: "Regulators increasingly mandate impact assessments for high-risk AI. The EU AI Act will likely require them." },
+      { text: "Is there a formal go/no-go decision point before AI projects proceed?", tools: [{n:"Risk Tiers",t:"procedural"}], owner: "Governance committee, executive sponsor", applies: ["saas","api","self"], context: "Up to 95% of GenAI pilots fail not because of technical shortcomings but because the team never clearly defined what the tool was needed for." },
+      { text: "Do legal, compliance, and data science teams participate in risk assessments?", tools: [{n:"Cross-functional decision bodies",t:"organizational"}], owner: "Cross-functional team", applies: ["api","self"], context: "Single-discipline assessments miss risks. A data scientist sees model risk; legal sees regulatory exposure; both perspectives are needed." }
+    ],
+    erasure: { control: "Data-mapping proves which tables or vendor logs might hold personal data; privacy impact assessment flags erasure as high priority.", practice: "The data steward produces a map showing every system where the user\u2019s data lives \u2014 including model training logs and embedding stores.", skip: "You can\u2019t delete what you can\u2019t find. Without data-mapping, erasure requests trigger panicked investigations across disconnected systems." },
+    erasureBadge: "Data-mapping identifies all personal data stores"
+  },
+  {
+    id: 3, name: "Implementation Review", color: "#8a6a3f",
+    summary: "Threat modeling, privacy, model cards",
+    purpose: "The technical deep-dive. Threat modeling, privacy-by-design, security architecture review, and model documentation. Think of this as obtaining planning permission for a building \u2014 failing to do so may cause costly retroactive adaptations.",
+    questions: [
+      { text: "Do you conduct threat modeling for AI-specific risks (prompt injection, data poisoning, model extraction)?", saasText: "Has your vendor conducted threat modeling for AI-specific risks? Can they provide evidence?", tools: [{n:"Threat Modeling Sessions",t:"procedural"},{n:"AI Firewalls",t:"technical"},{n:"Privacy by Design training",t:"organizational"}], owner: "Security architects, ML engineers", saasOwner: "Procurement, security (vendor review)", applies: ["saas","api","self"], context: "AI introduces attack surfaces that traditional threat models don\u2019t cover \u2014 prompt injection alone has dozens of variants.", saasContext: "Your vendor owns the threat modeling, but you need to verify it happened. Ask for their threat model documentation and confirm it covers AI-specific risks like prompt injection." },
+      { text: "Are privacy-by-design principles applied (data minimization, encryption, retention controls)?", saasText: "Does your vendor apply privacy-by-design principles? What data do they retain and for how long?", tools: [{n:"Customer-Managed Encryption Keys (CMEK)",t:"technical"},{n:"Design Reviews",t:"procedural"}], owner: "Privacy engineers, security architects", saasOwner: "Privacy, legal (vendor review)", applies: ["saas","api","self"], context: "Retrofitting privacy into a deployed system is orders of magnitude harder than building it in from the start.", saasContext: "Review the vendor\u2019s data processing agreement. Verify data minimization, retention limits, and whether they offer customer-managed encryption. Your data in their system is still your compliance obligation." },
+      { text: "Do you use model cards or system cards documenting capabilities and limitations?", saasText: "Does your vendor publish model cards or system cards documenting capabilities and limitations?", tools: [{n:"Model Cards",t:"technical"},{n:"System Cards",t:"technical"}], owner: "ML engineers, product managers", saasOwner: "Procurement (vendor due diligence)", applies: ["saas","api","self"], context: "Model cards create transparency about what a model can and cannot do \u2014 essential for downstream users making deployment decisions.", saasContext: "Request model cards from your vendor before procurement. If they can\u2019t document what the model can and can\u2019t do, you can\u2019t assess whether it\u2019s appropriate for your use case." },
+      { text: "Are security architects reviewing AI system designs before implementation?", saasText: "Has your vendor\u2019s system undergone independent security architecture review? Can they share audit results?", tools: [{n:"Design Reviews",t:"procedural"},{n:"Red-teaming exercises",t:"organizational"}], owner: "Security architects", saasOwner: "Security (vendor review)", applies: ["saas","api","self"], context: "Security review at the design stage catches architectural vulnerabilities before they\u2019re embedded in production code.", saasContext: "Ask for SOC 2 reports, penetration test summaries, or third-party security audit results. If the vendor can\u2019t demonstrate independent review, that\u2019s a red flag." }
+    ],
+    erasure: { control: "Architecture review validates hashing (one-way scrambling) for IDs; pipelines pseudonymize data before fine-tune; models are version-tagged for selective retrain.", practice: "The architecture ensures personal data is never stored in a form that can\u2019t be traced and removed \u2014 every pipeline step is auditable.", skip: "Personal data gets baked into model weights with no extraction path. You face a choice between retraining from scratch or violating the erasure obligation." },
+    erasureBadge: "Architecture validates hashing & pseudonymization"
+  },
+  {
+    id: 4, name: "Acceptance Testing", color: "#8a4a6f",
+    summary: "Red-teaming, bias testing, go/no-go gate",
+    purpose: "The design-freeze gate. The feature isn\u2019t allowed to move to production until mitigations are demonstrably built and validated. Independent verification, not just self-assessment.",
+    questions: [
+      { text: "Do you perform adversarial testing (red-teaming) before deployment?", saasText: "Has your vendor performed adversarial testing (red-teaming)? Can they share results or methodology?", tools: [{n:"Promptfoo",t:"technical"},{n:"Garak",t:"technical"},{n:"Adversarial Robustness Toolbox (ART)",t:"technical"},{n:"External expert reviews",t:"organizational"}], owner: "Red team, external auditors", saasOwner: "Security, procurement (vendor review)", applies: ["saas","api","self"], context: "Red-teaming probes for failures that normal testing misses \u2014 prompt injection, jailbreaks, edge-case hallucinations, and adversarial inputs.", saasContext: "Ask the vendor for red-team reports or summaries. If they used external auditors (as OpenAI did with GPT-4), that\u2019s a stronger signal than internal-only testing." },
+      { text: "Is bias testing performed against protected attributes?", saasText: "Has your vendor tested for bias against protected attributes? Can they share fairness metrics?", tools: [{n:"PyRIT",t:"technical"},{n:"Simulation workshops",t:"organizational"}], owner: "Applied scientists, fairness team", saasOwner: "Legal, DEI, procurement (vendor review)", applies: ["saas","api","self"], context: "Without bias testing, you won\u2019t discover disparate impact until a regulator or class-action lawsuit surfaces it.", saasContext: "Request fairness evaluation reports. If the vendor\u2019s tool is used in hiring, lending, or any context touching protected classes, you share liability for disparate impact even though you didn\u2019t build the model." },
+      { text: "Do you test for hallucination and edge-case behavior under realistic conditions?", saasText: "Has your vendor measured hallucination rates? Do they publish accuracy benchmarks for your use case?", tools: [{n:"Promptfoo",t:"technical"},{n:"Go/No-Go Criteria",t:"procedural"}], owner: "QA, product managers", saasOwner: "Product, QA (vendor review + own testing)", applies: ["saas","api","self"], context: "Models hallucinate. The question isn\u2019t whether, but whether you\u2019ve measured the rate and set acceptable thresholds.", saasContext: "Even with a SaaS tool, you should test hallucination behavior in YOUR domain with YOUR data. Vendor benchmarks on generic datasets may not reflect performance on your specific use case." },
+      { text: "Is there an independent review gate (not just the building team) before go-live?", saasText: "Before rolling out this vendor tool, did an independent team (not the buyer) review the decision?", tools: [{n:"Test Plans",t:"procedural"},{n:"Go/No-Go Criteria",t:"procedural"},{n:"External expert reviews",t:"organizational"}], owner: "GenAI Steering Committee", saasOwner: "Governance committee, security", applies: ["saas","api","self"], context: "Teams that build the system are the worst judges of its readiness. Independent review catches blind spots.", saasContext: "The team that championed buying the tool has a bias toward deployment. An independent review from security, legal, or a governance committee catches risks the buying team overlooked." }
+    ],
+    erasure: { control: "Red-team tries membership-inference attacks on deleted records (guessing whether a record is in the model); model must refuse or return \u201Cnot in corpus.\u201D", practice: "After a deletion, testers probe the model with queries designed to surface memorized personal data. The model must demonstrate it no longer reproduces or confirms the deleted information.", skip: "You claim data is deleted but can\u2019t prove it. If a regulator or data subject tests your model and finds traces, your erasure process is exposed as incomplete." },
+    erasureBadge: "Red-team tests membership-inference on deleted records"
+  },
+  {
+    id: 5, name: "Operations & Monitoring", color: "#6a4a8a",
+    summary: "Output scanning, drift detection, incidents",
+    purpose: "Continuous oversight once the system is live. Runtime guardrails, output scanning, drift detection, incident response, and data lineage. Also covers end-of-life and decommissioning.",
+    questions: [
+      { text: "Do you have real-time output scanning for harmful content or privacy violations?", saasText: "Does your vendor scan outputs in real-time? What are their content policies and how are violations handled?", tools: [{n:"Real-time output scanners",t:"technical"},{n:"Monitoring Policies",t:"procedural"},{n:"Incident escalation paths",t:"organizational"}], owner: "Operations team, security", saasOwner: "Security, compliance (vendor review)", applies: ["saas","api","self"], context: "Runtime guardrails are the last line of defense. Without them, harmful outputs reach users with no interception.", saasContext: "Review the vendor\u2019s content policy and acceptable use terms. Understand what they filter, what they log, and how they notify you of violations. If their scanning is insufficient for your domain, you may need to add your own output filtering layer." },
+      { text: "Is model drift detection in place (monitoring output quality over time)?", saasText: "Does your vendor monitor for model drift? How will you know if output quality degrades?", tools: [{n:"Drift-detection dashboards",t:"technical"},{n:"MLFlow Tracking",t:"technical"}], owner: "ML engineers, data scientists", saasOwner: "Product, QA (vendor relationship)", applies: ["saas","api","self"], context: "Models degrade as the world changes around them. Drift detection catches quality erosion before users notice.", saasContext: "SaaS vendors update models without notice. Establish your own quality benchmarks and periodically re-test against them. If output quality drops after a vendor update, you need to detect it \u2014 the vendor may not tell you." },
+      { text: "Do you maintain decision logs and data lineage for AI outputs?", saasText: "Does your vendor provide audit logs of AI decisions? Can you export interaction history for compliance?", tools: [{n:"MLFlow Tracking",t:"technical"},{n:"Incident Response Playbooks",t:"procedural"}], owner: "Operations, compliance", saasOwner: "Compliance, legal (vendor review)", applies: ["saas","api","self"], context: "Decision logs are essential for incident investigation, compliance audits, and handling user complaints about AI-generated outputs.", saasContext: "If a customer or regulator asks why an AI made a specific recommendation, you need to produce evidence. Verify the vendor\u2019s log retention period and export capabilities before signing \u2014 not after an incident." },
+      { text: "Are there incident response playbooks specific to AI failures?", tools: [{n:"Incident Response Playbooks",t:"procedural"},{n:"Post-incident reviews",t:"organizational"}], owner: "Operations, security, legal", applies: ["saas","api","self"], context: "AI failures differ from traditional outages \u2014 they may produce plausible-looking wrong answers rather than visible errors." }
+    ],
+    erasure: { control: "Privacy inbox (erasure requests made by individuals) feeds an automated job that black-lists the user\u2019s embeddings and schedules a retrain; logs confirm completion.", practice: "The ops team runs the deletion pipeline, verifies the data is purged from all stores including vector databases and training queues, and generates an audit trail.", skip: "Erasure requests pile up with no tracking, no SLA, and no proof of completion. Each request requires manual investigation." },
+    erasureBadge: "Automated erasure pipeline with audit trail"
+  },
+  {
+    id: 6, name: "Learning & Improvement", color: "#4a6a8a",
+    summary: "Feedback loops, KPIs, policy updates",
+    purpose: "Feedback loops. Customer complaints, red-team findings, fresh regulations, and post-incident reviews feed into charter revisions, policy refreshes, and next-sprint engineering work. This level closes the governance cycle.",
+    questions: [
+      { text: "Do you conduct post-incident reviews and feed findings back into governance?", tools: [{n:"Feedback Loops",t:"procedural"},{n:"Lessons learned sessions",t:"organizational"}], owner: "Product owners, governance committee", applies: ["saas","api","self"], context: "Incidents that don\u2019t produce governance changes will recur. The review must change policy, not just fix the symptom." },
+      { text: "Is there a feedback loop from operations to policy updates?", tools: [{n:"Policy Update Protocols",t:"procedural"},{n:"Culture of transparency",t:"organizational"}], owner: "Governance committee, DPO", applies: ["saas","api","self"], context: "Policies written once and never updated become stale. The AI landscape changes every few months; governance must keep pace." },
+      { text: "Do you track governance KPIs (e.g., incident rate, bias metrics, erasure SLAs)?", tools: [{n:"Trust score dashboards",t:"technical"},{n:"Calibration metrics",t:"technical"}], owner: "Governance committee, data team", applies: ["api","self"], context: "What gets measured gets managed. Without KPIs, governance effectiveness is a matter of opinion, not evidence." },
+      { text: "Do you periodically audit whether governance controls are still effective?", tools: [{n:"Feedback Loops",t:"procedural"},{n:"Policy Update Protocols",t:"procedural"}], owner: "Internal audit, governance committee", applies: ["saas","api","self"], context: "Controls that were adequate six months ago may be obsolete. Periodic audits catch decay before it causes incidents." }
+    ],
+    erasure: { control: "Quarterly review shows erasure SLA (service-level-agreement target), e.g., > 90%; committee funds research into faster machine unlearning to hit 99%.", practice: "The governance committee reviews erasure metrics, identifies bottlenecks (e.g., retraining takes 3 weeks), and invests in process or tooling improvements.", skip: "The erasure process never improves \u2014 response times degrade as request volume grows, and SLA breaches accumulate without anyone tracking them." },
+    erasureBadge: "Quarterly erasure SLA review & improvement"
+  }
+];
+
+const TOOLTIPS = {
+  "Responsible AI Charters": "A document defining an organization\u2019s AI principles, boundaries, and governance structure",
+  "Policy Workshops": "Facilitated sessions where cross-functional teams define AI governance policies",
+  "Cross-functional committees": "Groups spanning legal, engineering, product, and ethics that review AI decisions",
+  "Accountability mapping": "Assigning named individuals to own specific AI risk categories",
+  "Risk Tiers": "Classification system (low/medium/high/unacceptable) for AI use cases based on risk factors",
+  "Cross-functional decision bodies": "Teams that bring multiple perspectives to AI risk assessment decisions",
+  "Regulatory Checklists": "Structured lists of regulatory requirements applicable to AI deployments",
+  "Risk assessment questionnaires": "Standardized forms for evaluating AI project risks across multiple dimensions",
+  "Impact Assessment Templates": "Structured documents for evaluating how AI systems affect individuals and groups",
+  "Threat Modeling Sessions": "Workshops that systematically identify how an AI system could fail or be attacked",
+  "AI Firewalls": "Runtime filters that inspect AI inputs and outputs for malicious content or policy violations",
+  "Privacy by Design training": "Education on building privacy protections into systems from the start, not retroactively",
+  "Customer-Managed Encryption Keys (CMEK)": "Encryption where the customer controls the keys, not the vendor",
+  "Design Reviews": "Formal review of system architecture and design for security, privacy, and compliance",
+  "Model Cards": "Documentation describing a model\u2019s capabilities, limitations, training data, and intended use",
+  "System Cards": "Documentation of an entire AI system including model, data pipeline, and operational context",
+  "Red-teaming exercises": "Adversarial testing where testers try to make the AI fail or produce harmful output",
+  "Promptfoo": "Open-source tool for testing LLM outputs against expected results and adversarial scenarios",
+  "Garak": "Open-source LLM vulnerability scanner that tests for prompt injection, data leakage, and other attacks",
+  "Adversarial Robustness Toolbox (ART)": "Library of attacks and defenses for testing ML model robustness",
+  "External expert reviews": "Independent third-party assessment of AI system safety and compliance",
+  "PyRIT": "Python Risk Identification Toolkit \u2014 Microsoft\u2019s tool for red-teaming generative AI systems",
+  "Simulation workshops": "Scenario-based exercises testing AI behavior with diverse stakeholder groups",
+  "Go/No-Go Criteria": "Defined thresholds that must be met before an AI system can proceed to production",
+  "Test Plans": "Structured documents defining what tests will be run and what constitutes passing",
+  "Real-time output scanners": "Tools that monitor AI outputs in production for harmful, toxic, or policy-violating content",
+  "Monitoring Policies": "Documented rules for what to monitor, alert thresholds, and escalation procedures",
+  "Incident escalation paths": "Defined routes for reporting and escalating AI-related incidents to appropriate teams",
+  "Drift-detection dashboards": "Monitoring tools that track changes in model output quality and distribution over time",
+  "MLFlow Tracking": "Open-source platform for managing ML experiments, model versions, and deployments",
+  "Incident Response Playbooks": "Step-by-step guides for responding to specific types of AI incidents",
+  "Post-incident reviews": "Structured retrospectives after AI incidents to identify root causes and prevent recurrence",
+  "Feedback Loops": "Processes that route operational findings back into governance policy updates",
+  "Lessons learned sessions": "Team discussions after significant events to capture knowledge and improve processes",
+  "Policy Update Protocols": "Defined procedures for revising governance policies based on new information",
+  "Culture of transparency": "Organizational norm of openly sharing AI system behavior, limitations, and incidents",
+  "Trust score dashboards": "Metrics tracking stakeholder confidence in AI system reliability and fairness",
+  "Calibration metrics": "Measurements of how well model confidence scores align with actual accuracy"
+};
+
+const SAAS_DIMMED_LEVELS = [3, 4, 5];
+const FILTER_LABELS = { saas: "SaaS", api: "API Integrator", self: "Self-Hosted" };
+
+const state = { selectedLevel: 0, activeFilter: null, walkthroughMode: false };
+
+// --- DOM helpers ---
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k, v]) => {
+    if (k === 'className') e.className = v;
+    else if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k, v);
+  });
+  if (children) (Array.isArray(children) ? children : [children]).forEach(c => {
+    if (c == null) return;
+    e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c);
+  });
+  return e;
+}
+
+// --- Render flowchart ---
+function renderFlowchart() {
+  const stack = document.getElementById('nodeStack');
+  stack.replaceChildren();
+  LEVELS.forEach((level, i) => {
+    const isActive = state.selectedLevel === i;
+    const isSaasVendorLevel = state.activeFilter === 'saas' && SAAS_DIMMED_LEVELS.includes(level.id);
+
+    const node = el('div', {
+      className: 'level-node' + (isActive ? ' active' : ''),
+      tabindex: '0', role: 'button', 'aria-label': 'Level ' + level.id + ': ' + level.name,
+      onClick: () => selectLevel(i),
+      onKeydown: (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); selectLevel(i); }
+        if (e.key === 'ArrowDown' && i < 5) { e.preventDefault(); selectLevel(i + 1); }
+        if (e.key === 'ArrowUp' && i > 0) { e.preventDefault(); selectLevel(i - 1); }
+      }
+    });
+    node.style.borderColor = isActive ? level.color : '';
+
+    const stepInd = el('span', { className: 'step-indicator' }, 'Step ' + level.id + ' of 6');
+    const numDiv = el('div', { className: 'level-num' }, 'Level ' + level.id);
+    numDiv.style.color = level.color;
+    const nameDiv = el('div', { className: 'level-name' }, level.name);
+    const summDiv = el('div', { className: 'level-summary' }, level.summary);
+    const badge = el('div', { className: 'erasure-badge' }, level.erasureBadge);
+
+    node.append(stepInd, numDiv, nameDiv, summDiv, badge);
+
+    if (isSaasVendorLevel) {
+      const vn = el('div', { className: 'vendor-note' }, 'Vendor implements \u2014 you verify');
+      vn.style.display = 'block';
+      node.appendChild(vn);
+    }
+
+    stack.appendChild(node);
+    if (i < 5) stack.appendChild(el('div', { className: 'down-arrow' }, '\u25BC'));
+  });
+}
+
+// --- Render detail ---
+function renderDetail() {
+  const panel = document.getElementById('rightPanel');
+  panel.replaceChildren();
+  const level = LEVELS[state.selectedLevel];
+
+  // Header
+  const header = el('div', { className: 'detail-header' });
+  const lbl = el('div', { className: 'level-label' }, 'Level ' + level.id);
+  lbl.style.color = level.color;
+  header.append(lbl, el('h2', null, level.name), el('div', { className: 'purpose' }, level.purpose));
+  panel.appendChild(header);
+
+  if (state.walkthroughMode) {
+    renderErasure(panel, level);
+  } else {
+    renderQuestions(panel, level);
+  }
+  panel.scrollTop = 0;
+}
+
+function renderQuestions(panel, level) {
+  const isSaas = state.activeFilter === 'saas';
+  const isSaasDimmedLevel = isSaas && SAAS_DIMMED_LEVELS.includes(level.id);
+
+  if (isSaasDimmedLevel) {
+    const lbl = el('div', { className: 'section-label' }, 'Vendor Due Diligence Questions');
+    lbl.style.color = 'var(--accent-1)';
+    panel.appendChild(lbl);
+    panel.appendChild(el('div', { style: { fontSize: '12px', color: '#8888aa', marginBottom: '14px', lineHeight: '1.5' } },
+      'Your vendor owns implementation at this level. Your responsibility is verification \u2014 confirming they have the right controls in place before and during your use of their tool.'));
+  } else {
+    panel.appendChild(el('div', { className: 'section-label' }, 'Governance Questions'));
+  }
+
+  level.questions.forEach(q => {
+    const isDimmed = state.activeFilter && !q.applies.includes(state.activeFilter);
+    const useSaasVariant = isSaas && q.saasText;
+    const displayText = useSaasVariant ? q.saasText : q.text;
+    const displayOwner = useSaasVariant && q.saasOwner ? q.saasOwner : q.owner;
+    const displayContext = useSaasVariant && q.saasContext ? q.saasContext : q.context;
+
+    const row = el('div', {
+      className: 'question-row' + (isDimmed ? ' dimmed' : ''),
+      tabindex: '0', role: 'button', 'aria-expanded': 'false',
+      onClick: function() { var exp = this.classList.toggle('expanded'); this.setAttribute('aria-expanded', exp); },
+      onKeydown: function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); var exp = this.classList.toggle('expanded'); this.setAttribute('aria-expanded', exp); } }
+    });
+    row.style.borderLeftColor = isDimmed ? '' : level.color;
+
+    // Header
+    const hdr = el('div', { className: 'question-header' }, [
+      el('div', { className: 'question-text' }, displayText),
+      el('span', { className: 'chevron' }, '\u25B8')
+    ]);
+    row.appendChild(hdr);
+
+    // Vendor badge if dimmed
+    if (isDimmed) {
+      const vb = el('div', { className: 'vendor-badge' }, 'Not applicable \u2014 vendor responsibility for ' + FILTER_LABELS[state.activeFilter]);
+      vb.style.display = 'block';
+      row.appendChild(vb);
+    }
+
+    // Detail
+    const detail = el('div', { className: 'question-detail' });
+    const toolsRow = el('div', { className: 'tools-row' });
+    q.tools.forEach(t => {
+      const pill = el('span', { className: 'tool-pill ' + t.t }, t.n);
+      if (TOOLTIPS[t.n]) {
+        pill.appendChild(el('span', { className: 'tip' }, TOOLTIPS[t.n]));
+      }
+      toolsRow.appendChild(pill);
+    });
+    detail.appendChild(toolsRow);
+    const ownerRow = el('div', { className: 'owner-row' }, [el('strong', null, 'Who owns this: '), displayOwner]);
+    detail.appendChild(ownerRow);
+    if (q.appliesNote && !useSaasVariant) detail.appendChild(el('div', { className: 'applies-note' }, q.appliesNote));
+    detail.appendChild(el('div', { className: 'context-row' }, displayContext));
+    row.appendChild(detail);
+
+    panel.appendChild(row);
+  });
+}
+
+function renderErasure(panel, level) {
+  const e = level.erasure;
+  const lbl = el('div', { className: 'section-label' }, 'GDPR Erasure Walkthrough \u2014 Step ' + level.id + ' of 6');
+  lbl.style.color = 'var(--walkthrough-active)';
+  panel.appendChild(lbl);
+
+  function makeSection(labelClass, labelText, borderColor, text) {
+    const sec = el('div', { className: 'erasure-section' });
+    sec.style.borderLeftColor = borderColor;
+    sec.append(el('h4', { className: labelClass }, labelText), el('p', null, text));
+    return sec;
+  }
+
+  panel.appendChild(makeSection('control-label', 'The Control', 'var(--walkthrough-active)', e.control));
+  panel.appendChild(makeSection('practice-label', 'In Practice', 'var(--accent-2)', e.practice));
+  panel.appendChild(makeSection('skip-label', 'If Skipped', '#bf4a4a', e.skip));
+}
+
+// --- Interactions ---
+function selectLevel(i) {
+  state.selectedLevel = i;
+  renderFlowchart();
+  renderDetail();
+  updatePrompt();
+  updateStepNav();
+  // Focus the selected node
+  const nodes = document.querySelectorAll('.level-node');
+  if (nodes[i]) nodes[i].focus();
+}
+
+function toggleFilter(f) {
+  state.activeFilter = state.activeFilter === f ? null : f;
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.toggle('active', p.dataset.filter === state.activeFilter));
+  renderFlowchart();
+  renderDetail();
+  updatePrompt();
+}
+
+function toggleWalkthrough() {
+  state.walkthroughMode = !state.walkthroughMode;
+  const btn = document.getElementById('walkthroughToggle');
+  const fc = document.getElementById('flowchart');
+  btn.classList.toggle('active', state.walkthroughMode);
+  btn.querySelector('.icon').textContent = state.walkthroughMode ? '\u25A0' : '\u25B6';
+  fc.classList.toggle('walkthrough-on', state.walkthroughMode);
+  document.getElementById('stepNav').classList.toggle('visible', state.walkthroughMode);
+  renderFlowchart();
+  renderDetail();
+  updatePrompt();
+}
+
+function updateStepNav() {
+  document.getElementById('prevBtn').disabled = state.selectedLevel === 0;
+  document.getElementById('nextBtn').disabled = state.selectedLevel === 5;
+}
+
+// --- Prompt ---
+function updatePrompt() {
+  const level = LEVELS[state.selectedLevel];
+  const parts = [];
+  if (state.walkthroughMode) {
+    parts.push('I\u2019m studying how the 6L-G GenAI Governance framework handles GDPR right-to-erasure requests.');
+    parts.push('I\u2019m currently looking at Level ' + level.id + ': ' + level.name + '.');
+    parts.push('The control at this level is: "' + level.erasure.control + '"');
+    parts.push('Explain how this control works in practice, what tools or processes support it, and what happens if an organization skips this step. Use concrete examples.');
+  } else {
+    parts.push('I\u2019m exploring the 6L-G GenAI Governance framework, specifically Level ' + level.id + ': ' + level.name + '.');
+    if (state.activeFilter) parts.push('My deployment model is ' + FILTER_LABELS[state.activeFilter] + '.');
+    const qs = level.questions.filter(q => !state.activeFilter || q.applies.includes(state.activeFilter));
+    if (qs.length) parts.push('Key governance questions at this level include: ' + qs.map(q => '"' + q.text + '"').join('; ') + '.');
+    parts.push('Explain what this governance level accomplishes, what tools and processes support it, and how it connects to the levels above and below it in the lifecycle.');
+  }
+  document.getElementById('promptOutput').textContent = parts.join(' ');
+}
+
+function copyPrompt() {
+  const text = document.getElementById('promptOutput').textContent;
+  const btn = document.getElementById('copyBtn');
+
+  function showResult(msg, duration) {
+    btn.textContent = msg;
+    setTimeout(function() { btn.textContent = 'Copy'; }, duration);
+  }
+
+  function fallbackCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    showResult(ok ? 'Copied!' : 'Copy failed', ok ? 1500 : 3000);
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(function() { showResult('Copied!', 1500); })
+      .catch(function() { fallbackCopy(); });
+  } else {
+    fallbackCopy();
+  }
+}
+
+// --- Event bindings ---
+document.querySelectorAll('.filter-pill').forEach(p => p.addEventListener('click', () => toggleFilter(p.dataset.filter)));
+document.getElementById('walkthroughToggle').addEventListener('click', toggleWalkthrough);
+document.getElementById('prevBtn').addEventListener('click', () => { if (state.selectedLevel > 0) selectLevel(state.selectedLevel - 1); });
+document.getElementById('nextBtn').addEventListener('click', () => { if (state.selectedLevel < 5) selectLevel(state.selectedLevel + 1); });
+document.getElementById('copyBtn').addEventListener('click', copyPrompt);
+
+// Init
+selectLevel(0);
+</script>
+</body>
+</html>

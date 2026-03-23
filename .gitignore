@@ -42,3 +42,6 @@ worktrees/
 
 # Playwright screenshots
 *.png
+
+# Superpowers brainstorming sessions
+.superpowers/
