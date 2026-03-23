@@ -20,13 +20,13 @@ The plugin is part of the [claude-plugins-official](https://github.com/anthropic
 
 ## Structure
 
-Each topic lives in its own directory with three files:
+Each topic lives in its own directory:
 
-| File         | Purpose                                             |
-| ------------ | --------------------------------------------------- |
-| `prompt.md`  | The original prompt used to generate the playground |
-| `*.html`     | The generated interactive playground                |
-| `results.md` | Summary of what was produced and how to use it      |
+| File         | Purpose                                             | Required                                        |
+| ------------ | --------------------------------------------------- | ----------------------------------------------- |
+| `prompt.md`  | The original prompt used to generate the playground | Yes                                             |
+| `*.html`     | The generated interactive playground                | No -- prompt-only directories are future builds |
+| `results.md` | Summary of what was produced and how to use it      | When HTML exists                                |
 
 ## Playgrounds
 

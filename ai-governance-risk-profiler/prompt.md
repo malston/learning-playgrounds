@@ -37,7 +37,7 @@ Multi-select from:
 
 - Public/non-sensitive data
 - Internal business data
-- Personal identifiable information (PII)
+- Personally identifiable information (PII)
 - Protected health information (PHI)
 - Financial data (credit scores, transactions)
 - Biometric data

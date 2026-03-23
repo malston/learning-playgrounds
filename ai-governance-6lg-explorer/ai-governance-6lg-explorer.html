@@ -67,8 +67,11 @@ body {
   font-size: 11px; color: var(--text); max-width: 300px; white-space: normal; z-index: 100;
   pointer-events: none; font-weight: 400; min-width: 240px; line-height: 1.5;
 }
-.filter-pill:hover .filter-tip { display: block; }
-.main { display: flex; height: calc(100vh - 50px); }
+.filter-pill:hover .filter-tip,
+.filter-pill:focus .filter-tip,
+.filter-pill:focus-within .filter-tip { display: block; }
+body { display: flex; flex-direction: column; height: 100vh; }
+.main { display: flex; flex: 1; min-height: 0; overflow: hidden; }
 .left-panel {
   width: 35%; min-width: 280px; max-width: 400px;
   border-right: 1px solid var(--border); display: flex;
@@ -156,7 +159,9 @@ body {
   font-size: 11px; color: var(--text); max-width: 260px; white-space: normal; z-index: 100;
   pointer-events: none; font-weight: 400; min-width: 180px;
 }
-.tool-pill:hover .tip { display: block; }
+.tool-pill:hover .tip,
+.tool-pill:focus .tip,
+.tool-pill:focus-within .tip { display: block; }
 .owner-row { font-size: 12px; color: var(--text-dim); }
 .owner-row strong { color: var(--text); font-weight: 500; }
 .context-row { font-size: 12px; color: var(--text-dim); margin-top: 6px; line-height: 1.5; }
@@ -464,9 +469,9 @@ function renderQuestions(panel, level) {
 
     const row = el('div', {
       className: 'question-row' + (isDimmed ? ' dimmed' : ''),
-      tabindex: '0', role: 'button',
-      onClick: function() { if (!isDimmed) this.classList.toggle('expanded'); },
-      onKeydown: function(e) { if ((e.key === 'Enter' || e.key === ' ') && !isDimmed) { e.preventDefault(); this.classList.toggle('expanded'); } }
+      tabindex: '0', role: 'button', 'aria-expanded': 'false',
+      onClick: function() { var exp = this.classList.toggle('expanded'); this.setAttribute('aria-expanded', exp); },
+      onKeydown: function(e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); var exp = this.classList.toggle('expanded'); this.setAttribute('aria-expanded', exp); } }
     });
     row.style.borderLeftColor = isDimmed ? '' : level.color;
 
@@ -582,11 +587,33 @@ function updatePrompt() {
 
 function copyPrompt() {
   const text = document.getElementById('promptOutput').textContent;
-  navigator.clipboard.writeText(text).then(() => {
-    const btn = document.getElementById('copyBtn');
-    btn.textContent = 'Copied!';
-    setTimeout(() => btn.textContent = 'Copy', 1500);
-  });
+  const btn = document.getElementById('copyBtn');
+
+  function showResult(msg, duration) {
+    btn.textContent = msg;
+    setTimeout(function() { btn.textContent = 'Copy'; }, duration);
+  }
+
+  function fallbackCopy() {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.cssText = 'position:fixed;top:-1000px;opacity:0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { ok = false; }
+    document.body.removeChild(ta);
+    showResult(ok ? 'Copied!' : 'Copy failed', ok ? 1500 : 3000);
+  }
+
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text)
+      .then(function() { showResult('Copied!', 1500); })
+      .catch(function() { fallbackCopy(); });
+  } else {
+    fallbackCopy();
+  }
 }
 
 // --- Event bindings ---
