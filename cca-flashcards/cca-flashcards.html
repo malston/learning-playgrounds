@@ -1471,7 +1471,7 @@
         id: "d2-006",
         category: "claude-code",
         front: "What is the `--bare` flag in Claude Code, and why would you use it alongside `-p`?",
-        back: "The `--bare` flag skips auto-discovery of project configuration and ensures reproducible behavior. In CI/CD, you use `--bare` alongside `-p` to guarantee consistent, deterministic runs that do not depend on local project configuration state. Anthropic's docs indicate `--bare` will become the default for `-p` in a future release.",
+        back: "The `--bare` flag enables minimal headless mode for scripted `-p` calls. It strips out: hooks (no pre/post tool-use side effects), LSP (no language server startup), plugin sync (no skill/plugin loading overhead), skill directory walks (no `.claude/skills/` scanning), auto-memory (no memory read/write), and OAuth/keychain auth (must use ANTHROPIC_API_KEY explicitly). The practical effect: faster startup, deterministic behavior, no environment-specific side effects. The same `--bare` call with identical API key and input produces the same execution path across environments.",
         difficulty: 2,
         refs: ["claude-code-course"],
         distractors: [
@@ -1791,6 +1791,73 @@
           "`--output-format json` and `--json-schema` are mutually exclusive flags. `--output-format json` produces Claude's default JSON structure, while `--json-schema` produces a custom schema structure you define. You cannot use both -- if you specify `--json-schema`, the output format is automatically set to JSON and `--output-format` is ignored.",
           "`--output-format json` formats Claude Code's internal logs and metadata as JSON for pipeline consumption. `--json-schema` formats Claude's actual response content as JSON. They target different parts of the output: one for operational telemetry (timing, tokens, tool calls) and one for the substantive response. Both require `-p` but serve independent purposes.",
           "`--output-format json` is for real-time streaming output in CI dashboards, while `--json-schema` is for final batch output written to a file. Use `--output-format json` when your pipeline processes output line by line during execution, and `--json-schema` when it only reads the final result after Claude Code exits."
+        ]
+      },
+
+      // --- Article 3 additions: Code Generation scenario ---
+      {
+        id: "d2-031",
+        category: "claude-code",
+        front: "What is the correct workflow pattern for generating or refactoring code across many files in a large codebase with Claude Code?",
+        back: "Decompose → Execute → Compose → Review. (1) Decompose the large task into per-file or per-module units. (2) Execute each unit in a focused session with only the relevant context loaded. (3) Compose the results, stitching changes together. (4) Review for cross-file consistency (naming conventions, import patterns, interface contracts). Each pass gets Claude's full attention on a manageable scope, keeping output quality high across the entire task. Loading all files into one session is always the wrong answer on the exam.",
+        difficulty: 2,
+        refs: ["cca-scenario-codegen", "claude-code-course"],
+        distractors: [
+          "Load → Generate → Test → Deploy. (1) Load the entire codebase into a single session for full context. (2) Generate all changes in one pass so cross-file references stay consistent. (3) Run the test suite to catch errors. (4) Deploy if tests pass. Single-session generation is preferred because it ensures the model sees all dependencies simultaneously, preventing import mismatches that multi-session approaches introduce.",
+          "Analyze → Plan → Execute → Validate. (1) Use the Explore subagent to analyze the full codebase. (2) Have Claude create a detailed plan in plan mode. (3) Execute the entire plan in one direct execution pass. (4) Validate with automated tests. The key is that plan mode and direct execution happen in the same session so the plan context is preserved during execution.",
+          "Prioritize → Batch → Merge → Review. (1) Prioritize files by complexity (hardest first). (2) Batch files into groups of 10-15 for efficient processing. (3) Merge all batch outputs using git. (4) Review the merged result. Batching by complexity ensures the model spends more attention on difficult files while processing simpler files quickly."
+        ]
+      },
+      {
+        id: "d2-032",
+        category: "claude-code",
+        front: "How do you decide whether a Claude Code CI/CD task should use the Real-time API or the Batch API?",
+        back: "Ask: 'Is someone waiting for this result right now?' If yes → Real-time API. If no → Batch API (50% cost discount, up to 24-hour processing window). PR code review blocking a merge = Real-time (developer waiting). Pre-merge style check = Real-time (blocking pipeline). Nightly test generation = Batch (runs overnight, no one watching). Weekly documentation audit = Batch (results reviewed later). All CI/CD tasks require the `-p` flag regardless of API choice.",
+        difficulty: 2,
+        refs: ["cca-scenario-codegen", "claude-code-course", "api-notes"],
+        distractors: [
+          "Choose based on output size. Real-time API is for tasks producing short outputs (under 4K tokens) like code review comments. Batch API is for tasks producing long outputs (over 4K tokens) like test generation or documentation. The output size determines which API can handle the response efficiently, regardless of who is waiting.",
+          "Always use the Real-time API for CI/CD because pipelines need deterministic completion times. The Batch API's variable latency (up to 24 hours) makes it unsuitable for any pipeline, even scheduled ones, because pipeline orchestrators expect predictable step durations. Reserve the Batch API for manual, ad-hoc analysis tasks.",
+          "Choose based on task complexity. Simple tasks (style checks, linting) use the Batch API because they do not need the full model's reasoning capabilities. Complex tasks (code review, security analysis) use the Real-time API because they require deeper reasoning. The API choice reflects the cognitive demand of the task, not the urgency."
+        ]
+      },
+      {
+        id: "d2-033",
+        category: "claude-code",
+        front: "How does the coordinator pattern from agentic architecture apply to Claude Code code generation in large codebases?",
+        back: "One orchestrating session plans the work and reviews results, while focused sub-sessions handle individual files. Applied to code generation: (1) Coordinator analyzes codebase structure with a lightweight read (not full content load). (2) Coordinator creates a task plan: which files need changes, in what order, with what dependencies. (3) Each file gets its own focused session with only the context it needs -- this is context forking. (4) Coordinator reviews all results for cross-file consistency. This bridges context management (15% of exam) and agentic architecture (27% of exam).",
+        difficulty: 3,
+        refs: ["cca-scenario-codegen", "claude-code-course", "subagents-course"],
+        distractors: [
+          "The coordinator pattern assigns the same task to multiple sub-sessions in parallel, then selects the best output. Applied to code generation: (1) Coordinator sends the full codebase to 3 independent sessions. (2) Each session produces its own refactoring of all files. (3) Coordinator compares outputs and selects the highest-quality result. (4) Selected result is applied. This redundancy approach ensures quality through competition between sessions.",
+          "The coordinator pattern uses a planning session that generates detailed instructions, then a single execution session that follows them. Applied to code generation: (1) Coordinator reads the entire codebase and generates a step-by-step plan. (2) The full plan and codebase are passed to one execution session. (3) Execution session follows the plan sequentially. (4) Coordinator verifies the result. The key is that the plan contains enough detail to prevent attention issues in the execution session.",
+          "The coordinator pattern is only applicable to multi-agent API systems, not Claude Code. Claude Code handles large codebases through its built-in file indexing and the Explore subagent. The coordinator pattern requires spawning multiple API-based agents with explicit context passing, which is an API-level concern. In Claude Code, use plan mode instead."
+        ]
+      },
+      {
+        id: "d2-034",
+        category: "claude-code",
+        front: "Why does the CCA exam consistently favor CLAUDE.md over prompt-based reminders for enforcing team coding standards?",
+        back: "CLAUDE.md content is injected into every Claude Code session automatically -- this is programmatic enforcement. Typing 'remember to follow our coding standards' in every prompt is prompt-based guidance. The exam consistently favors programmatic enforcement because: (1) No one forgets -- every session includes the rules automatically. (2) No variation -- every developer gets identical standards. (3) No manual setup -- new team members inherit all rules by cloning the repo. Any exam answer requiring manual effort, developer memory, or per-session reminders signals the wrong answer.",
+        difficulty: 2,
+        refs: ["cca-scenario-codegen", "claude-code-course"],
+        distractors: [
+          "The exam favors CLAUDE.md because it reduces token usage compared to including standards in every prompt. CLAUDE.md is loaded once at session start and cached, while prompt-based reminders consume new tokens on every message. The primary advantage is cost efficiency -- teams save significantly on API costs by avoiding repeated standard text in prompts.",
+          "The exam favors CLAUDE.md because it is the only mechanism Claude Code reads for behavioral instructions. Prompt-based reminders are treated as conversational text, not as instructions. Claude Code's architecture separates 'configuration' (CLAUDE.md, read as directives) from 'conversation' (user messages, read as requests). Putting standards in conversation means they are suggestions, not rules.",
+          "The exam favors CLAUDE.md for auditability. CLAUDE.md files are version-controlled and create a git history of rule changes, which is required for compliance in regulated industries. Prompt-based reminders leave no audit trail. The primary advantage is governance and compliance tracking, not enforcement consistency."
+        ]
+      },
+      {
+        id: "d2-035",
+        category: "claude-code",
+        front: "When should you create a custom skill in Claude Code instead of using ad-hoc prompting? What design principles apply?",
+        back: "Create a skill when a workflow has more than 3 steps AND is repeated more than twice. Skills solve consistency (every team member gets the same scaffold) and efficiency (complex workflows become one-command operations). Design principles: (1) Focused purpose -- each skill does one thing well (do not combine scaffolding + testing + deployment). (2) Reference CLAUDE.md rules, do not duplicate them -- avoid maintaining the same rule in two places. (3) Frontmatter for metadata (name, description, parameters). (4) Markdown body for instructions.",
+        difficulty: 2,
+        refs: ["cca-scenario-codegen", "claude-code-course", "agent-skills"],
+        distractors: [
+          "Create a skill for any task you run more than once, regardless of complexity. Even simple single-step tasks benefit from being codified as skills for discoverability and team documentation. Design principles: (1) Comprehensive -- skills should handle the full workflow end-to-end including testing and deployment. (2) Self-contained -- duplicate any CLAUDE.md rules the skill needs so it works independently. (3) JSON configuration for parameters. (4) Shell script body for execution.",
+          "Create a skill only when the workflow involves tool restrictions or context forking -- these are the features that differentiate skills from regular prompts. Simple multi-step workflows should remain as ad-hoc prompts or be documented in CLAUDE.md. Design principles: (1) Always use `context: fork` for isolation. (2) Always specify `allowed-tools` for security. (3) Skills without these features add no value over prompts.",
+          "Create a skill whenever multiple team members need to perform the same task, regardless of step count or repetition frequency. The trigger is team coordination, not personal workflow. Design principles: (1) Parameterized -- skills should accept arguments for every variable aspect. (2) Versioned -- include a version number in frontmatter for change tracking. (3) Tested -- every skill needs an associated test file in `.claude/tests/`."
         ]
       },
 
@@ -3719,6 +3786,34 @@
           "(1) Technically feasible -- achievable with current model capabilities. (2) Cost-effective -- ROI exceeds implementation cost within 6 months. (3) Stakeholder-approved -- signed off by all affected business unit leaders. (4) Risk-assessed -- potential failure modes documented with mitigation plans. These ensure practical viability before committing resources.",
           "(1) Ambitious -- stretch goals drive innovation and prevent settling for incremental improvement. (2) Comprehensive -- cover all aspects of the AI system (accuracy, speed, cost, user satisfaction) in a single metric. (3) Comparable -- benchmarked against industry leaders and competitor implementations. (4) Fixed -- set once and not changed to avoid moving goalposts.",
           "(1) Model-centric -- focused on model performance metrics like accuracy, latency, and token efficiency. (2) Automated -- fully measurable without human judgment or subjective assessment. (3) Standardized -- using industry-standard benchmarks (like MMLU or HumanEval) for comparability. (4) Progressive -- with milestones at 30, 60, and 90 days to track improvement trajectory."
+        ]
+      },
+
+      // --- Article 3 additions: Context management for code generation ---
+      {
+        id: "context-038",
+        category: "context",
+        front: "The CCA exam draws a sharp distinction between two causes of declining code quality in long Claude Code sessions. What is this distinction, and which is the actual root cause?",
+        back: "Context degradation is an ATTENTION problem, not a CAPACITY problem. Capacity is how many tokens the model can hold in its window. Attention is how much cognitive focus the model applies to each token -- and total attention is fixed regardless of context size. As the context grows, that fixed attention gets divided across more tokens; each token gets a thinner slice. A 200K-token window with focused, relevant content outperforms a 1M-token window with everything dumped in. You cannot manufacture more attention by expanding capacity. When the exam describes declining quality in longer sessions, eliminate any answer that mentions context window size.",
+        difficulty: 3,
+        refs: ["cca-scenario-codegen", "api-notes"],
+        distractors: [
+          "Context degradation is a CAPACITY problem, not an attention problem. When the context window fills up, the model must discard older tokens to make room for new ones, causing information loss. The solution is to use a model with a larger context window so no tokens are discarded. Attention quality remains constant regardless of context size -- the issue is purely about fitting all information into the available space.",
+          "Context degradation is a LATENCY problem, not a capacity or attention problem. As context grows, the model takes exponentially longer to process each token because attention is computed pairwise across all tokens (quadratic scaling). Quality drops because the model is forced to truncate its reasoning to stay within time limits. The solution is to reduce context size for faster processing, not to change attention distribution.",
+          "Context degradation affects both attention and capacity equally. Attention degrades because the model processes tokens sequentially and loses focus over long sequences (similar to human reading fatigue). Capacity degrades because each token consumes a fixed amount of memory. The correct solution addresses both: use a larger context window (capacity) AND place important information at the start (attention)."
+        ]
+      },
+      {
+        id: "context-039",
+        category: "context",
+        front: "A team loads 47 service files (380K tokens) into a single Claude Code session for a refactoring task. Describe the quality pattern they observe across the files and explain why it happens.",
+        back: "Files 1-5 (beginning of context): clean, thorough refactoring with correct patterns. Files 15-30 (middle of context): inconsistent variable naming, formatting drift from earlier patterns, missed edge cases. Files 40-47 (end of context): quality improves again, but import patterns now conflict with earlier files. This U-shaped quality curve is the 'lost in the middle' effect in action -- attention is strongest at the beginning and end of context, weakest in the middle. The context window had capacity for all 47 files the entire time; capacity was never the constraint. Attention distribution was.",
+        difficulty: 3,
+        refs: ["cca-scenario-codegen", "api-notes"],
+        distractors: [
+          "Files 1-5: clean refactoring. Files 6-47: progressively worse quality as the context window fills up, with the last files being the worst. This linear degradation pattern occurs because the model processes files sequentially and its working memory fills up, leaving less cognitive space for later files. The solution is to increase the context window so the model has more working memory for all files.",
+          "Files 1-15: clean refactoring. Files 16-47: sudden quality drop that remains flat. This cliff pattern occurs because the model hits its effective attention limit around file 15, after which all remaining files receive equally poor attention. The threshold is approximately 100K tokens regardless of total context window size. The solution is to keep sessions under 100K tokens.",
+          "Quality varies randomly across all files with no positional pattern. Some files are refactored well and others poorly, depending on code complexity. Files with more complex logic (deeply nested conditions, many dependencies) are refactored worse regardless of their position in the context. The root cause is code complexity, not context position."
         ]
       },
 
