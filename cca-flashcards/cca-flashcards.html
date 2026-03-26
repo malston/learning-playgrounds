@@ -2805,7 +2805,7 @@
             role="button"
             tabIndex="0"
             aria-label={isFlipped ? 'Showing answer. Click or press Space to flip back.' : 'Showing question. Click or press Space to reveal answer.'}
-            onKeyDown={(e) => { if (e.key === 'Enter') onFlip(); }}
+            onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onFlip(); } }}
           >
             <div className="card-face card-front">
               <span className={`difficulty-badge ${difficultyLabel}`}>
@@ -3249,7 +3249,7 @@
                   onClick={() => onSelectCategory(cat.key)}
                   role="button"
                   tabIndex="0"
-                  onKeyDown={(e) => { if (e.key === 'Enter') onSelectCategory(cat.key); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectCategory(cat.key); } }}
                 >
                   <h3>{cat.name}</h3>
                   <p>{catCount} card{catCount !== 1 ? 's' : ''}</p>
@@ -3271,7 +3271,7 @@
               onClick={() => onSelectCategory('all')}
               role="button"
               tabIndex="0"
-              onKeyDown={(e) => { if (e.key === 'Enter') onSelectCategory('all'); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelectCategory('all'); } }}
             >
               <h3>All Cards</h3>
               <p>{totalCards} card{totalCards !== 1 ? 's' : ''}</p>
