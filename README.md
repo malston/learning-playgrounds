@@ -36,6 +36,10 @@ Each topic lives in its own directory:
 - **[hosting-decisions](hosting-decisions/)** -- Interactive hosting decision playground with 6 tools: rendering strategy compatibility matrix, cost reality calculator with live bar charts, lock-in exposure visualizer, guided hosting selector wizard, operational complexity spectrum, and Vercel vs Cloudflare comparison.
 - **[ai-workflow-orchestrators](ai-workflow-orchestrators/)** -- Interactive decision tool for choosing between AI development workflow orchestrators (GSD, Superpowers, Conductor, Spec Kit). Features a guided questionnaire with ranked recommendations, context management visualizer, flexibility spectrum, model durability timeline, combination recommender, and reconstructability matrix.
 
+- **[spec-builder](spec-builder/)** -- Interactive AI agent spec builder that walks through seven dimensions of agent configuration: project vision, commands & environment, project structure, code style & patterns, boundaries, testing strategy, and git workflow. Score each dimension and generate a complete agent specification.
+- **[agent-memory-lifecycle](agent-memory-lifecycle/)** -- Session lifecycle explorer for AI coding agents. Interactive timeline showing memory operations across a session, layer explorer mapping intent to the command an agent runs, and a query router showing which memory layer handles each type of recall.
+- **[parallel-dispatch](parallel-dispatch/)** -- Parallel agent dispatch builder with a task inventory, decision wizard for choosing dispatch patterns, and configuration generator. Covers fan-out, pipeline, shared workspace, and peer coordination patterns with optional critic stages.
+
 ### AI Governance (6L-G Framework)
 
 Six playgrounds based on the Six-Level GenAI Governance framework from _AI Governance_ by Bozdag & Bennati (Manning, 2026).
