@@ -2,6 +2,8 @@
 
 A collection of interactive learning playgrounds generated with the [Claude Code Playground plugin](https://github.com/anthropics/claude-plugins-official/tree/main/plugins/playground). Each playground is a self-contained HTML explorer built from a prompt, designed to make complex topics hands-on and visual.
 
+**[Try them live](https://www.markalston.net/learning-playgrounds/)**
+
 ## Install the Plugin
 
 From within Claude Code, run:
