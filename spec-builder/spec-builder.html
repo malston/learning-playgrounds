@@ -1,0 +1,1552 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Agent Spec Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg-raised: #12161e;
+    --bg-card: #171c27;
+    --bg-card-hover: #1c2233;
+    --bg-inset: #0e1118;
+    --border: #232a38;
+    --border-active: #3d4a63;
+    --text: #e8eaed;
+    --text-body: #b4b9c4;
+    --text-dim: #7d8494;
+    --text-muted: #4f5666;
+
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.12);
+    --orange: #f97316;
+    --orange-dim: rgba(249, 115, 22, 0.12);
+    --amber: #eab308;
+    --amber-dim: rgba(234, 179, 8, 0.12);
+    --emerald: #10b981;
+    --emerald-dim: rgba(16, 185, 129, 0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.12);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6, 182, 212, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -24px;
+    left: 0;
+    width: 64px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(30px, 4.5vw, 46px);
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    font-optical-sizing: auto;
+  }
+
+  .header p {
+    font-size: 16px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  /* Navigation Tabs */
+  .view-tabs {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 36px;
+    background: var(--bg-raised);
+    border-radius: 8px;
+    padding: 3px;
+    width: fit-content;
+  }
+
+  .view-tab {
+    padding: 10px 20px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .view-tab:hover { color: var(--text-body); }
+  .view-tab.active { background: var(--bg-card); color: var(--text); box-shadow: 0 1px 3px rgba(0,0,0,0.3); }
+
+  /* Views */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+  .btn-primary {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+  .btn-primary:hover { filter: brightness(1.15); }
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  /* Progress Bar */
+  .progress-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 24px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .progress-track {
+    flex: 1;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    background: var(--cyan);
+    border-radius: 2px;
+    transition: width 0.3s;
+  }
+
+  /* Action Bar */
+  .action-bar {
+    display: flex;
+    gap: 12px;
+    margin-top: 24px;
+    justify-content: center;
+  }
+
+  /* Wizard Progress */
+  .wizard-progress {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 32px;
+    overflow-x: auto;
+  }
+
+  .wizard-step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    opacity: 0.5;
+    transition: opacity 0.2s;
+    flex-shrink: 0;
+  }
+
+  .wizard-step:hover { opacity: 0.8; }
+  .wizard-step.active { opacity: 1; }
+  .wizard-step.completed { opacity: 1; }
+
+  .wizard-step .step-num {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+
+  .wizard-step .step-label {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 6px;
+    white-space: nowrap;
+  }
+
+  .wizard-step.active .step-num {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .wizard-step.active .step-label {
+    color: var(--cyan);
+  }
+
+  .wizard-step.completed .step-num {
+    background: var(--cyan);
+    border-color: var(--cyan);
+    color: var(--bg);
+  }
+
+  .wizard-step-connector {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    min-width: 24px;
+    margin: 0 4px;
+    align-self: flex-start;
+    margin-top: 16px;
+  }
+
+  /* Wizard Content */
+  .wizard-content {
+    min-height: 400px;
+    animation: fadeUp 0.3s;
+  }
+
+  /* Wizard Navigation */
+  .wizard-nav {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 32px;
+  }
+
+  /* Step Content */
+  .step-question {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+    margin-bottom: 24px;
+    line-height: 1.3;
+  }
+
+  .step-collapsible {
+    margin-bottom: 16px;
+  }
+
+  .step-collapsible-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 12px 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-dim);
+    user-select: none;
+    transition: all 0.2s;
+  }
+
+  .step-collapsible-header:hover {
+    border-color: var(--border-active);
+    color: var(--text-body);
+  }
+
+  .step-collapsible-header .chevron {
+    transition: transform 0.2s;
+    display: inline-block;
+  }
+
+  .step-collapsible.open .chevron {
+    transform: rotate(90deg);
+  }
+
+  .step-collapsible-body {
+    display: none;
+    padding: 16px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+  }
+
+  .step-collapsible.open .step-collapsible-body {
+    display: block;
+  }
+
+  .step-collapsible.open .step-collapsible-header {
+    border-radius: 6px 6px 0 0;
+  }
+
+  .step-explanation {
+    font-size: 14px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  .step-example {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-body);
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+
+  .step-textarea {
+    width: 100%;
+    min-height: 200px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 16px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    resize: vertical;
+    margin-top: 16px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .step-textarea:focus {
+    border-color: var(--cyan);
+  }
+
+  .step-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  /* Preview */
+  .preview-container {
+    animation: fadeUp 0.3s;
+  }
+
+  .preview-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 24px;
+  }
+
+  .preview-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 24px;
+    font-weight: 500;
+  }
+
+  .preview-actions {
+    display: flex;
+    gap: 12px;
+  }
+
+  .preview-spec {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-line;
+    word-break: break-word;
+    color: var(--text-body);
+    max-height: 600px;
+    overflow-y: auto;
+  }
+
+  .preview-section {
+    margin-bottom: 8px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .preview-section:last-child { border-bottom: none; }
+
+  .preview-section h3 {
+    font-family: 'Outfit', sans-serif;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cyan);
+    margin-bottom: 8px;
+    cursor: pointer;
+  }
+
+  .preview-section h3:hover {
+    text-decoration: underline;
+  }
+
+  .preview-section .empty {
+    color: var(--text-muted);
+    font-style: italic;
+  }
+
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    background: var(--emerald);
+    color: var(--bg);
+    padding: 12px 20px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    z-index: 1000;
+    animation: toastIn 0.3s ease;
+    pointer-events: none;
+  }
+
+  @keyframes toastIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  /* Dimension Cards */
+  .dimension {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    overflow: hidden;
+    transition: border-color 0.2s;
+  }
+  .dimension:hover { border-color: var(--border-active); }
+
+  .dimension-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .dimension-header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .dimension-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .dimension-title { font-size: 16px; font-weight: 600; }
+  .dimension-subtitle { font-size: 12px; color: var(--text-dim); font-weight: 400; margin-top: 2px; }
+
+  .dimension-score-badge {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    min-width: 32px;
+    text-align: center;
+  }
+
+  .dimension-body { display: none; padding: 0 24px 24px; }
+  .dimension.open .dimension-body { display: block; }
+
+  .dimension-question {
+    font-size: 14px;
+    color: var(--text-body);
+    font-weight: 300;
+    margin-bottom: 16px;
+    line-height: 1.6;
+    font-style: italic;
+  }
+
+  /* Level Selector */
+  .levels { display: flex; flex-direction: column; gap: 6px; }
+
+  .level-option {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 14px 16px;
+    border-radius: 6px;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: var(--bg-inset);
+  }
+  .level-option:hover { background: var(--bg-raised); border-color: var(--border); }
+  .level-option.selected { border-color: var(--cyan); background: var(--cyan-dim); }
+
+  .level-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    margin-top: 1px;
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    transition: all 0.2s;
+  }
+  .level-option.selected .level-number {
+    background: var(--cyan);
+    color: var(--bg);
+    border-color: var(--cyan);
+  }
+
+  .level-content h4 { font-size: 13px; font-weight: 600; margin-bottom: 3px; color: var(--text); }
+  .level-content p { font-size: 12px; color: var(--text-dim); font-weight: 300; line-height: 1.6; }
+
+  /* Eval Tip */
+  .eval-tip {
+    margin-top: 16px;
+    padding: 16px;
+    background: var(--bg-inset);
+    border-left: 3px solid var(--cyan);
+    border-radius: 0 6px 6px 0;
+    font-size: 13px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.6;
+  }
+  .eval-tip strong { color: var(--cyan); font-weight: 600; }
+
+  /* Eval Spec Input */
+  .eval-input-section {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 24px;
+  }
+  .eval-input-section label {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+    display: block;
+    margin-bottom: 4px;
+  }
+  .eval-input-section .hint {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+  .eval-textarea {
+    width: 100%;
+    min-height: 180px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    padding: 16px;
+    resize: vertical;
+    line-height: 1.6;
+  }
+  .eval-textarea:focus {
+    outline: none;
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 2px var(--cyan-dim);
+  }
+  .eval-textarea::placeholder { color: var(--text-muted); }
+  .eval-input-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 12px;
+  }
+  .eval-input-or {
+    font-size: 13px;
+    color: var(--text-dim);
+    font-style: italic;
+  }
+  .eval-input-section.analyzed {
+    border-color: var(--emerald);
+    background: linear-gradient(135deg, var(--bg-card) 0%, rgba(16, 185, 129, 0.04) 100%);
+  }
+  .eval-input-section.analyzed label::after {
+    content: ' \u2714 Analyzed';
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--emerald);
+    margin-left: 8px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  /* Eval Results */
+  .eval-results { animation: fadeUp 0.4s ease; margin-top: 32px; }
+
+  .eval-overall {
+    display: grid;
+    grid-template-columns: 300px 1fr;
+    gap: 32px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 32px;
+    margin-bottom: 24px;
+    align-items: center;
+  }
+
+  .radar-container { display: flex; justify-content: center; }
+
+  .eval-score-info h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 28px;
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+
+  .eval-score-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 4px 12px;
+    border-radius: 4px;
+    display: inline-block;
+    margin-bottom: 16px;
+    font-weight: 600;
+  }
+
+  .eval-score-info p {
+    font-size: 14px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.8;
+  }
+
+  /* Suggestions */
+  .eval-suggestions {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 24px;
+  }
+
+  .eval-suggestions h3 {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 16px;
+  }
+
+  .suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  .suggestion-item:last-child { border-bottom: none; }
+
+  .suggestion-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+  }
+
+  .suggestion-content h4 { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .suggestion-content p { font-size: 13px; color: var(--text-body); font-weight: 300; line-height: 1.6; }
+  .suggestion-content .suggestion-level {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  @media (max-width: 768px) {
+    .eval-overall { grid-template-columns: 1fr; }
+    .wizard-progress { gap: 4px; }
+    .wizard-step .step-label { display: none; }
+    .wizard-step-connector { min-width: 8px; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+  <div class="header">
+    <div class="header-eyebrow">Learning Tool</div>
+    <h1>AI Agent Spec Builder</h1>
+    <p>Learn how to write effective specifications that guide AI coding agents. Build a spec from scratch or evaluate an existing one.</p>
+  </div>
+
+  <div class="view-tabs">
+    <button class="view-tab active" data-view="build">Build</button>
+    <button class="view-tab" data-view="evaluate">Evaluate</button>
+  </div>
+
+  <div id="view-build" class="view active">
+    <div class="wizard-progress" id="wizardProgress"></div>
+    <div class="wizard-content" id="wizardContent"></div>
+    <div class="wizard-nav">
+      <button class="btn btn-ghost" id="prevBtn" onclick="wizardPrev()">Back</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="wizardNext()">Next</button>
+    </div>
+  </div>
+
+  <div id="view-evaluate" class="view">
+    <div class="eval-input-section" id="evalInputSection">
+      <label>Paste your spec</label>
+      <div class="hint">Paste your CLAUDE.md, SPEC.md, or project instructions -- the analyzer scores 7 dimensions automatically.</div>
+      <textarea class="eval-textarea" id="evalSpecTextarea" placeholder="The analyzer looks for signals like: command examples, file path patterns, commit conventions, testing strategies, boundary rules, coding style guidelines, and project vision statements."></textarea>
+      <div class="eval-input-actions">
+        <button class="btn btn-primary" onclick="analyzeSpec()">Analyze Spec</button>
+        <span class="eval-input-or">or rate manually below</span>
+      </div>
+    </div>
+    <div class="progress-bar">
+      <span id="evalProgressText">0 of 7 evaluated</span>
+      <div class="progress-track"><div class="progress-fill" id="evalProgressFill" style="width: 0%"></div></div>
+    </div>
+    <div id="evalDimensionsContainer"></div>
+    <div class="action-bar">
+      <button class="btn btn-primary" onclick="calculateEvalResults()">See Results</button>
+      <button class="btn btn-ghost" onclick="resetEvaluation()">Reset</button>
+    </div>
+    <div id="evalResultsContainer"></div>
+  </div>
+</div>
+
+<script>
+  document.querySelectorAll('.view-tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('.view-tab').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+      document.getElementById(`view-${tab.dataset.view}`).classList.add('active');
+    });
+  });
+
+  /* Wizard State */
+  let currentStep = 0;
+  const wizardData = {};
+  let showingPreview = false;
+
+  const steps = [
+    {
+      id: 'vision',
+      icon: '\u{1F3AF}',
+      label: 'Vision',
+      question: 'What problem does this project solve?',
+      explanation: 'A clear goal statement prevents the agent from drifting into features you do not need. State what success looks like in one paragraph so the agent can evaluate its own output against your intent.',
+      example: `# Project Vision\n\n## Goal\nA CLI tool that converts markdown cheatsheets to styled HTML pages for browser-based reference.\n\n## Success Criteria\n- Converts any .md file to a self-contained .html file\n- Applies a consistent dark theme with syntax highlighting\n- Works offline with no external dependencies at runtime\n\n## Out of Scope\n- PDF export\n- Multi-file sites or navigation between pages\n- User accounts or hosting`,
+      placeholder: 'Describe what the project does, what success looks like, and what is out of scope...'
+    },
+    {
+      id: 'commands',
+      icon: '\u26A1',
+      label: 'Commands',
+      question: 'How do you build, test, and run this project?',
+      explanation: 'Agents guess at commands when specs omit them. Provide the exact commands with all flags so the agent does not invent build steps or use the wrong package manager.',
+      example: `## Commands\n\n- Install: \`bun install\`\n- Dev server: \`bun run dev\` (starts on port 3000)\n- Test: \`bun test\` (runs vitest)\n- Lint: \`bun run lint\` (eslint with --fix)\n- Build: \`bun run build\` (outputs to dist/)\n- Type check: \`bunx tsc --noEmit\``,
+      placeholder: 'List your build, test, lint, and run commands with full flags...'
+    },
+    {
+      id: 'structure',
+      icon: '\u{1F4C1}',
+      label: 'Structure',
+      question: 'How is the codebase organized?',
+      explanation: 'Without a directory map, agents create files in the wrong locations or duplicate existing modules. Show the layout and explain the purpose of key directories.',
+      example: `## Project Structure\n\n\`\`\`\nsrc/\n  components/    # React components, one per file\n  hooks/         # Custom React hooks\n  lib/           # Shared utilities and helpers\n  routes/        # Route definitions (file-based routing)\n  styles/        # Global CSS and theme variables\ntests/\n  unit/          # Mirror src/ structure\n  integration/   # API and database tests\n\`\`\`\n\nKey files:\n- \`src/lib/config.ts\` -- app configuration and env vars\n- \`src/lib/db.ts\` -- database connection and query helpers`,
+      placeholder: 'Paste or describe your directory structure and key files...'
+    },
+    {
+      id: 'style',
+      icon: '\u2728',
+      label: 'Code Style',
+      question: 'What patterns should the agent follow?',
+      explanation: 'Rule lists ("use camelCase") are less effective than concrete code examples. Show the agent a real snippet that demonstrates your preferred patterns -- naming, error handling, function signatures, imports.',
+      example: `## Code Style\n\nPrefer named exports. One component per file. Use descriptive names over short ones.\n\n\`\`\`typescript\n// Preferred pattern for API route handlers\nexport function createUser(req: Request): Response {\n  const body = validateBody(req, CreateUserSchema);\n\n  const user = db.users.insert({\n    name: body.name,\n    email: body.email,\n    createdAt: new Date(),\n  });\n\n  return Response.json(user, { status: 201 });\n}\n\`\`\`\n\n- Error handling: let errors propagate to the global handler. Do not wrap every function in try/catch.\n- Imports: group by stdlib, external packages, internal modules. Separate groups with a blank line.`,
+      placeholder: 'Show example code snippets that demonstrate your preferred patterns...'
+    },
+    {
+      id: 'boundaries',
+      icon: '\u{1F6A7}',
+      label: 'Boundaries',
+      question: 'What can the agent do without asking?',
+      explanation: 'A flat list of rules is hard for agents to prioritize. A three-tier system (always do, ask first, never do) gives agents clear guidance on when to proceed independently versus when to check in.',
+      example: `## Boundaries\n\n### Always (no approval needed)\n- Run tests and lint before committing\n- Fix lint errors and type errors\n- Create files in src/ and tests/ directories\n\n### Ask First (get approval before proceeding)\n- Install or remove dependencies\n- Change database schema\n- Modify CI/CD configuration\n- Refactor code that touches more than 3 files\n\n### Never\n- Commit directly to main\n- Delete test files\n- Modify .env or credentials files\n- Push to remote without explicit permission`,
+      placeholder: 'Define what the agent should always do, ask about first, and never do...'
+    },
+    {
+      id: 'testing',
+      icon: '\u{1F9EA}',
+      label: 'Testing',
+      question: 'How should the agent verify its work?',
+      explanation: 'Without testing guidance, agents either skip tests entirely or write shallow tests that mock everything. Specify your framework, what to test, and where the line is between unit and integration tests.',
+      example: `## Testing Strategy\n\nFramework: vitest\nCoverage target: 80% for new code\n\n### What to test\n- Every exported function gets a unit test\n- API routes get integration tests with real database\n- Edge cases: empty inputs, auth failures, concurrent access\n\n### What NOT to mock\n- Database calls in integration tests (use test database)\n- File system operations (use tmp directories)\n\n### What to mock\n- External HTTP APIs (use msw for request interception)\n- Time-dependent functions (use vi.useFakeTimers)\n\n### Verification loop\nAfter implementing a feature, run this sequence:\n1. \`bun test\` -- all tests pass\n2. \`bun run lint\` -- no lint errors\n3. \`bunx tsc --noEmit\` -- no type errors`,
+      placeholder: 'Describe your test framework, coverage targets, mock boundaries, and verification steps...'
+    },
+    {
+      id: 'git',
+      icon: '\u{1F500}',
+      label: 'Git Workflow',
+      question: 'How does code get committed and reviewed?',
+      explanation: 'Agents that commit to main, write vague messages, or push without permission cause real damage. Define the branching model, commit style, and what requires human approval.',
+      example: `## Git Workflow\n\n- Branch from main: \`feature/<short-description>\`\n- Commit messages: imperative mood, explain why not what\n  - Good: "Add rate limiting to /api/users endpoint"\n  - Bad: "Updated files"\n- Commit frequently -- small, focused commits over large batches\n- Never commit to main directly -- always use a feature branch\n- Never push without explicit permission\n- Never use --force or --no-verify flags\n- Run tests before every commit`,
+      placeholder: 'Describe your branching strategy, commit conventions, and push rules...'
+    }
+  ];
+  const totalSteps = steps.length;
+
+  function renderWizardProgress() {
+    const container = document.getElementById('wizardProgress');
+    let html = '';
+    steps.forEach((step, i) => {
+      if (i > 0) {
+        html += '<div class="wizard-step-connector"></div>';
+      }
+      const isActive = !showingPreview && i === currentStep;
+      const isCompleted = wizardData[step.id] && wizardData[step.id].trim();
+      let cls = 'wizard-step';
+      if (isActive) cls += ' active';
+      else if (isCompleted) cls += ' completed';
+      html += `
+        <div class="${cls}" onclick="wizardGoTo(${i})">
+          <div class="step-num">${i + 1}</div>
+          <div class="step-label">${step.label}</div>
+        </div>`;
+    });
+    container.innerHTML = html;
+  }
+
+  function escapeHtml(text) {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  }
+
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = el.scrollHeight + 'px';
+  }
+
+  function toggleCollapsible(el) {
+    el.closest('.step-collapsible').classList.toggle('open');
+  }
+
+  function renderWizardContent() {
+    if (showingPreview) return;
+    const content = document.getElementById('wizardContent');
+    const step = steps[currentStep];
+    if (!step) {
+      content.innerHTML = '';
+      return;
+    }
+
+    const existingValue = wizardData[step.id] || '';
+
+    content.innerHTML = `
+      <div class="step-question">${step.icon} ${step.question}</div>
+
+      <div class="step-collapsible">
+        <div class="step-collapsible-header" onclick="toggleCollapsible(this)">
+          <span class="chevron">\u25B6</span> Why this matters
+        </div>
+        <div class="step-collapsible-body">
+          <div class="step-explanation">${step.explanation}</div>
+        </div>
+      </div>
+
+      <div class="step-collapsible">
+        <div class="step-collapsible-header" onclick="toggleCollapsible(this)">
+          <span class="chevron">\u25B6</span> Example
+        </div>
+        <div class="step-collapsible-body">
+          <div class="step-example">${escapeHtml(step.example)}</div>
+        </div>
+      </div>
+
+      <textarea
+        class="step-textarea"
+        placeholder="${step.placeholder}"
+        oninput="autoResize(this)"
+      ></textarea>
+    `;
+
+    const textarea = content.querySelector('.step-textarea');
+    if (existingValue) {
+      textarea.value = existingValue;
+      autoResize(textarea);
+    }
+  }
+
+  function saveCurrentStep() {
+    if (showingPreview || steps.length === 0) return;
+    const textarea = document.querySelector('.step-textarea');
+    if (textarea) {
+      wizardData[steps[currentStep].id] = textarea.value;
+    }
+  }
+
+  function wizardNext() {
+    saveCurrentStep();
+    if (currentStep < totalSteps - 1) {
+      currentStep++;
+      renderWizardProgress();
+      renderWizardContent();
+      updateNavButtons();
+    } else {
+      renderPreview();
+    }
+  }
+
+  function wizardPrev() {
+    saveCurrentStep();
+    if (showingPreview) {
+      showingPreview = false;
+      currentStep = totalSteps - 1;
+      renderWizardProgress();
+      renderWizardContent();
+      updateNavButtons();
+    } else if (currentStep > 0) {
+      currentStep--;
+      renderWizardProgress();
+      renderWizardContent();
+      updateNavButtons();
+    }
+  }
+
+  function wizardGoTo(stepIndex) {
+    saveCurrentStep();
+    if (stepIndex >= 0 && stepIndex < totalSteps) {
+      showingPreview = false;
+      currentStep = stepIndex;
+      renderWizardProgress();
+      renderWizardContent();
+      updateNavButtons();
+    }
+  }
+
+  function updateNavButtons() {
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
+    if (showingPreview) {
+      prevBtn.textContent = 'Back to Editing';
+      prevBtn.style.display = '';
+      nextBtn.style.display = 'none';
+    } else {
+      prevBtn.style.display = currentStep === 0 ? 'none' : '';
+      prevBtn.textContent = 'Back';
+      nextBtn.style.display = '';
+      nextBtn.textContent = currentStep === totalSteps - 1 ? 'Preview Spec' : 'Next';
+    }
+  }
+
+  function renderPreview() {
+    showingPreview = true;
+    const content = document.getElementById('wizardContent');
+
+    let sectionsHtml = steps.map((step, i) => {
+      const val = wizardData[step.id];
+      const hasContent = val && val.trim();
+      return `
+        <div class="preview-section">
+          <h3 onclick="wizardGoTo(${i})">${step.icon} ${step.label}</h3>
+          ${hasContent
+            ? `<div>${escapeHtml(val.trim())}</div>`
+            : `<div class="empty">TODO: ${step.question}</div>`
+          }
+        </div>`;
+    }).join('');
+
+    content.innerHTML = `
+      <div class="preview-container">
+        <div class="preview-header">
+          <h2>Your Spec Preview</h2>
+          <div class="preview-actions">
+            <button class="btn btn-ghost" onclick="copySpec()">Copy to Clipboard</button>
+            <button class="btn btn-primary" onclick="downloadSpec()">Download SPEC.md</button>
+          </div>
+        </div>
+        <div class="preview-spec">${sectionsHtml}</div>
+      </div>`;
+
+    updateNavButtons();
+    renderWizardProgress();
+  }
+
+  function generateMarkdown() {
+    let md = '# Project Specification\n\n';
+    steps.forEach(step => {
+      md += `## ${step.label}\n\n`;
+      if (wizardData[step.id] && wizardData[step.id].trim()) {
+        md += wizardData[step.id].trim() + '\n\n';
+      } else {
+        md += `<!-- TODO: ${step.question} -->\n\n`;
+      }
+    });
+    return md;
+  }
+
+  function copySpec() {
+    navigator.clipboard.writeText(generateMarkdown()).then(() => {
+      showToast('Copied to clipboard');
+    }).catch(() => {
+      showToast('Copy failed -- try the download button instead');
+    });
+  }
+
+  function downloadSpec() {
+    const blob = new Blob([generateMarkdown()], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'SPEC.md';
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function showToast(message) {
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = message;
+    document.body.appendChild(toast);
+    setTimeout(() => toast.remove(), 2500);
+  }
+
+  /* Evaluate Tab */
+  const evalDimensions = [
+    {
+      id: 'vision', icon: '\u{1F3AF}', iconBg: 'rgba(6, 182, 212, 0.12)',
+      title: 'Project Vision', subtitle: 'Goal clarity and scope definition',
+      question: 'How well does the spec define what the project does and what success looks like?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No project description or goal statement in the spec.' },
+        { level: 2, name: 'Minimal', desc: 'A sentence or two about what the project does, but no success criteria or scope boundaries.' },
+        { level: 3, name: 'Basic', desc: 'Clear goal statement with some success criteria. Scope is implied but not explicitly bounded.' },
+        { level: 4, name: 'Good', desc: 'Goal, success criteria, and explicit out-of-scope section. An agent could evaluate its own output against this.' },
+        { level: 5, name: 'Comprehensive', desc: 'Vision statement, measurable success criteria, explicit scope boundaries, and tradeoff guidance for ambiguous cases.' }
+      ],
+      tips: [
+        'Start by writing one sentence that describes what the project does.',
+        'Add 2-3 bullet points defining what "done" looks like.',
+        'Add an "Out of Scope" section listing what the agent should not build.',
+        'Add guidance for edge cases: when requirements conflict, what takes priority?'
+      ]
+    },
+    {
+      id: 'commands', icon: '\u26A1', iconBg: 'rgba(249, 115, 22, 0.12)',
+      title: 'Commands & Environment', subtitle: 'Build, test, and run instructions',
+      question: 'How completely does the spec document the commands needed to work with the project?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No commands documented. The agent has to guess how to build and test.' },
+        { level: 2, name: 'Minimal', desc: 'One or two commands listed but missing flags, prerequisites, or toolchain versions.' },
+        { level: 3, name: 'Basic', desc: 'Build, test, and run commands listed with basic flags. Package manager specified.' },
+        { level: 4, name: 'Good', desc: 'Full command set with flags, expected output descriptions, and toolchain version requirements.' },
+        { level: 5, name: 'Comprehensive', desc: 'Complete command reference including dev, test, lint, build, deploy. Environment setup steps. CI/CD command equivalents.' }
+      ],
+      tips: [
+        'List at least your test command so the agent can verify its work.',
+        'Add build and lint commands with the flags you actually use.',
+        'Specify your package manager and runtime version explicitly.',
+        'Document environment setup and any CI-specific command variations.'
+      ]
+    },
+    {
+      id: 'structure', icon: '\u{1F4C1}', iconBg: 'rgba(59, 130, 246, 0.12)',
+      title: 'Project Structure', subtitle: 'Directory layout and file organization',
+      question: 'How well does the spec describe where code lives and how the project is organized?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No project structure documented. The agent creates files wherever it guesses.' },
+        { level: 2, name: 'Minimal', desc: 'A few key file paths mentioned in passing, but no structured directory overview.' },
+        { level: 3, name: 'Basic', desc: 'Directory tree showing top-level structure. Key directories have short descriptions.' },
+        { level: 4, name: 'Good', desc: 'Full directory tree with purpose annotations. Key files called out with their roles.' },
+        { level: 5, name: 'Comprehensive', desc: 'Directory tree, file naming conventions, module boundaries, and guidance on where new code should go for common scenarios.' }
+      ],
+      tips: [
+        'Add a directory tree showing at least your top-level folders.',
+        'Annotate each directory with a short description of what belongs there.',
+        'Call out 3-5 key files that the agent will need to understand or modify.',
+        'Add guidance: "New API routes go in src/routes/, new components go in src/components/".'
+      ]
+    },
+    {
+      id: 'style', icon: '\u2728', iconBg: 'rgba(16, 185, 129, 0.12)',
+      title: 'Code Style & Patterns', subtitle: 'Coding conventions and preferred patterns',
+      question: 'How effectively does the spec communicate the coding patterns the agent should follow?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No style guidance. The agent uses its default patterns which may not match your codebase.' },
+        { level: 2, name: 'Minimal', desc: 'A few text rules like "use camelCase" or "prefer functional style" without examples.' },
+        { level: 3, name: 'Basic', desc: 'Style rules with a code example or two. Enough to infer basic patterns.' },
+        { level: 4, name: 'Good', desc: 'Concrete code examples showing preferred patterns for common operations (error handling, data access, component structure).' },
+        { level: 5, name: 'Comprehensive', desc: 'Multiple annotated examples covering different scenarios. Anti-patterns explicitly called out. Import ordering, naming conventions, and architectural patterns documented.' }
+      ],
+      tips: [
+        'Add at least one code example showing your preferred function/component structure.',
+        'Show examples for your most common patterns: API handlers, components, utilities.',
+        'Add code examples with annotations explaining why the pattern is preferred.',
+        'Show anti-patterns too: "Do NOT do this: ... Instead: ..."'
+      ]
+    },
+    {
+      id: 'boundaries', icon: '\u{1F6A7}', iconBg: 'rgba(234, 179, 8, 0.12)',
+      title: 'Boundaries', subtitle: 'Agent autonomy and approval gates',
+      question: 'How clearly does the spec define what the agent can do independently versus what needs approval?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No boundaries defined. The agent decides its own level of autonomy.' },
+        { level: 2, name: 'Minimal', desc: 'A few "do not" rules but no structured permission system.' },
+        { level: 3, name: 'Basic', desc: "A list of dos and don'ts. The agent can follow them but may not know how to handle unlisted situations." },
+        { level: 4, name: 'Good', desc: 'Three-tier system (Always/Ask/Never) with clear items in each tier.' },
+        { level: 5, name: 'Comprehensive', desc: 'Three-tier system with rationale for each boundary. Default behavior specified for unlisted situations. Escalation guidance for ambiguous cases.' }
+      ],
+      tips: [
+        'Start with a "Never" list of actions that could cause damage.',
+        'Add an "Always" list for safe actions the agent should do without asking.',
+        'Organize into three tiers: Always (proceed), Ask First (get approval), Never (hard stop).',
+        'Add a default rule: "If not listed, ask before proceeding" or "If not listed, use your judgment".'
+      ]
+    },
+    {
+      id: 'testing', icon: '\u{1F9EA}', iconBg: 'rgba(239, 68, 68, 0.12)',
+      title: 'Testing Strategy', subtitle: 'Verification approach and coverage expectations',
+      question: 'How well does the spec guide the agent on testing and verification?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No testing guidance. The agent may skip tests or write superficial ones.' },
+        { level: 2, name: 'Minimal', desc: 'Names a test command but no strategy for what or how to test.' },
+        { level: 3, name: 'Basic', desc: 'Test framework specified with basic expectations.' },
+        { level: 4, name: 'Good', desc: 'Coverage targets, what to test, what to mock vs. not mock, and a verification checklist.' },
+        { level: 5, name: 'Comprehensive', desc: 'Full testing strategy: unit/integration/e2e boundaries, mock policy, edge case expectations, verification loop, and CI integration.' }
+      ],
+      tips: [
+        'Add your test command so the agent can run tests after changes.',
+        'Specify your test framework and where test files should live.',
+        'Define what should and should not be mocked. This prevents shallow tests.',
+        'Add a verification loop: the sequence of commands to run before considering work done.'
+      ]
+    },
+    {
+      id: 'git', icon: '\u{1F500}', iconBg: 'rgba(139, 92, 246, 0.12)',
+      title: 'Git Workflow', subtitle: 'Version control conventions and safety rules',
+      question: 'How clearly does the spec define the git workflow the agent should follow?',
+      levels: [
+        { level: 1, name: 'Absent', desc: 'No git guidance. The agent may commit to main, use vague messages, or push without permission.' },
+        { level: 2, name: 'Minimal', desc: 'Basic "use feature branches" guidance but no commit message conventions or safety rules.' },
+        { level: 3, name: 'Basic', desc: 'Branch naming convention and commit message style specified. Basic safety rules (no force push).' },
+        { level: 4, name: 'Good', desc: 'Full workflow: branching model, commit conventions with examples, explicit safety rules for push/force/amend.' },
+        { level: 5, name: 'Comprehensive', desc: 'Complete git workflow including branching, commits, PR process, pre-commit hooks, code review expectations, and merge strategy.' }
+      ],
+      tips: [
+        'Add at minimum: "Never commit to main" and "Never push without permission".',
+        'Specify branch naming and commit message style.',
+        'Add commit message examples showing good vs. bad messages.',
+        'Document your full workflow: branch, commit, push, PR, review, merge.'
+      ]
+    }
+  ];
+
+  const evalSelections = {};
+
+  const evalSignals = {
+    vision: [
+      { regex: /purpose|goal|mission|objective|vision/i, tier: 1 },
+      { regex: /repository|repo|project|codebase/i, tier: 1 },
+      { regex: /target audience|intended for|designed for|users are/i, tier: 2 },
+      { regex: /non-goal|out of scope|do not|should not/i, tier: 2 },
+      { regex: /architect|design philosophy|guiding principle/i, tier: 3 },
+      { regex: /success criter|definition of done|acceptance criter/i, tier: 3 },
+      { regex: /anti-pattern|common mistake|pitfall|avoid/i, tier: 4 },
+      { regex: /rationale|because|reason we|motivation/i, tier: 4 }
+    ],
+    commands: [
+      { regex: /\b(npm|yarn|bun|pnpm|make|go|cargo|pip)\s+\w+/i, tier: 1 },
+      { regex: /\b(run|exec|start|build|test|lint|deploy)\b/i, tier: 1 },
+      { regex: /```(bash|sh|shell|zsh)?[\s\S]*?(npm|yarn|bun|make|go|cargo)/m, tier: 2 },
+      { regex: /--[a-z][\w-]*|(-[a-z])\b/i, tier: 2 },
+      { regex: /environment|env var|\.env|export\s+\w+=/i, tier: 3 },
+      { regex: /prerequisite|before you|setup|install/i, tier: 3 },
+      { regex: /ci\/cd|pipeline|github action|workflow/i, tier: 4 },
+      { regex: /troubleshoot|if.*fails|common error|debug/i, tier: 4 }
+    ],
+    structure: [
+      { regex: /\/(src|lib|pkg|app|cmd|internal)\//i, tier: 1 },
+      { regex: /directory|folder|file structure|layout/i, tier: 1 },
+      { regex: /\w+\.(ts|js|go|py|rs|java|rb)\b/i, tier: 2 },
+      { regex: /module|package|component|service/i, tier: 2 },
+      { regex: /import|require|dependency|depend on/i, tier: 3 },
+      { regex: /layer|boundary|separation|architecture/i, tier: 3 },
+      { regex: /monorepo|workspace|nx|turborepo/i, tier: 4 },
+      { regex: /ownership|codeowner|maintain|responsible for/i, tier: 4 }
+    ],
+    style: [
+      { regex: /style|format|convention|standard/i, tier: 1 },
+      { regex: /eslint|prettier|gofmt|rustfmt|black|rubocop/i, tier: 1 },
+      { regex: /naming|camelCase|snake_case|PascalCase|kebab-case/i, tier: 2 },
+      { regex: /indent|tab|space|semicolon|quote/i, tier: 2 },
+      { regex: /pattern|idiom|prefer|avoid|never use/i, tier: 3 },
+      { regex: /error handling|logging|return|throw/i, tier: 3 },
+      { regex: /comment|docstring|jsdoc|godoc|typedoc/i, tier: 4 },
+      { regex: /example|good.*bad|do.*don't|✓|✗|👍|👎/i, tier: 4 }
+    ],
+    boundaries: [
+      { regex: /don't|do not|never|must not|prohibited/i, tier: 1 },
+      { regex: /permission|approval|ask before|confirm/i, tier: 1 },
+      { regex: /autonomous|without asking|freely|allowed to/i, tier: 2 },
+      { regex: /safety|security|credential|secret|\.env/i, tier: 2 },
+      { regex: /scope|limit|boundary|restrict|constrain/i, tier: 3 },
+      { regex: /tier|level|category|class of|type of (action|change)/i, tier: 3 },
+      { regex: /escalat|human.*(review|approval)|pair program/i, tier: 4 },
+      { regex: /rollback|revert|undo|recover|fallback/i, tier: 4 }
+    ],
+    testing: [
+      { regex: /test|spec|assert|expect|verify/i, tier: 1 },
+      { regex: /\b(jest|mocha|pytest|vitest|go\s+test|rspec|junit)\b/i, tier: 1 },
+      { regex: /coverage|threshold|\d+%/i, tier: 2 },
+      { regex: /mock|stub|fake|spy|fixture/i, tier: 2 },
+      { regex: /unit|integration|e2e|end.to.end|acceptance/i, tier: 3 },
+      { regex: /tdd|test.driven|red.green|write.*(test|spec).*first/i, tier: 3 },
+      { regex: /edge case|boundary|negative test|error case/i, tier: 4 },
+      { regex: /\bci\b|continuous|pre-commit|hook|automat.*test/i, tier: 4 }
+    ],
+    git: [
+      { regex: /git|commit|branch|push|pull|merge/i, tier: 1 },
+      { regex: /main|master|develop|feature\//i, tier: 1 },
+      { regex: /commit message|conventional commit|semantic/i, tier: 2 },
+      { regex: /feat:|fix:|chore:|docs:|refactor:/i, tier: 2 },
+      { regex: /pull request|\bpr\b|code review|reviewer/i, tier: 3 },
+      { regex: /rebase|squash|merge strategy|fast-forward/i, tier: 3 },
+      { regex: /force push|--force|--no-verify|hook/i, tier: 4 },
+      { regex: /protected branch|release|\btag\b|changelog/i, tier: 4 }
+    ]
+  };
+
+  function renderEvalDimensions() {
+    const container = document.getElementById('evalDimensionsContainer');
+    container.innerHTML = evalDimensions.map(dim => `
+      <div class="dimension ${evalSelections[dim.id] !== undefined ? 'answered' : ''}" id="eval-${dim.id}">
+        <div class="dimension-header" onclick="toggleEvalDimension('${dim.id}')">
+          <div class="dimension-header-left">
+            <div class="dimension-icon" style="background: ${dim.iconBg}">${dim.icon}</div>
+            <div>
+              <div class="dimension-title">${dim.title}</div>
+              <div class="dimension-subtitle">${dim.subtitle}</div>
+            </div>
+          </div>
+          <div class="dimension-score-badge" style="background: ${evalSelections[dim.id] !== undefined ? 'var(--cyan-dim)' : 'var(--bg-inset)'}; color: ${evalSelections[dim.id] !== undefined ? 'var(--cyan)' : 'var(--text-muted)'}">
+            ${evalSelections[dim.id] !== undefined ? evalSelections[dim.id] : '\u2014'}
+          </div>
+        </div>
+        <div class="dimension-body">
+          <div class="dimension-question">${dim.question}</div>
+          <div class="levels">
+            ${dim.levels.map(lv => `
+              <div class="level-option ${evalSelections[dim.id] === lv.level ? 'selected' : ''}" onclick="selectEvalLevel('${dim.id}', ${lv.level}, event)">
+                <div class="level-number">${lv.level}</div>
+                <div class="level-content">
+                  <h4>${lv.name}</h4>
+                  <p>${lv.desc}</p>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+          ${evalSelections[dim.id] !== undefined ? renderEvalTip(dim, evalSelections[dim.id]) : ''}
+        </div>
+      </div>
+    `).join('');
+  }
+
+  function renderEvalTip(dim, level) {
+    if (level === 5) {
+      return '<div class="eval-tip"><strong>Excellent.</strong> This section of your spec is comprehensive.</div>';
+    }
+    const tip = dim.tips[level - 1];
+    return `<div class="eval-tip"><strong>To reach Level ${level + 1}:</strong> ${tip}</div>`;
+  }
+
+  function toggleEvalDimension(id) {
+    const el = document.getElementById(`eval-${id}`);
+    const wasOpen = el.classList.contains('open');
+    document.querySelectorAll('.dimension').forEach(d => d.classList.remove('open'));
+    if (!wasOpen) el.classList.add('open');
+  }
+
+  function selectEvalLevel(dimId, level, event) {
+    event.stopPropagation();
+    evalSelections[dimId] = level;
+    renderEvalDimensions();
+    updateEvalProgress();
+    // Auto-advance to next unanswered dimension
+    const currentIdx = evalDimensions.findIndex(d => d.id === dimId);
+    for (let i = currentIdx + 1; i < evalDimensions.length; i++) {
+      if (evalSelections[evalDimensions[i].id] === undefined) {
+        setTimeout(() => {
+          const nextEl = document.getElementById(`eval-${evalDimensions[i].id}`);
+          nextEl.classList.add('open');
+          nextEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        }, 200);
+        break;
+      }
+    }
+  }
+
+  function updateEvalProgress() {
+    const answered = Object.keys(evalSelections).length;
+    document.getElementById('evalProgressText').textContent = `${answered} of ${evalDimensions.length} evaluated`;
+    document.getElementById('evalProgressFill').style.width = `${(answered / evalDimensions.length) * 100}%`;
+  }
+
+  function renderRadarChart(scores) {
+    const size = 300;
+    const center = size / 2;
+    const maxRadius = 120;
+    const axes = scores.length;
+    const angleStep = (2 * Math.PI) / axes;
+    const startAngle = -Math.PI / 2;
+
+    function polarToCart(angle, radius) {
+      return {
+        x: center + radius * Math.cos(angle),
+        y: center + radius * Math.sin(angle)
+      };
+    }
+
+    // Grid lines (heptagons at each level)
+    let gridLines = '';
+    for (let level = 1; level <= 5; level++) {
+      const r = (level / 5) * maxRadius;
+      const points = [];
+      for (let i = 0; i < axes; i++) {
+        const angle = startAngle + i * angleStep;
+        const p = polarToCart(angle, r);
+        points.push(`${p.x},${p.y}`);
+      }
+      gridLines += `<polygon points="${points.join(' ')}" fill="none" stroke="var(--border)" stroke-width="1" />`;
+    }
+
+    // Axis lines
+    let axisLines = '';
+    for (let i = 0; i < axes; i++) {
+      const angle = startAngle + i * angleStep;
+      const p = polarToCart(angle, maxRadius);
+      axisLines += `<line x1="${center}" y1="${center}" x2="${p.x}" y2="${p.y}" stroke="var(--border)" stroke-width="1" />`;
+    }
+
+    // Data polygon
+    const dataPoints = scores.map((s, i) => {
+      const angle = startAngle + i * angleStep;
+      const r = (s.score / 5) * maxRadius;
+      return polarToCart(angle, r);
+    });
+    const dataPolygon = `<polygon points="${dataPoints.map(p => `${p.x},${p.y}`).join(' ')}" fill="rgba(6, 182, 212, 0.15)" stroke="var(--cyan)" stroke-width="2" />`;
+
+    // Data dots
+    const dataDots = dataPoints.map(p =>
+      `<circle cx="${p.x}" cy="${p.y}" r="4" fill="var(--cyan)" />`
+    ).join('');
+
+    // Labels
+    const labels = scores.map((s, i) => {
+      const angle = startAngle + i * angleStep;
+      const p = polarToCart(angle, maxRadius + 20);
+      const anchor = Math.abs(p.x - center) < 5 ? 'middle' : p.x > center ? 'start' : 'end';
+      return `<text x="${p.x}" y="${p.y}" text-anchor="${anchor}" dominant-baseline="central" fill="var(--text-dim)" font-family="Outfit, sans-serif" font-size="11" font-weight="400">${s.icon} ${s.title}</text>`;
+    }).join('');
+
+    return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${gridLines}${axisLines}${dataPolygon}${dataDots}${labels}</svg>`;
+  }
+
+  function calculateEvalResults() {
+    const answered = Object.keys(evalSelections).length;
+    if (answered < evalDimensions.length) {
+      // Scroll to first unanswered dimension and open it
+      for (let i = 0; i < evalDimensions.length; i++) {
+        if (evalSelections[evalDimensions[i].id] === undefined) {
+          const el = document.getElementById(`eval-${evalDimensions[i].id}`);
+          document.querySelectorAll('.dimension').forEach(d => d.classList.remove('open'));
+          el.classList.add('open');
+          el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          return;
+        }
+      }
+      return;
+    }
+
+    const scores = evalDimensions.map(d => ({
+      id: d.id, title: d.title, icon: d.icon, score: evalSelections[d.id]
+    }));
+
+    const avg = scores.reduce((sum, s) => sum + s.score, 0) / scores.length;
+    const rounded = Math.round(avg * 10) / 10;
+
+    let label, labelColor, description;
+    if (rounded < 2) {
+      label = 'Getting Started'; labelColor = 'var(--red)';
+      description = 'Your spec has significant gaps. Most AI agents will struggle without more guidance. Focus on the highest-impact sections first.';
+    } else if (rounded < 3) {
+      label = 'Developing'; labelColor = 'var(--orange)';
+      description = 'Your spec covers the basics but lacks depth in key areas. Agents can follow your intent but may make incorrect assumptions in the gaps.';
+    } else if (rounded < 4) {
+      label = 'Solid'; labelColor = 'var(--amber)';
+      description = 'Your spec provides good guidance across most sections. Agents can work effectively with occasional clarification needed.';
+    } else if (rounded < 4.5) {
+      label = 'Strong'; labelColor = 'var(--emerald)';
+      description = 'Your spec is thorough and well-structured. Agents can work independently with high confidence in matching your intent.';
+    } else {
+      label = 'Production-grade'; labelColor = 'var(--cyan)';
+      description = 'Your spec is comprehensive. Agents have everything they need to work autonomously while respecting your constraints.';
+    }
+
+    // Top 3 improvement suggestions from lowest-scoring sections
+    const sorted = [...scores].sort((a, b) => a.score - b.score);
+    const suggestions = sorted.slice(0, 3).filter(s => s.score < 5);
+
+    const radarHtml = renderRadarChart(scores);
+
+    const suggestionsHtml = suggestions.length > 0 ? `
+      <div class="eval-suggestions">
+        <h3>Priority Improvements</h3>
+        ${suggestions.map(s => {
+          const dim = evalDimensions.find(d => d.id === s.id);
+          const tip = s.score < 5 ? dim.tips[s.score - 1] : '';
+          return `
+            <div class="suggestion-item">
+              <div class="suggestion-icon" style="background: ${dim.iconBg}">${s.icon}</div>
+              <div class="suggestion-content">
+                <div class="suggestion-level">Currently Level ${s.score}: ${dim.levels[s.score - 1].name}</div>
+                <h4>${dim.title}</h4>
+                <p>${tip}</p>
+              </div>
+            </div>`;
+        }).join('')}
+      </div>` : '';
+
+    document.getElementById('evalResultsContainer').innerHTML = `
+      <div class="eval-results">
+        <div class="eval-overall">
+          <div class="radar-container">${radarHtml}</div>
+          <div class="eval-score-info">
+            <h2>${rounded} / 5.0</h2>
+            <span class="eval-score-label" style="background: ${labelColor}22; color: ${labelColor}; border: 1px solid ${labelColor}44;">${label}</span>
+            <p>${description}</p>
+          </div>
+        </div>
+        ${suggestionsHtml}
+      </div>`;
+
+    document.getElementById('evalResultsContainer').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function scoreDimension(dimId, text) {
+    const signals = evalSignals[dimId];
+    if (!signals) return 1;
+    let hits = 0;
+    let maxTier = 0;
+    let tierCounts = { 1: 0, 2: 0, 3: 0, 4: 0 };
+    signals.forEach(s => {
+      if (s.regex.test(text)) {
+        hits++;
+        tierCounts[s.tier]++;
+        if (s.tier > maxTier) maxTier = s.tier;
+      }
+    });
+    if (hits === 0) return 1;
+    if (hits <= 2 && maxTier <= 2) return 2;
+    if (hits <= 3 || maxTier <= 2) return 3;
+    if (hits >= 6 && tierCounts[4] >= 1 && maxTier >= 4) return 5;
+    if (hits >= 4 && maxTier >= 3) return 4;
+    return 3;
+  }
+
+  function analyzeSpec() {
+    const textarea = document.getElementById('evalSpecTextarea');
+    const text = textarea.value.trim();
+    if (!text) {
+      textarea.focus();
+      return;
+    }
+    evalDimensions.forEach(dim => {
+      evalSelections[dim.id] = scoreDimension(dim.id, text);
+    });
+    renderEvalDimensions();
+    updateEvalProgress();
+    calculateEvalResults();
+    document.getElementById('evalInputSection').classList.add('analyzed');
+  }
+
+  function resetEvaluation() {
+    Object.keys(evalSelections).forEach(k => delete evalSelections[k]);
+    renderEvalDimensions();
+    updateEvalProgress();
+    document.getElementById('evalResultsContainer').innerHTML = '';
+    document.getElementById('evalSpecTextarea').value = '';
+    document.getElementById('evalInputSection').classList.remove('analyzed');
+  }
+
+  // Init
+  renderWizardProgress();
+  renderWizardContent();
+  updateNavButtons();
+  renderEvalDimensions();
+</script>
+</body>
+</html>
