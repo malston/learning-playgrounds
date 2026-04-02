@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Session Lifecycle Explorer</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg-raised: #12161e;
+    --bg-card: #171c27;
+    --bg-card-hover: #1c2233;
+    --bg-inset: #0e1118;
+    --border: #232a38;
+    --border-active: #3d4a63;
+    --text: #e8eaed;
+    --text-body: #b4b9c4;
+    --text-dim: #7d8494;
+    --text-muted: #4f5666;
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.12);
+    --orange: #f97316;
+    --orange-dim: rgba(249, 115, 22, 0.12);
+    --amber: #eab308;
+    --amber-dim: rgba(234, 179, 8, 0.12);
+    --emerald: #10b981;
+    --emerald-dim: rgba(16, 185, 129, 0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.12);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6, 182, 212, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -24px;
+    left: 0;
+    width: 64px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(30px, 4.5vw, 46px);
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    font-optical-sizing: auto;
+  }
+
+  .header p {
+    font-size: 16px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  /* Tab bar */
+  .tab-bar {
+    display: flex;
+    gap: 32px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 32px;
+  }
+
+  .tab-btn {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    background: none;
+    border: none;
+    padding: 12px 0;
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    transition: color 0.2s, border-color 0.2s;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-body);
+  }
+
+  .tab-btn.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+
+  .tab-panel {
+    display: none;
+  }
+
+  .tab-panel.active {
+    display: block;
+  }
+
+  /* Event bar */
+  .event-bar {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .event-bar::-webkit-scrollbar {
+    height: 4px;
+  }
+
+  .event-bar::-webkit-scrollbar-track {
+    background: var(--bg-inset);
+    border-radius: 2px;
+  }
+
+  .event-bar::-webkit-scrollbar-thumb {
+    background: var(--border);
+    border-radius: 2px;
+  }
+
+  .event-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    min-width: 140px;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.2s, border-color 0.2s, box-shadow 0.2s;
+    position: relative;
+  }
+
+  .event-card:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .event-tooltip {
+    position: fixed;
+    background: var(--bg-inset);
+    border: 1px solid var(--border-active);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    line-height: 1.6;
+    color: var(--text-body);
+    white-space: pre-line;
+    min-width: 240px;
+    max-width: 320px;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.15s, visibility 0.15s;
+    pointer-events: none;
+    z-index: 100;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  }
+
+  .event-tooltip.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .event-tooltip::before {
+    content: '';
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 6px solid transparent;
+    border-bottom-color: var(--border-active);
+  }
+
+  .event-card.active {
+    border-color: var(--border-active);
+    box-shadow: 0 0 0 1px var(--border-active);
+    background: var(--bg-card-hover);
+  }
+
+  .event-card-name {
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--text);
+    margin-bottom: 4px;
+  }
+
+  .event-card-trigger {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 10px;
+    line-height: 1.4;
+  }
+
+  .event-card-dots {
+    display: flex;
+    gap: 6px;
+  }
+
+  .layer-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+  }
+
+  /* Detail panel */
+  .detail-panel {
+    background: var(--bg-raised);
+    border-radius: 12px;
+    padding: 24px;
+    margin-top: 24px;
+  }
+
+  .detail-panel h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .detail-triggers {
+    font-size: 14px;
+    color: var(--text-dim);
+    margin-bottom: 20px;
+  }
+
+  .layer-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .layer-card {
+    background: var(--bg-card);
+    border-radius: 8px;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .layer-card-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .layer-card-name {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .layer-card-action {
+    font-size: 14px;
+    color: var(--text-body);
+    line-height: 1.6;
+  }
+
+  .layer-card-badges {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 8px;
+  }
+
+  .badge-sync {
+    background: var(--emerald-dim);
+    color: var(--emerald);
+  }
+
+  .badge-async {
+    background: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  .badge-tokens {
+    background: var(--blue-dim);
+    color: var(--blue);
+  }
+
+  /* Placeholder */
+  .placeholder {
+    padding: 48px 0;
+  }
+
+  .text-dim {
+    color: var(--text-dim);
+  }
+
+  /* Layer Explorer grid */
+  .le-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+
+  @media (max-width: 768px) {
+    .le-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .le-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    transition: opacity 0.3s;
+    position: relative;
+  }
+
+  .le-card.disabled {
+    opacity: 0.3;
+  }
+
+  .le-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+  }
+
+  .le-card-header h3 {
+    font-family: 'Fraunces', serif;
+    font-size: 18px;
+    font-weight: 500;
+  }
+
+  .le-card-desc {
+    font-size: 14px;
+    color: var(--text-body);
+    line-height: 1.6;
+    margin-bottom: 16px;
+  }
+
+  .le-card-section {
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--text-body);
+    line-height: 1.6;
+  }
+
+  .le-card-section:last-child {
+    margin-bottom: 0;
+  }
+
+  .le-card-label {
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .le-card-section code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--text);
+  }
+
+  .le-loss-banner {
+    background: var(--red-dim);
+    color: var(--red);
+    font-size: 13px;
+    line-height: 1.5;
+    border-radius: 6px;
+    padding: 8px 12px;
+    margin-bottom: 12px;
+    display: none;
+  }
+
+  .le-card.disabled .le-loss-banner {
+    display: block;
+  }
+
+  /* Toggle switch */
+  .le-toggle {
+    position: relative;
+    width: 40px;
+    height: 20px;
+    flex-shrink: 0;
+    cursor: pointer;
+  }
+
+  .le-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .le-toggle-track {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 40px;
+    height: 20px;
+    border-radius: 10px;
+    background: var(--text-muted);
+    transition: background 0.2s;
+  }
+
+  .le-toggle input:checked + .le-toggle-track {
+    background: var(--cyan);
+  }
+
+  .le-toggle-thumb {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    transition: transform 0.2s;
+  }
+
+  .le-toggle input:checked ~ .le-toggle-thumb {
+    transform: translateX(20px);
+  }
+
+  /* Query Router */
+  .qr-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+
+  @media (max-width: 768px) {
+    .qr-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .qr-category-heading {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--text-dim);
+    margin-bottom: 12px;
+  }
+
+  .qr-category + .qr-category {
+    margin-top: 24px;
+  }
+
+  .qr-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 16px;
+    cursor: pointer;
+    border-left: 3px solid transparent;
+    border-radius: 4px;
+    transition: background 0.15s, border-color 0.15s;
+  }
+
+  .qr-row:hover {
+    background: var(--bg-card-hover);
+  }
+
+  .qr-row-text {
+    font-size: 14px;
+    color: var(--text-body);
+  }
+
+  .qr-detail {
+    background: var(--bg-raised);
+    border-radius: 12px;
+    padding: 24px;
+  }
+
+  .qr-detail-empty {
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+
+  .qr-detail-layer {
+    margin-bottom: 16px;
+  }
+
+  .qr-layer-badge {
+    display: inline-block;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 500;
+    border-radius: 4px;
+    padding: 2px 10px;
+  }
+
+  .qr-detail-command {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    color: var(--text);
+    white-space: pre-wrap;
+    margin-bottom: 16px;
+  }
+
+  .qr-detail-why-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 4px;
+  }
+
+  .qr-detail-why-text {
+    font-size: 14px;
+    color: var(--text-body);
+    line-height: 1.6;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <div class="header-eyebrow">Claude Code Memory Architecture</div>
+    <h1>Session Lifecycle Explorer</h1>
+    <p>Click through session events to see which memory layers fire, what they capture, and how to query them.</p>
+  </header>
+
+  <nav class="tab-bar" role="tablist" aria-label="Session views">
+    <button id="tab-timeline-tab" class="tab-btn active" data-tab="timeline" role="tab" aria-selected="true" aria-controls="tab-timeline">Timeline</button>
+    <button id="tab-layer-explorer-tab" class="tab-btn" data-tab="layer-explorer" role="tab" aria-selected="false" aria-controls="tab-layer-explorer">Layer Explorer</button>
+    <button id="tab-query-router-tab" class="tab-btn" data-tab="query-router" role="tab" aria-selected="false" aria-controls="tab-query-router">Query Router</button>
+  </nav>
+
+  <section id="tab-timeline" class="tab-panel active" role="tabpanel" aria-labelledby="tab-timeline-tab">
+    <div class="event-bar" id="event-bar" role="group" aria-label="Session lifecycle events"></div>
+    <div class="detail-panel" id="detail-panel"></div>
+  </section>
+
+  <section id="tab-layer-explorer" class="tab-panel" role="tabpanel" aria-labelledby="tab-layer-explorer-tab" aria-hidden="true">
+    <div id="layer-explorer"></div>
+  </section>
+
+  <section id="tab-query-router" class="tab-panel" role="tabpanel" aria-labelledby="tab-query-router-tab" aria-hidden="true">
+    <div id="query-router"></div>
+  </section>
+
+</div>
+
+<script>
+const EVENTS = [
+  { id: 'session-start', name: 'SessionStart', triggers: 'startup, clear, compact, resume',
+    hookInfo: 'Hook type: SessionStart\nFires on: session startup, /clear, context compaction, /resume\nAll 4 layers respond -- 3 sync, 1 async',
+    layers: [
+      { layer: 'episodic-memory', action: 'Background sync of conversation index', blocking: false, tokens: 0, color: 'amber' },
+      { layer: 'claude-mem', action: 'Start worker service, load recent observations', blocking: true, tokens: '200-400', color: 'blue' },
+      { layer: 'auto-memory', action: 'Load MEMORY.md index + referenced files', blocking: true, tokens: '300-500', color: 'emerald' },
+      { layer: 'beads', action: 'bd prime: workflow + ready work + memories', blocking: true, tokens: '1000-2000', color: 'cyan' }
+    ]},
+  { id: 'user-prompt', name: 'UserPromptSubmit', triggers: 'every user message',
+    hookInfo: 'Hook type: UserPromptSubmit\nFires on: every user message submitted\nOnly claude-mem responds (session-init)',
+    layers: [
+      { layer: 'claude-mem', action: 'session-init hook, keep worker alive', blocking: true, tokens: 0, color: 'blue' }
+    ]},
+  { id: 'post-tool-use', name: 'PostToolUse', triggers: 'after every tool call',
+    hookInfo: 'Hook type: PostToolUse\nFires on: every Read, Edit, Bash, Grep, Write\nOnly claude-mem responds (records observation)',
+    layers: [
+      { layer: 'claude-mem', action: 'Record observation: tool name, input, output, context', blocking: true, tokens: 0, color: 'blue' }
+    ]},
+  { id: 'agent-actions', name: 'Agent-Initiated', triggers: 'agent decides (no hook)',
+    hookInfo: 'No hook -- agent decides to act\nbeads: bd create, bd update, bd close, bd remember\nauto-memory: write preference/feedback files',
+    layers: [
+      { layer: 'beads', action: 'bd create/update/close -- issue state changes', blocking: false, tokens: 0, color: 'cyan' },
+      { layer: 'auto-memory', action: 'Write preference/feedback markdown file', blocking: false, tokens: 0, color: 'emerald' }
+    ]},
+  { id: 'pre-compact', name: 'PreCompact', triggers: 'before context compaction',
+    hookInfo: 'Hook type: PreCompact\nFires on: before context window compaction\nOnly beads responds (re-injects bd prime)',
+    layers: [
+      { layer: 'beads', action: 'bd prime re-fires to survive compaction', blocking: true, tokens: '1000-2000', color: 'cyan' }
+    ]},
+  { id: 'stop', name: 'Stop', triggers: 'agent stops generating',
+    hookInfo: 'Hook type: Stop\nFires on: agent finishes generating a response\nOnly claude-mem responds (session summary)',
+    layers: [
+      { layer: 'claude-mem', action: 'Generate session summary observation', blocking: true, tokens: 0, color: 'blue' }
+    ]},
+  { id: 'session-end', name: 'SessionEnd', triggers: 'session cleanup',
+    hookInfo: 'Hook type: SessionEnd\nFires on: session teardown/cleanup\nOnly claude-mem responds (persist observations to DB)',
+    layers: [
+      { layer: 'claude-mem', action: 'HTTP POST to worker service -- persist observations', blocking: false, tokens: 0, color: 'blue' }
+    ]},
+  { id: 'between-sessions', name: 'Between Sessions', triggers: 'passive (no hook)',
+    hookInfo: 'No hook -- happens passively between sessions\nClaude Code writes transcript to disk\nepisodic-memory indexes it at next SessionStart',
+    layers: [
+      { layer: 'episodic-memory', action: 'Indexes transcript at next SessionStart', blocking: false, tokens: 0, color: 'amber' }
+    ]}
+];
+
+const LAYERS = [
+  { id: 'beads', name: 'Beads (bd)', color: 'cyan',
+    description: 'Durable work tracking with dependency awareness',
+    captures: 'Work items, dependencies, decisions, project facts',
+    hooks: ['SessionStart (bd prime)', 'PreCompact (bd prime)'],
+    captureMethod: 'Agent-initiated CLI commands',
+    storage: 'Dolt embedded DB (.beads/)',
+    queryCommands: ['bd ready --json', 'bd list --status=open', 'bd show <id>', 'bd memories <keyword>'],
+    tokenCost: '~1000-2000 at startup',
+    failures: ['bd not installed', 'bd init not run', 'Stale issues accumulating'],
+    lossIfDisabled: 'No persistent work tracking, no dependency-aware task discovery, no cross-session project facts'
+  },
+  { id: 'auto-memory', name: 'Auto-Memory', color: 'emerald',
+    description: 'User preferences and behavioral feedback',
+    captures: 'User prefs, style corrections, brainstorm state',
+    hooks: ['None (built-in, loads at session start)'],
+    captureMethod: 'Agent-initiated markdown file writes',
+    storage: 'Markdown files (~/.claude/projects/<path>/memory/)',
+    queryCommands: ['Auto-loaded via MEMORY.md index'],
+    tokenCost: '~300-500 at startup',
+    failures: ['Stale project notes', 'MEMORY.md > 200 lines truncated'],
+    lossIfDisabled: 'Agent forgets your preferences, repeats corrected mistakes, loses brainstorm state'
+  },
+  { id: 'claude-mem', name: 'Claude-Mem', color: 'blue',
+    description: 'Automatic observation recording of all tool use',
+    captures: 'Tool call observations, session summaries',
+    hooks: ['SessionStart', 'UserPromptSubmit', 'PostToolUse', 'Stop', 'SessionEnd'],
+    captureMethod: 'Automatic -- PostToolUse hook on every tool call',
+    storage: 'Observation DB via worker service (localhost:37777)',
+    queryCommands: ['search(query)', 'timeline(anchor=ID)', 'get_observations([IDs])'],
+    tokenCost: '~200-400 at startup',
+    failures: ['Worker service down', 'PostToolUse hook disabled'],
+    lossIfDisabled: 'Cannot search past actions, no "what files did we change?" capability, no session summaries'
+  },
+  { id: 'episodic-memory', name: 'Episodic Memory', color: 'amber',
+    description: 'Searchable conversation history',
+    captures: 'Full conversation transcripts',
+    hooks: ['SessionStart (async background sync)'],
+    captureMethod: 'Passive -- indexes saved transcripts',
+    storage: 'Indexed transcript database',
+    queryCommands: ['search(query)', 'read(path)'],
+    tokenCost: '0 (async sync)',
+    failures: ['Sync not running', 'Index out of date'],
+    lossIfDisabled: 'Cannot search past discussions, no "why did we choose X?" capability, lose conversation context'
+  }
+];
+
+const QUERY_ROUTES = [
+  { category: 'I need to find...',
+    queries: [
+      { question: 'Unblocked work to do next', layer: 'beads', command: 'bd ready --json', why: 'Beads tracks work items with blocking dependencies' },
+      { question: 'What I was working on', layer: 'beads', command: 'bd list --status=in_progress', why: 'Beads persists issue status across sessions' },
+      { question: 'How we solved a similar problem', layer: 'claude-mem', command: 'search("similar problem description")', why: 'Claude-mem recorded the tool calls and outcomes',
+        explanation: 'Claude-mem captures actions (what tools ran, what they returned). Use it when you remember doing something but not the details. If you remember discussing it but not doing it, try episodic-memory instead.' },
+      { question: 'Why we chose approach B over A', layer: 'episodic-memory', command: 'search("chose approach B")', why: 'The rationale lived in the conversation, not the actions',
+        explanation: 'Episodic-memory captures conversations (reasoning, debates, instructions). Use it when you remember talking about something. If you remember the agent doing something, try claude-mem instead.' },
+      { question: 'My coding style preferences', layer: 'auto-memory', command: '(auto-loaded at session start)', why: 'User preferences are stored as auto-memory files' },
+      { question: 'What files we changed last session', layer: 'claude-mem', command: 'search("files changed")', why: 'PostToolUse hook recorded every file operation' },
+      { question: 'A conversation about architecture', layer: 'episodic-memory', command: 'search("architecture discussion")', why: 'Episodic-memory indexes full conversation transcripts' },
+      { question: 'A stable project fact', layer: 'beads', command: 'bd memories <keyword>', why: 'bd remember stores persistent key-value facts' }
+    ]
+  },
+  { category: 'I need to store...',
+    queries: [
+      { question: 'A new work item', layer: 'beads', command: 'bd create --title="..." --type=task', why: 'Beads tracks work with dependencies and priorities' },
+      { question: 'An architectural decision', layer: 'beads', command: 'bd create --title="..." --type=decision', why: 'Decision type captures project-scoped choices',
+        explanation: 'Use beads decisions for project-scoped choices ("use progressive structure for this cheatsheet"). Cross-project conventions ("never use em dashes") go in auto-memory feedback instead.' },
+      { question: 'A stable project fact', layer: 'beads', command: 'bd remember "fact" --key slug', why: 'bd remember persists and auto-injects via bd prime' },
+      { question: 'A user preference', layer: 'auto-memory', command: 'Write user type markdown file', why: 'User preferences are cross-project and auto-loaded' },
+      { question: 'A behavioral correction', layer: 'auto-memory', command: 'Write feedback type markdown file', why: 'Feedback memories prevent repeating corrected mistakes' },
+      { question: 'Brainstorm state (not yet actionable)', layer: 'auto-memory', command: 'Write project type markdown file', why: 'Project notes hold volatile exploration state',
+        explanation: 'A brainstorm is an idea you\'re exploring but haven\'t committed to executing. If you can\'t write acceptance criteria for it yet, it\'s brainstorm state. Once you can, migrate it to a beads epic. Examples: "thinking about unifying search interfaces" is a brainstorm. "Merge claude-mem and episodic-memory search into one MCP tool" is actionable work.' }
+    ]
+  }
+];
+
+const LAYER_COLORS = {
+  'beads': 'cyan',
+  'auto-memory': 'emerald',
+  'claude-mem': 'blue',
+  'episodic-memory': 'amber'
+};
+
+const COLOR_VARS = {
+  amber: 'var(--amber)',
+  blue: 'var(--blue)',
+  emerald: 'var(--emerald)',
+  cyan: 'var(--cyan)'
+};
+
+let activeEventId = 'session-start';
+
+function createDot(color) {
+  const dot = document.createElement('span');
+  dot.className = 'layer-dot';
+  dot.style.background = COLOR_VARS[color];
+  return dot;
+}
+
+function renderEventBar() {
+  const bar = document.getElementById('event-bar');
+  bar.textContent = '';
+
+  EVENTS.forEach(function(ev) {
+    const card = document.createElement('div');
+    card.className = 'event-card' + (ev.id === activeEventId ? ' active' : '');
+    card.dataset.id = ev.id;
+    card.setAttribute('role', 'button');
+    card.setAttribute('tabindex', '0');
+    card.setAttribute('aria-label', ev.name + ': ' + ev.triggers);
+
+    const name = document.createElement('div');
+    name.className = 'event-card-name';
+    name.textContent = ev.name;
+
+    const trigger = document.createElement('div');
+    trigger.className = 'event-card-trigger';
+    trigger.textContent = ev.triggers;
+
+    const dots = document.createElement('div');
+    dots.className = 'event-card-dots';
+    ev.layers.forEach(function(l) {
+      dots.appendChild(createDot(l.color));
+    });
+
+    card.appendChild(name);
+    card.appendChild(trigger);
+    card.appendChild(dots);
+    bar.appendChild(card);
+  });
+}
+
+function renderDetail() {
+  const ev = EVENTS.find(function(e) { return e.id === activeEventId; });
+  if (!ev) return;
+  const panel = document.getElementById('detail-panel');
+  panel.textContent = '';
+
+  const heading = document.createElement('h3');
+  heading.textContent = ev.name;
+
+  const triggers = document.createElement('div');
+  triggers.className = 'detail-triggers';
+  triggers.textContent = 'Triggers: ' + ev.triggers;
+
+  const cards = document.createElement('div');
+  cards.className = 'layer-cards';
+
+  ev.layers.forEach(function(l) {
+    const card = document.createElement('div');
+    card.className = 'layer-card';
+
+    const header = document.createElement('div');
+    header.className = 'layer-card-header';
+    header.appendChild(createDot(l.color));
+    const layerName = document.createElement('span');
+    layerName.className = 'layer-card-name';
+    layerName.textContent = l.layer;
+    header.appendChild(layerName);
+
+    const action = document.createElement('div');
+    action.className = 'layer-card-action';
+    action.textContent = l.action;
+
+    const badges = document.createElement('div');
+    badges.className = 'layer-card-badges';
+
+    const syncBadge = document.createElement('span');
+    syncBadge.className = 'badge ' + (l.blocking ? 'badge-sync' : 'badge-async');
+    syncBadge.textContent = l.blocking ? 'sync' : 'async';
+    badges.appendChild(syncBadge);
+
+    if (l.tokens && l.tokens !== 0) {
+      const tokenBadge = document.createElement('span');
+      tokenBadge.className = 'badge badge-tokens';
+      tokenBadge.textContent = l.tokens + ' tokens';
+      badges.appendChild(tokenBadge);
+    }
+
+    card.appendChild(header);
+    card.appendChild(action);
+    card.appendChild(badges);
+    cards.appendChild(card);
+  });
+
+  panel.appendChild(heading);
+  panel.appendChild(triggers);
+  panel.appendChild(cards);
+}
+
+var layerStates = {};
+LAYERS.forEach(function(l) { layerStates[l.id] = true; });
+
+function renderLayerExplorer() {
+  var container = document.getElementById('layer-explorer');
+  container.textContent = '';
+
+  var grid = document.createElement('div');
+  grid.className = 'le-grid';
+
+  LAYERS.forEach(function(layer) {
+    var card = document.createElement('div');
+    card.className = 'le-card';
+    card.style.borderLeft = '4px solid var(--' + layer.color + ')';
+    if (!layerStates[layer.id]) {
+      card.classList.add('disabled');
+    }
+
+    // Loss banner (hidden unless disabled)
+    var lossBanner = document.createElement('div');
+    lossBanner.className = 'le-loss-banner';
+    lossBanner.textContent = layer.lossIfDisabled;
+    card.appendChild(lossBanner);
+
+    // Header row: name + toggle
+    var header = document.createElement('div');
+    header.className = 'le-card-header';
+
+    var h3 = document.createElement('h3');
+    h3.textContent = layer.name;
+    header.appendChild(h3);
+
+    var toggle = document.createElement('label');
+    toggle.className = 'le-toggle';
+
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = layerStates[layer.id];
+    checkbox.addEventListener('change', (function(layerId) {
+      return function(e) {
+        layerStates[layerId] = e.target.checked;
+        renderLayerExplorer();
+      };
+    })(layer.id));
+
+    var track = document.createElement('span');
+    track.className = 'le-toggle-track';
+    if (layerStates[layer.id]) {
+      track.style.background = 'var(--' + layer.color + ')';
+    }
+
+    var thumb = document.createElement('span');
+    thumb.className = 'le-toggle-thumb';
+
+    toggle.appendChild(checkbox);
+    toggle.appendChild(track);
+    toggle.appendChild(thumb);
+    header.appendChild(toggle);
+    card.appendChild(header);
+
+    // Description
+    var desc = document.createElement('p');
+    desc.className = 'le-card-desc';
+    desc.textContent = layer.description;
+    card.appendChild(desc);
+
+    // Captures
+    var capturesSection = createSection('Captures: ', layer.captures);
+    card.appendChild(capturesSection);
+
+    // Hooks
+    var hooksSection = createSection('Hooks: ', layer.hooks.join(', '));
+    card.appendChild(hooksSection);
+
+    // Capture Method
+    var methodSection = createSection('Capture Method: ', layer.captureMethod);
+    card.appendChild(methodSection);
+
+    // Storage
+    var storageSection = createSection('Storage: ', layer.storage);
+    card.appendChild(storageSection);
+
+    // Query Commands (rendered as code elements)
+    var querySection = document.createElement('div');
+    querySection.className = 'le-card-section';
+    var queryLabel = document.createElement('span');
+    queryLabel.className = 'le-card-label';
+    queryLabel.textContent = 'Query Commands: ';
+    querySection.appendChild(queryLabel);
+    layer.queryCommands.forEach(function(cmd, i) {
+      if (i > 0) {
+        querySection.appendChild(document.createTextNode(' '));
+      }
+      var code = document.createElement('code');
+      code.textContent = cmd;
+      querySection.appendChild(code);
+    });
+    card.appendChild(querySection);
+
+    // Token Cost
+    var tokenSection = createSection('Token Cost: ', layer.tokenCost);
+    card.appendChild(tokenSection);
+
+    // Failure Modes
+    var failSection = createSection('Failure Modes: ', layer.failures.join(', '));
+    card.appendChild(failSection);
+
+    grid.appendChild(card);
+  });
+
+  container.appendChild(grid);
+}
+
+function createSection(label, text) {
+  var section = document.createElement('div');
+  section.className = 'le-card-section';
+  var labelSpan = document.createElement('span');
+  labelSpan.className = 'le-card-label';
+  labelSpan.textContent = label;
+  section.appendChild(labelSpan);
+  section.appendChild(document.createTextNode(text));
+  return section;
+}
+
+var activeQueryKey = '0-0';
+
+function renderQueryRouter() {
+  var container = document.getElementById('query-router');
+  container.textContent = '';
+
+  var subtitle = document.createElement('p');
+  subtitle.style.cssText = 'color: var(--text-dim); font-size: 14px; margin-bottom: 24px; line-height: 1.6;';
+  subtitle.textContent = 'Your intent on the left, the command the agent runs on the right. Select what you need and see which memory layer handles it.';
+  container.appendChild(subtitle);
+
+  var grid = document.createElement('div');
+  grid.className = 'qr-grid';
+
+  // Left panel: question list
+  var left = document.createElement('div');
+
+  // Right panel: answer detail
+  var detail = document.createElement('div');
+  detail.className = 'qr-detail';
+
+  function showDetail(query) {
+    detail.textContent = '';
+
+    var colorName = LAYER_COLORS[query.layer];
+
+    // Layer badge
+    var layerDiv = document.createElement('div');
+    layerDiv.className = 'qr-detail-layer';
+    var badge = document.createElement('span');
+    badge.className = 'qr-layer-badge';
+    badge.textContent = query.layer;
+    badge.style.background = 'var(--' + colorName + '-dim)';
+    badge.style.color = 'var(--' + colorName + ')';
+    layerDiv.appendChild(badge);
+    detail.appendChild(layerDiv);
+
+    // Command label
+    var cmdLabel = document.createElement('div');
+    cmdLabel.className = 'qr-detail-why-label';
+    cmdLabel.textContent = 'Agent runs:';
+    detail.appendChild(cmdLabel);
+
+    // Command code block
+    var codeBlock = document.createElement('div');
+    codeBlock.className = 'qr-detail-command';
+    codeBlock.textContent = query.command;
+    detail.appendChild(codeBlock);
+
+    // Why label
+    var whyLabel = document.createElement('div');
+    whyLabel.className = 'qr-detail-why-label';
+    whyLabel.textContent = 'Why this layer?';
+    detail.appendChild(whyLabel);
+
+    // Why text
+    var whyText = document.createElement('div');
+    whyText.className = 'qr-detail-why-text';
+    whyText.textContent = query.why;
+    detail.appendChild(whyText);
+
+    // Explanation (optional contextual help)
+    if (query.explanation) {
+      var explDiv = document.createElement('div');
+      explDiv.style.cssText = 'margin-top: 16px; padding: 12px 14px; background: var(--bg-card); border-radius: 8px; border-left: 3px solid var(--text-dim);';
+      var explLabel = document.createElement('div');
+      explLabel.style.cssText = 'font-size: 11px; color: var(--text-dim); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; font-family: "IBM Plex Mono", monospace;';
+      explLabel.textContent = 'What does this mean?';
+      var explText = document.createElement('div');
+      explText.style.cssText = 'font-size: 13px; color: var(--text-body); line-height: 1.7;';
+      explText.textContent = query.explanation;
+      explDiv.appendChild(explLabel);
+      explDiv.appendChild(explText);
+      detail.appendChild(explDiv);
+    }
+  }
+
+  var allRows = [];
+
+  QUERY_ROUTES.forEach(function(cat, catIdx) {
+    var section = document.createElement('div');
+    section.className = 'qr-category';
+
+    var heading = document.createElement('div');
+    heading.className = 'qr-category-heading';
+    heading.textContent = cat.category;
+    section.appendChild(heading);
+
+    cat.queries.forEach(function(q, qIdx) {
+      var key = catIdx + '-' + qIdx;
+      var row = document.createElement('div');
+      row.className = 'qr-row';
+      row.dataset.key = key;
+      row.setAttribute('role', 'button');
+      row.setAttribute('tabindex', '0');
+      row.setAttribute('aria-label', q.question + ' — ' + q.layer);
+
+      var dot = createDot(LAYER_COLORS[q.layer]);
+      row.appendChild(dot);
+
+      var text = document.createElement('span');
+      text.className = 'qr-row-text';
+      text.textContent = q.question;
+      row.appendChild(text);
+
+      var activateRow = (function(query, rowKey) {
+        return function() {
+          activeQueryKey = rowKey;
+          allRows.forEach(function(r) {
+            var isActive = r.row.dataset.key === rowKey;
+            var rColor = LAYER_COLORS[r.query.layer];
+            r.row.style.borderLeftColor = isActive ? 'var(--' + rColor + ')' : 'transparent';
+            r.row.style.background = isActive ? 'var(--bg-card-hover)' : '';
+          });
+          showDetail(query);
+        };
+      })(q, key);
+
+      row.addEventListener('click', activateRow);
+      row.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          activateRow();
+        }
+      });
+
+      allRows.push({ row: row, query: q });
+      section.appendChild(row);
+    });
+
+    left.appendChild(section);
+  });
+
+  grid.appendChild(left);
+  grid.appendChild(detail);
+  container.appendChild(grid);
+
+  // Activate default selection
+  if (allRows.length > 0) {
+    var defaultEntry = allRows[0];
+    activeQueryKey = defaultEntry.row.dataset.key;
+    var defColor = LAYER_COLORS[defaultEntry.query.layer];
+    defaultEntry.row.style.borderLeftColor = 'var(--' + defColor + ')';
+    defaultEntry.row.style.background = 'var(--bg-card-hover)';
+    showDetail(defaultEntry.query);
+  }
+}
+
+function selectEvent(id) {
+  activeEventId = id;
+  document.querySelectorAll('.event-card').forEach(function(c) {
+    c.classList.toggle('active', c.dataset.id === id);
+  });
+  renderDetail();
+}
+
+document.getElementById('event-bar').addEventListener('click', function(e) {
+  var card = e.target.closest('.event-card');
+  if (card) selectEvent(card.dataset.id);
+});
+
+document.getElementById('event-bar').addEventListener('keydown', function(e) {
+  if (e.key !== 'Enter' && e.key !== ' ') return;
+  var card = e.target.closest('.event-card');
+  if (card) {
+    e.preventDefault();
+    selectEvent(card.dataset.id);
+  }
+});
+
+// Tab switching with ARIA state management
+document.querySelectorAll('.tab-btn').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    document.querySelectorAll('.tab-btn').forEach(function(b) {
+      b.classList.remove('active');
+      b.setAttribute('aria-selected', 'false');
+    });
+    document.querySelectorAll('.tab-panel').forEach(function(p) {
+      p.classList.remove('active');
+      p.setAttribute('aria-hidden', 'true');
+    });
+    btn.classList.add('active');
+    btn.setAttribute('aria-selected', 'true');
+    var panel = document.getElementById('tab-' + btn.dataset.tab);
+    panel.classList.add('active');
+    panel.setAttribute('aria-hidden', 'false');
+    if (btn.dataset.tab === 'layer-explorer') {
+      renderLayerExplorer();
+    }
+    if (btn.dataset.tab === 'query-router') {
+      renderQueryRouter();
+    }
+  });
+});
+
+// Shared tooltip element (appended to body to avoid overflow clipping)
+var tooltipEl = document.createElement('div');
+tooltipEl.className = 'event-tooltip';
+document.body.appendChild(tooltipEl);
+
+var hoveredCardId = null;
+
+document.getElementById('event-bar').addEventListener('mouseover', function(e) {
+  var card = e.target.closest('.event-card');
+  if (!card || card.dataset.id === hoveredCardId) return;
+  hoveredCardId = card.dataset.id;
+
+  var ev = EVENTS.find(function(ev) { return ev.id === card.dataset.id; });
+  if (!ev || !ev.hookInfo) return;
+
+  tooltipEl.textContent = ev.hookInfo;
+  var rect = card.getBoundingClientRect();
+  tooltipEl.style.top = (rect.bottom + 10) + 'px';
+  tooltipEl.style.left = (rect.left + rect.width / 2) + 'px';
+  tooltipEl.style.transform = 'translateX(-50%)';
+  tooltipEl.classList.add('visible');
+});
+
+document.getElementById('event-bar').addEventListener('mouseleave', function() {
+  hoveredCardId = null;
+  tooltipEl.classList.remove('visible');
+});
+
+// Initial render
+renderEventBar();
+renderDetail();
+</script>
+</body>
+</html>
