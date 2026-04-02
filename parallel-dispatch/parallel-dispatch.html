@@ -1,0 +1,1773 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Parallel Agent Dispatch Builder</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,400&family=Outfit:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg-raised: #12161e;
+    --bg-card: #171c27;
+    --bg-card-hover: #1c2233;
+    --bg-inset: #0e1118;
+    --border: #232a38;
+    --border-active: #3d4a63;
+    --text: #e8eaed;
+    --text-body: #b4b9c4;
+    --text-dim: #7d8494;
+    --text-muted: #4f5666;
+    --red: #ef4444;
+    --red-dim: rgba(239, 68, 68, 0.12);
+    --orange: #f97316;
+    --orange-dim: rgba(249, 115, 22, 0.12);
+    --amber: #eab308;
+    --amber-dim: rgba(234, 179, 8, 0.12);
+    --emerald: #10b981;
+    --emerald-dim: rgba(16, 185, 129, 0.12);
+    --blue: #3b82f6;
+    --blue-dim: rgba(59, 130, 246, 0.12);
+    --cyan: #06b6d4;
+    --cyan-dim: rgba(6, 182, 212, 0.12);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Outfit', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 48px 24px 80px;
+  }
+
+  /* Header */
+  .header {
+    margin-bottom: 48px;
+    position: relative;
+  }
+
+  .header::after {
+    content: '';
+    position: absolute;
+    bottom: -24px;
+    left: 0;
+    width: 64px;
+    height: 3px;
+    background: linear-gradient(90deg, var(--cyan), transparent);
+  }
+
+  .header-eyebrow {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 16px;
+  }
+
+  .header h1 {
+    font-family: 'Fraunces', serif;
+    font-size: clamp(30px, 4.5vw, 46px);
+    font-weight: 500;
+    line-height: 1.2;
+    margin-bottom: 16px;
+    font-optical-sizing: auto;
+  }
+
+  .header p {
+    font-size: 16px;
+    color: var(--text-body);
+    font-weight: 300;
+    line-height: 1.8;
+    max-width: 680px;
+  }
+
+  /* Step indicator */
+  .step-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin-bottom: 40px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .step-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .step-circle {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .step-label {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 6px;
+    white-space: nowrap;
+    transition: color 0.2s;
+  }
+
+  .step-item.active .step-circle {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .step-item.active .step-label {
+    color: var(--cyan);
+  }
+
+  .step-item.completed .step-circle {
+    background: var(--emerald);
+    border-color: var(--emerald);
+    color: var(--bg);
+  }
+
+  .step-item.completed .step-label {
+    color: var(--emerald);
+  }
+
+  .step-connector {
+    flex: 1;
+    height: 2px;
+    background: var(--border);
+    min-width: 24px;
+    margin: 0 4px;
+    align-self: flex-start;
+    margin-top: 16px;
+    transition: background 0.2s;
+  }
+
+  .step-connector.completed {
+    background: var(--emerald);
+  }
+
+  /* Buttons */
+  .btn {
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: none;
+  }
+
+  .btn-primary {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+
+  .btn-primary:hover { filter: brightness(1.15); }
+
+  .btn-primary:disabled {
+    background: var(--border);
+    color: var(--text-muted);
+    cursor: not-allowed;
+    filter: none;
+  }
+
+  .btn-ghost {
+    background: transparent;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+  }
+
+  .btn-ghost:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .btn-danger-ghost {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    padding: 8px 12px;
+    font-size: 13px;
+  }
+
+  .btn-danger-ghost:hover {
+    border-color: var(--red);
+    color: var(--red);
+    background: var(--red-dim);
+  }
+
+  .btn-add {
+    background: var(--bg-inset);
+    color: var(--text-dim);
+    border: 1px dashed var(--border-active);
+    width: 100%;
+    padding: 14px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+  }
+
+  .btn-add:hover {
+    border-color: var(--cyan);
+    color: var(--cyan);
+    background: var(--cyan-dim);
+  }
+
+  /* Cards */
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    transition: border-color 0.2s;
+  }
+
+  .card:focus-within {
+    border-color: var(--border-active);
+  }
+
+  /* Task card layout */
+  .task-card {
+    display: flex;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .task-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 24px;
+    padding-top: 11px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .task-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+  }
+
+  .task-input {
+    width: 100%;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .task-input::placeholder { color: var(--text-muted); }
+
+  .task-input:focus {
+    border-color: var(--border-active);
+  }
+
+  .task-toggles {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  /* Toggle switch */
+  .toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    user-select: none;
+  }
+
+  .toggle-label span.toggle-text {
+    font-size: 13px;
+    color: var(--text-dim);
+    transition: color 0.2s;
+  }
+
+  .toggle-label:hover span.toggle-text { color: var(--text-body); }
+
+  .toggle-switch {
+    position: relative;
+    width: 36px;
+    height: 20px;
+    flex-shrink: 0;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+    position: absolute;
+  }
+
+  .toggle-track {
+    position: absolute;
+    inset: 0;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    transition: all 0.2s;
+  }
+
+  .toggle-thumb {
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: var(--text-muted);
+    transition: all 0.2s;
+  }
+
+  .toggle-switch input:checked ~ .toggle-track {
+    background: var(--emerald-dim);
+    border-color: var(--emerald);
+  }
+
+  .toggle-switch input:checked ~ .toggle-thumb {
+    background: var(--emerald);
+    left: 19px;
+  }
+
+  /* Task list spacing */
+  .task-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  /* Step content wrapper */
+  .step-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .step-header {
+    margin-bottom: 8px;
+  }
+
+  .step-header h2 {
+    font-family: 'Fraunces', serif;
+    font-size: 22px;
+    font-weight: 500;
+    margin-bottom: 6px;
+  }
+
+  .step-header p {
+    font-size: 14px;
+    color: var(--text-dim);
+    line-height: 1.7;
+    max-width: 640px;
+  }
+
+  /* Action row */
+  .action-row {
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+    margin-top: 8px;
+  }
+
+  /* Decision Wizard */
+  .wizard-log {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .wizard-log-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    padding: 10px 14px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+
+  .wizard-log-q {
+    flex: 1;
+    line-height: 1.5;
+  }
+
+  .wizard-log-a {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    font-weight: 600;
+    flex-shrink: 0;
+  }
+
+  .wizard-log-a-yes { color: var(--emerald); }
+  .wizard-log-a-no  { color: var(--text-muted); }
+
+  .wizard-question-card {
+    border-color: var(--border-active);
+  }
+
+  .wizard-question-text {
+    font-size: 16px;
+    font-weight: 500;
+    line-height: 1.6;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .wizard-btn-row {
+    display: flex;
+    gap: 12px;
+  }
+
+  .wizard-btn-yes {
+    background: var(--emerald);
+    color: var(--bg);
+    border: 1px solid var(--emerald);
+  }
+
+  .wizard-btn-yes:hover {
+    filter: brightness(1.15);
+  }
+
+  .wizard-recommendation-card {
+    border-color: var(--cyan);
+    background: var(--bg-card);
+  }
+
+  .wizard-rec-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+  }
+
+  .wizard-rec-icon {
+    font-size: 24px;
+    line-height: 1;
+  }
+
+  .wizard-rec-label {
+    font-family: 'Fraunces', serif;
+    font-size: 20px;
+    font-weight: 500;
+    color: var(--cyan);
+  }
+
+  .wizard-rec-explanation {
+    font-size: 14px;
+    color: var(--text-body);
+    line-height: 1.7;
+    margin-bottom: 20px;
+    max-width: 640px;
+  }
+
+  .wizard-rec-actions {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .wizard-override {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .wizard-override-label {
+    font-size: 13px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .wizard-override-select {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    color: var(--text);
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .wizard-override-select:focus {
+    border-color: var(--border-active);
+  }
+
+  /* Configuration form elements */
+  .config-section {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+
+  .config-section + .config-section {
+    margin-top: 8px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+  }
+
+  .config-section-title {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--cyan);
+    margin-bottom: 4px;
+  }
+
+  .config-field {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .config-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-body);
+  }
+
+  .config-input,
+  .config-select,
+  .config-textarea {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 10px 14px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 14px;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .config-input::placeholder,
+  .config-textarea::placeholder {
+    color: var(--text-muted);
+  }
+
+  .config-input:focus,
+  .config-select:focus,
+  .config-textarea:focus {
+    border-color: var(--border-active);
+  }
+
+  .config-select {
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%237d8494' stroke-width='1.5' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+  }
+
+  .config-select option {
+    background: var(--bg-card);
+  }
+
+  .config-textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.6;
+  }
+
+  .config-number {
+    width: 100px;
+  }
+
+  /* Range slider */
+  .config-range-row {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .config-range {
+    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 4px;
+    border-radius: 4px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  .config-range::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cyan);
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .config-range::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cyan);
+    cursor: pointer;
+    border: none;
+    transition: background 0.2s;
+  }
+
+  .config-range-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cyan);
+    min-width: 20px;
+    text-align: center;
+  }
+
+  /* Pipeline stage rows */
+  .stage-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .stage-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 14px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .stage-number {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    color: var(--text-muted);
+    min-width: 20px;
+    text-align: right;
+    flex-shrink: 0;
+  }
+
+  .stage-label {
+    flex: 1;
+    font-size: 13px;
+    color: var(--text-body);
+    line-height: 1.5;
+  }
+
+  .stage-arrows {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    flex-shrink: 0;
+  }
+
+  .stage-arrow-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 11px;
+    line-height: 1;
+    padding: 3px 6px;
+    transition: all 0.15s;
+  }
+
+  .stage-arrow-btn:hover:not(:disabled) {
+    border-color: var(--cyan);
+    color: var(--cyan);
+  }
+
+  .stage-arrow-btn:disabled {
+    opacity: 0.25;
+    cursor: not-allowed;
+  }
+
+  /* Framework toggle */
+  .framework-toggle {
+    display: flex;
+    gap: 0;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    width: fit-content;
+  }
+
+  .framework-btn {
+    background: transparent;
+    border: none;
+    border-right: 1px solid var(--border);
+    color: var(--text-dim);
+    cursor: pointer;
+    font-family: 'Outfit', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 9px 18px;
+    transition: all 0.15s;
+  }
+
+  .framework-btn:last-child {
+    border-right: none;
+  }
+
+  .framework-btn:hover:not(.framework-btn-active) {
+    background: var(--bg-card-hover);
+    color: var(--text);
+  }
+
+  .framework-btn-active {
+    background: var(--cyan);
+    color: var(--bg);
+  }
+
+  /* Prompt output block */
+  .prompt-output {
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow-x: auto;
+    padding: 24px;
+  }
+
+  .prompt-output code {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 13px;
+    color: var(--text-body);
+    white-space: pre-wrap;
+    display: block;
+  }
+
+  /* Peer/workspace task rows */
+  .agent-row {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px;
+    background: var(--bg-inset);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .agent-row-header {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-bottom: 2px;
+  }
+
+  .agent-row-fields {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .agent-row-fields .config-input {
+    flex: 1;
+    min-width: 140px;
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <header class="header">
+    <p class="header-eyebrow">Parallel Execution</p>
+    <h1>Agent Dispatch Builder</h1>
+    <p>Design a parallel agent dispatch strategy for your task. Answer questions about your work, configure the agent fleet, and generate a ready-to-use orchestration prompt.</p>
+  </header>
+
+  <div class="step-indicator" id="stepIndicator"></div>
+
+  <div id="app"></div>
+
+</div>
+
+<script>
+  // ── State ──────────────────────────────────────────────────────────────────
+
+  var currentStep = 1;
+
+  var STEPS = [
+    { num: 1, label: 'Task Inventory' },
+    { num: 2, label: 'Decision Wizard' },
+    { num: 3, label: 'Configuration' },
+    { num: 4, label: 'Generate Prompt' },
+  ];
+
+  var nextId = 1;
+
+  var state = {
+    tasks: [],
+    wizardAnswers: {},
+    recommendedTopology: null,
+    config: {},
+  };
+
+  function makeTask() {
+    return { id: nextId++, description: '', needsFileAccess: false, producesArtifacts: false };
+  }
+
+  // ── State mutators ─────────────────────────────────────────────────────────
+
+  function addTask() {
+    state.tasks.push(makeTask());
+    render();
+  }
+
+  function removeTask(id) {
+    state.tasks = state.tasks.filter(function(t) { return t.id !== id; });
+    render();
+  }
+
+  function updateTask(id, field, value) {
+    var task = state.tasks.find(function(t) { return t.id === id; });
+    if (task) task[field] = value;
+    // Only update the Next button -- avoids blowing away the focused input.
+    updateNextButton();
+  }
+
+  function goToStep(step) {
+    currentStep = step;
+    render();
+  }
+
+  // ── Step indicator ─────────────────────────────────────────────────────────
+
+  function renderStepIndicator() {
+    var container = document.getElementById('stepIndicator');
+    var html = '';
+
+    STEPS.forEach(function(step, i) {
+      var isDone = step.num < currentStep;
+      var isActive = step.num === currentStep;
+      var cls = isDone ? 'completed' : isActive ? 'active' : '';
+      var label = isDone ? '&#10003;' : step.num;
+
+      html += '<div class="step-item ' + cls + '">'
+            + '<div class="step-circle">' + label + '</div>'
+            + '<div class="step-label">' + step.label + '</div>'
+            + '</div>';
+
+      if (i < STEPS.length - 1) {
+        var connCls = isDone ? 'completed' : '';
+        html += '<div class="step-connector ' + connCls + '"></div>';
+      }
+    });
+
+    container.innerHTML = html;
+  }
+
+  // ── Step 1: Task Inventory ─────────────────────────────────────────────────
+
+  function tasksWithDescriptions() {
+    return state.tasks.filter(function(t) { return t.description.trim().length > 0; });
+  }
+
+  function canProceedFromStep1() {
+    return tasksWithDescriptions().length >= 2;
+  }
+
+  function updateNextButton() {
+    var btn = document.getElementById('nextBtn');
+    if (btn) btn.disabled = !canProceedFromStep1();
+  }
+
+  function buildTaskCardHtml(task, idx) {
+    var fileChecked = task.needsFileAccess ? ' checked' : '';
+    var artifactsChecked = task.producesArtifacts ? ' checked' : '';
+    var descVal = escapeAttr(task.description);
+
+    return '<div class="card task-card" id="task-card-' + task.id + '">'
+      + '<div class="task-number">' + (idx + 1) + '</div>'
+      + '<div class="task-body">'
+        + '<input type="text" class="task-input"'
+          + ' placeholder="Describe what this agent will do\u2026"'
+          + ' value="' + descVal + '"'
+          + ' oninput="updateTask(' + task.id + ', \'description\', this.value)"'
+          + ' aria-label="Task ' + (idx + 1) + ' description"'
+        + ' />'
+        + '<div class="task-toggles">'
+          + '<label class="toggle-label">'
+            + '<span class="toggle-switch">'
+              + '<input type="checkbox"' + fileChecked
+                + ' onchange="updateTask(' + task.id + ', \'needsFileAccess\', this.checked)"'
+                + ' aria-label="Task ' + (idx + 1) + ' needs file access"'
+              + ' />'
+              + '<div class="toggle-track"></div>'
+              + '<div class="toggle-thumb"></div>'
+            + '</span>'
+            + '<span class="toggle-text">Needs file access</span>'
+          + '</label>'
+          + '<label class="toggle-label">'
+            + '<span class="toggle-switch">'
+              + '<input type="checkbox"' + artifactsChecked
+                + ' onchange="updateTask(' + task.id + ', \'producesArtifacts\', this.checked)"'
+                + ' aria-label="Task ' + (idx + 1) + ' produces artifacts"'
+              + ' />'
+              + '<div class="toggle-track"></div>'
+              + '<div class="toggle-thumb"></div>'
+            + '</span>'
+            + '<span class="toggle-text">Produces artifacts</span>'
+          + '</label>'
+        + '</div>'
+      + '</div>'
+      + '<button class="btn btn-danger-ghost"'
+        + ' onclick="removeTask(' + task.id + ')"'
+        + ' aria-label="Remove task ' + (idx + 1) + '"'
+      + '>Remove</button>'
+    + '</div>';
+  }
+
+  function renderTaskInventory() {
+    var app = document.getElementById('app');
+    var cardsHtml = '';
+    state.tasks.forEach(function(task, idx) {
+      cardsHtml += buildTaskCardHtml(task, idx);
+    });
+
+    var nextDisabled = canProceedFromStep1() ? '' : ' disabled';
+
+    app.innerHTML = '<div class="step-content">'
+      + '<div class="step-header">'
+        + '<h2>What tasks will your agents handle?</h2>'
+        + '<p>List each discrete unit of work. Add at least two tasks -- the wizard needs them to reason about parallelism, isolation, and coordination strategy.</p>'
+      + '</div>'
+      + '<div class="task-list" id="taskList">'
+        + cardsHtml
+      + '</div>'
+      + '<button class="btn btn-add" onclick="addTask()">+ Add task</button>'
+      + '<div class="action-row">'
+        + '<button class="btn btn-primary" id="nextBtn"' + nextDisabled + ' onclick="goToStep(2)">'
+          + 'Next: Decision Wizard \u2192'
+        + '</button>'
+      + '</div>'
+    + '</div>';
+  }
+
+  // ── Decision Wizard helpers ───────────────────────────────────────────────
+
+  var WIZARD_QUESTIONS = [
+    {
+      key: 'independent',
+      text: 'Are your tasks independent? (No shared state, no ordering dependency)',
+      alwaysShow: false,
+    },
+    {
+      key: 'sequential',
+      text: 'Do tasks need to happen in sequence but can be specialized?',
+      alwaysShow: false,
+    },
+    {
+      key: 'shared_artifacts',
+      text: 'Do tasks operate on shared artifacts that evolve during execution?',
+      alwaysShow: false,
+    },
+    {
+      key: 'cross_domain',
+      text: 'Do tasks require cross-domain expertise where decisions in one domain constrain another?',
+      alwaysShow: false,
+    },
+    {
+      key: 'adversarial_review',
+      text: 'Do you need adversarial review of outputs?',
+      alwaysShow: true,
+    },
+  ];
+
+  var TOPOLOGY_META = {
+    fan_out: {
+      label: 'Fan-out',
+      icon: '\u2604\ufe0f',
+      explanation: 'Your tasks are independent, so they can all run simultaneously without coordination overhead. Fan-out is the simplest and most scalable pattern -- agents work in parallel and results are collected at the end.',
+    },
+    pipeline: {
+      label: 'Pipeline',
+      icon: '\u27a1\ufe0f',
+      explanation: 'Your tasks need to happen in a defined sequence, each building on the previous. A pipeline passes outputs forward as inputs, letting each specialized agent focus on its stage.',
+    },
+    shared_workspace: {
+      label: 'Shared Workspace',
+      icon: '\ud83d\udcc2',
+      explanation: 'Your tasks share evolving artifacts, so agents need a common working area they can read from and write to. A shared workspace lets agents collaborate on the same files without explicit coordination.',
+    },
+    peer_coordination: {
+      label: 'Peer Coordination',
+      icon: '\ud83d\udd00',
+      explanation: 'Your tasks span domains where decisions cascade across boundaries, requiring agents to negotiate and align. Peer coordination gives agents a channel to communicate constraints and reach consensus.',
+    },
+    fan_out_with_critic: {
+      label: 'Fan-out with Critic',
+      icon: '\ud83d\udd0d',
+      explanation: 'Your tasks are independent and run in parallel, with an adversarial reviewer checking the outputs. The critic agent evaluates results after the fan-out completes, catching errors before they propagate.',
+    },
+    pipeline_with_critic: {
+      label: 'Pipeline with Critic',
+      icon: '\ud83d\udd0d',
+      explanation: 'Your pipeline runs in sequence, with a critic agent reviewing the final output or each stage. Adversarial review catches mistakes that sequential handoffs might miss.',
+    },
+    shared_workspace_with_critic: {
+      label: 'Shared Workspace with Critic',
+      icon: '\ud83d\udd0d',
+      explanation: 'Agents collaborate on shared artifacts, while a critic monitors for consistency and correctness. The reviewer has full visibility into the evolving workspace.',
+    },
+    peer_coordination_with_critic: {
+      label: 'Peer Coordination with Critic',
+      icon: '\ud83d\udd0d',
+      explanation: 'Cross-domain agents coordinate with each other, and an adversarial reviewer challenges their conclusions. This is the highest-overhead topology but maximizes decision quality.',
+    },
+  };
+
+  var TOPOLOGY_OPTIONS = [
+    { value: 'fan_out', label: 'Fan-out' },
+    { value: 'pipeline', label: 'Pipeline' },
+    { value: 'shared_workspace', label: 'Shared Workspace' },
+    { value: 'peer_coordination', label: 'Peer Coordination' },
+    { value: 'fan_out_with_critic', label: 'Fan-out with Critic' },
+    { value: 'pipeline_with_critic', label: 'Pipeline with Critic' },
+    { value: 'shared_workspace_with_critic', label: 'Shared Workspace with Critic' },
+    { value: 'peer_coordination_with_critic', label: 'Peer Coordination with Critic' },
+  ];
+
+  function computeRecommendedTopology() {
+    var a = state.wizardAnswers;
+    var base;
+    if (a.independent === true) {
+      base = 'fan_out';
+    } else if (a.sequential === true) {
+      base = 'pipeline';
+    } else if (a.shared_artifacts === true) {
+      base = 'shared_workspace';
+    } else if (a.cross_domain === true) {
+      base = 'peer_coordination';
+    } else {
+      base = 'fan_out';
+    }
+    if (a.adversarial_review === true) {
+      return base + '_with_critic';
+    }
+    return base;
+  }
+
+  // Returns the key of the next unanswered question that should be shown,
+  // or null if all applicable questions have been answered.
+  function nextWizardQuestion() {
+    var a = state.wizardAnswers;
+
+    // Q1: always shown first
+    if (!('independent' in a)) return 'independent';
+
+    // Q2-Q4: only shown if the previous "gate" answer was No.
+    // The chain collapses as soon as a Yes is found.
+    var chainBroken = a.independent === true;
+
+    if (!chainBroken && !('sequential' in a)) return 'sequential';
+    chainBroken = chainBroken || a.sequential === true;
+
+    if (!chainBroken && !('shared_artifacts' in a)) return 'shared_artifacts';
+    chainBroken = chainBroken || a.shared_artifacts === true;
+
+    if (!chainBroken && !('cross_domain' in a)) return 'cross_domain';
+
+    // Q5: always shown as an add-on
+    if (!('adversarial_review' in a)) return 'adversarial_review';
+
+    return null;
+  }
+
+  function answerWizardQuestion(key, answer) {
+    state.wizardAnswers[key] = answer;
+    state.recommendedTopology = null; // will be recomputed on render
+    render();
+  }
+
+  function overrideTopology(value) {
+    state.recommendedTopology = value;
+    render();
+  }
+
+  function useTopology() {
+    if (!state.recommendedTopology) {
+      state.recommendedTopology = computeRecommendedTopology();
+    }
+    goToStep(3);
+  }
+
+  function resetWizard() {
+    state.wizardAnswers = {};
+    state.recommendedTopology = null;
+    render();
+  }
+
+  // ── Placeholder renderers for later steps ─────────────────────────────────
+
+  function renderDecisionWizard() {
+    var app = document.getElementById('app');
+    var nextQ = nextWizardQuestion();
+    var answeredKeys = Object.keys(state.wizardAnswers);
+
+    var html = '<div class="step-content">'
+      + '<div class="step-header">'
+        + '<h2>Decision Wizard</h2>'
+        + '<p>Answer a few questions about your tasks. The wizard will recommend the best parallel dispatch topology.</p>'
+      + '</div>';
+
+    // Show answered questions as a compact log
+    if (answeredKeys.length > 0) {
+      html += '<div class="wizard-log">';
+      answeredKeys.forEach(function(key) {
+        var q = WIZARD_QUESTIONS.find(function(q) { return q.key === key; });
+        if (!q) return;
+        var answer = state.wizardAnswers[key];
+        html += '<div class="wizard-log-item">'
+          + '<span class="wizard-log-q">' + q.text + '</span>'
+          + '<span class="wizard-log-a wizard-log-a-' + (answer ? 'yes' : 'no') + '">'
+            + (answer ? 'Yes' : 'No')
+          + '</span>'
+        + '</div>';
+      });
+      html += '</div>';
+    }
+
+    if (nextQ !== null) {
+      // Show the active question card
+      var qObj = WIZARD_QUESTIONS.find(function(q) { return q.key === nextQ; });
+      html += '<div class="card wizard-question-card">'
+        + '<p class="wizard-question-text">' + qObj.text + '</p>'
+        + '<div class="wizard-btn-row">'
+          + '<button class="btn wizard-btn-yes" onclick="answerWizardQuestion(\'' + nextQ + '\', true)">Yes</button>'
+          + '<button class="btn btn-ghost" onclick="answerWizardQuestion(\'' + nextQ + '\', false)">No</button>'
+        + '</div>'
+      + '</div>';
+    } else {
+      // All questions answered -- show recommendation
+      var topology = state.recommendedTopology || computeRecommendedTopology();
+      var meta = TOPOLOGY_META[topology] || TOPOLOGY_META['fan_out'];
+
+      var dropdownOptions = TOPOLOGY_OPTIONS.map(function(opt) {
+        var selected = opt.value === topology ? ' selected' : '';
+        return '<option value="' + escapeAttr(opt.value) + '"' + selected + '>' + opt.label + '</option>';
+      }).join('');
+
+      html += '<div class="card wizard-recommendation-card">'
+        + '<div class="wizard-rec-header">'
+          + '<span class="wizard-rec-icon">' + meta.icon + '</span>'
+          + '<span class="wizard-rec-label">Recommended: ' + meta.label + '</span>'
+        + '</div>'
+        + '<p class="wizard-rec-explanation">' + meta.explanation + '</p>'
+        + '<div class="wizard-rec-actions">'
+          + '<button class="btn btn-primary" onclick="useTopology()">Use this topology \u2192</button>'
+          + '<div class="wizard-override">'
+            + '<label class="wizard-override-label" for="topologyOverride">Choose a different topology:</label>'
+            + '<select id="topologyOverride" class="wizard-override-select" onchange="overrideTopology(this.value)">'
+              + dropdownOptions
+            + '</select>'
+          + '</div>'
+        + '</div>'
+      + '</div>';
+    }
+
+    html += '<div class="action-row">'
+      + '<button class="btn btn-ghost" onclick="goToStep(1)">\u2190 Back</button>';
+
+    if (answeredKeys.length > 0 && nextQ !== null) {
+      html += '<button class="btn btn-ghost" onclick="resetWizard()">Start over</button>';
+    }
+
+    html += '</div></div>';
+
+    app.innerHTML = html;
+  }
+
+  // ── Configuration panel helpers ───────────────────────────────────────────
+
+  function configGet(key, defaultVal) {
+    return (key in state.config) ? state.config[key] : defaultVal;
+  }
+
+  function configSet(key, value) {
+    state.config[key] = value;
+  }
+
+  function movePipelineStage(fromIdx, toIdx) {
+    var tasks = state.config.pipelineOrder || state.tasks.map(function(t) { return t.id; });
+    var copy = tasks.slice();
+    var moved = copy.splice(fromIdx, 1)[0];
+    copy.splice(toIdx, 0, moved);
+    state.config.pipelineOrder = copy;
+    render();
+  }
+
+  function buildFanOutConfig() {
+    var concurrency = configGet('fanOutConcurrency', 3);
+    var aggregation = configGet('fanOutAggregation', 'merge');
+
+    return '<div class="config-section">'
+      + '<p class="config-section-title">Fan-out Settings</p>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="concurrencySlider">Concurrency limit</label>'
+        + '<div class="config-range-row">'
+          + '<input type="range" id="concurrencySlider" class="config-range"'
+            + ' min="1" max="10" value="' + concurrency + '"'
+            + ' oninput="configSet(\'fanOutConcurrency\', parseInt(this.value)); document.getElementById(\'concurrencyVal\').textContent = this.value;"'
+          + ' />'
+          + '<span class="config-range-value" id="concurrencyVal">' + concurrency + '</span>'
+        + '</div>'
+      + '</div>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="aggregationSelect">Aggregation strategy</label>'
+        + '<select id="aggregationSelect" class="config-select"'
+          + ' onchange="configSet(\'fanOutAggregation\', this.value)">'
+          + '<option value="merge"' + (aggregation === 'merge' ? ' selected' : '') + '>Merge all results</option>'
+          + '<option value="best"' + (aggregation === 'best' ? ' selected' : '') + '>Pick best result</option>'
+          + '<option value="vote"' + (aggregation === 'vote' ? ' selected' : '') + '>Vote on conflicts</option>'
+        + '</select>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function buildPipelineConfig() {
+    var order = configGet('pipelineOrder', state.tasks.map(function(t) { return t.id; }));
+    var handoff = configGet('pipelineHandoff', 'json');
+
+    // Build a lookup so we can show descriptions in order
+    var taskById = {};
+    state.tasks.forEach(function(t) { taskById[t.id] = t; });
+
+    var stagesHtml = '';
+    order.forEach(function(taskId, idx) {
+      var task = taskById[taskId];
+      if (!task) return;
+      var desc = task.description.trim() || ('Task ' + taskId);
+      var upDisabled = idx === 0 ? ' disabled' : '';
+      var downDisabled = idx === order.length - 1 ? ' disabled' : '';
+
+      stagesHtml += '<div class="stage-row">'
+        + '<span class="stage-number">' + (idx + 1) + '</span>'
+        + '<span class="stage-label">' + escapeAttr(desc) + '</span>'
+        + '<div class="stage-arrows">'
+          + '<button class="stage-arrow-btn"' + upDisabled
+            + ' onclick="movePipelineStage(' + idx + ', ' + (idx - 1) + ')"'
+            + ' aria-label="Move stage up">&#9650;</button>'
+          + '<button class="stage-arrow-btn"' + downDisabled
+            + ' onclick="movePipelineStage(' + idx + ', ' + (idx + 1) + ')"'
+            + ' aria-label="Move stage down">&#9660;</button>'
+        + '</div>'
+      + '</div>';
+    });
+
+    return '<div class="config-section">'
+      + '<p class="config-section-title">Pipeline Settings</p>'
+      + '<div class="config-field">'
+        + '<label class="config-label">Stage order</label>'
+        + '<div class="stage-list">' + stagesHtml + '</div>'
+      + '</div>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="handoffSelect">Handoff format</label>'
+        + '<select id="handoffSelect" class="config-select"'
+          + ' onchange="configSet(\'pipelineHandoff\', this.value)">'
+          + '<option value="json"' + (handoff === 'json' ? ' selected' : '') + '>Structured JSON</option>'
+          + '<option value="summary"' + (handoff === 'summary' ? ' selected' : '') + '>Natural language summary</option>'
+          + '<option value="full"' + (handoff === 'full' ? ' selected' : '') + '>Full context pass-through</option>'
+        + '</select>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function buildSharedWorkspaceConfig() {
+    var conflictStrategy = configGet('wsConflict', 'last_write');
+
+    var agentRowsHtml = '';
+    state.tasks.forEach(function(task, idx) {
+      var ownsKey = 'wsOwns_' + task.id;
+      var ownsVal = configGet(ownsKey, '');
+      var desc = task.description.trim() || ('Task ' + task.id);
+
+      agentRowsHtml += '<div class="agent-row">'
+        + '<p class="agent-row-header">Agent ' + (idx + 1) + ' &mdash; ' + escapeAttr(desc) + '</p>'
+        + '<div class="config-field">'
+          + '<label class="config-label" for="wsOwns_' + task.id + '">Owns files</label>'
+          + '<input type="text" id="wsOwns_' + task.id + '" class="config-input"'
+            + ' placeholder="e.g., src/auth/**"'
+            + ' value="' + escapeAttr(ownsVal) + '"'
+            + ' oninput="configSet(\'wsOwns_' + task.id + '\', this.value)"'
+          + ' />'
+        + '</div>'
+      + '</div>';
+    });
+
+    return '<div class="config-section">'
+      + '<p class="config-section-title">Shared Workspace Settings</p>'
+      + '<div class="config-field">'
+        + '<label class="config-label">File ownership by agent</label>'
+        + agentRowsHtml
+      + '</div>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="conflictSelect">Conflict strategy</label>'
+        + '<select id="conflictSelect" class="config-select"'
+          + ' onchange="configSet(\'wsConflict\', this.value)">'
+          + '<option value="last_write"' + (conflictStrategy === 'last_write' ? ' selected' : '') + '>Last write wins</option>'
+          + '<option value="supervisor"' + (conflictStrategy === 'supervisor' ? ' selected' : '') + '>Supervisor resolves</option>'
+          + '<option value="diff"' + (conflictStrategy === 'diff' ? ' selected' : '') + '>Merge with diff review</option>'
+        + '</select>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function buildPeerCoordinationConfig() {
+    var protocol = configGet('peerProtocol', 'dispatcher');
+
+    var agentRowsHtml = '';
+    state.tasks.forEach(function(task, idx) {
+      var roleKey = 'peerRole_' + task.id;
+      var respKey = 'peerResp_' + task.id;
+      var roleVal = configGet(roleKey, 'Agent ' + (idx + 1));
+      var respVal = configGet(respKey, task.description.trim());
+
+      agentRowsHtml += '<div class="agent-row">'
+        + '<p class="agent-row-header">Agent ' + (idx + 1) + '</p>'
+        + '<div class="agent-row-fields">'
+          + '<input type="text" class="config-input"'
+            + ' placeholder="Role name"'
+            + ' value="' + escapeAttr(roleVal) + '"'
+            + ' oninput="configSet(\'' + roleKey + '\', this.value)"'
+            + ' aria-label="Agent ' + (idx + 1) + ' role name"'
+          + ' />'
+          + '<input type="text" class="config-input"'
+            + ' placeholder="Responsibility"'
+            + ' value="' + escapeAttr(respVal) + '"'
+            + ' oninput="configSet(\'' + respKey + '\', this.value)"'
+            + ' aria-label="Agent ' + (idx + 1) + ' responsibility"'
+          + ' />'
+        + '</div>'
+      + '</div>';
+    });
+
+    return '<div class="config-section">'
+      + '<p class="config-section-title">Peer Coordination Settings</p>'
+      + '<div class="config-field">'
+        + '<label class="config-label">Agent roles and responsibilities</label>'
+        + agentRowsHtml
+      + '</div>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="protocolSelect">Communication protocol</label>'
+        + '<select id="protocolSelect" class="config-select"'
+          + ' onchange="configSet(\'peerProtocol\', this.value)">'
+          + '<option value="dispatcher"' + (protocol === 'dispatcher' ? ' selected' : '') + '>Through dispatcher</option>'
+          + '<option value="shared_doc"' + (protocol === 'shared_doc' ? ' selected' : '') + '>Shared document</option>'
+          + '<option value="queue"' + (protocol === 'queue' ? ' selected' : '') + '>Message queue</option>'
+        + '</select>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function buildProducerCriticConfig() {
+    var criteria = configGet('criticCriteria', '');
+    var maxIter = configGet('criticMaxIter', 3);
+
+    return '<div class="config-section">'
+      + '<p class="config-section-title">Critic Settings</p>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="criticCriteria">Review criteria</label>'
+        + '<textarea id="criticCriteria" class="config-textarea"'
+          + ' placeholder="Describe what the critic should check for\u2026"'
+          + ' oninput="configSet(\'criticCriteria\', this.value)">'
+          + escapeAttr(criteria)
+        + '</textarea>'
+      + '</div>'
+      + '<div class="config-field">'
+        + '<label class="config-label" for="criticMaxIter">Max iterations</label>'
+        + '<input type="number" id="criticMaxIter" class="config-input config-number"'
+          + ' min="1" max="10" value="' + maxIter + '"'
+          + ' oninput="configSet(\'criticMaxIter\', parseInt(this.value) || 1)"'
+        + ' />'
+      + '</div>'
+    + '</div>';
+  }
+
+  function renderConfiguration() {
+    var topology = state.recommendedTopology || 'fan_out';
+    var base = topology.replace('_with_critic', '');
+    var hasCritic = topology.indexOf('_with_critic') !== -1;
+
+    var panelHtml = '';
+    if (base === 'fan_out') {
+      panelHtml += buildFanOutConfig();
+    } else if (base === 'pipeline') {
+      panelHtml += buildPipelineConfig();
+    } else if (base === 'shared_workspace') {
+      panelHtml += buildSharedWorkspaceConfig();
+    } else if (base === 'peer_coordination') {
+      panelHtml += buildPeerCoordinationConfig();
+    }
+
+    if (hasCritic) {
+      panelHtml += buildProducerCriticConfig();
+    }
+
+    document.getElementById('app').innerHTML = '<div class="step-content">'
+      + '<div class="step-header">'
+        + '<h2>Configuration</h2>'
+        + '<p>Tune the parameters for your chosen topology.</p>'
+      + '</div>'
+      + '<div class="card config-section">'
+        + panelHtml
+      + '</div>'
+      + '<div class="action-row">'
+        + '<button class="btn btn-ghost" onclick="goToStep(2)">\u2190 Back</button>'
+        + '<button class="btn btn-primary" onclick="goToStep(4)">Next: Generate Prompt \u2192</button>'
+      + '</div>'
+    + '</div>';
+  }
+
+  // ── Prompt generators ─────────────────────────────────────────────────────
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;');
+  }
+
+  function topologyHumanLabel(topology) {
+    var meta = TOPOLOGY_META[topology];
+    return meta ? meta.label : topology;
+  }
+
+  function topologyRationale(topology) {
+    var meta = TOPOLOGY_META[topology];
+    return meta ? meta.explanation : '';
+  }
+
+  // Returns the base topology (strips _with_critic)
+  function baseTopology(topology) {
+    return topology.replace('_with_critic', '');
+  }
+
+  function hasCritic(topology) {
+    return topology.indexOf('_with_critic') !== -1;
+  }
+
+  function buildCoordinationBlock(topology, config) {
+    var base = baseTopology(topology);
+    var lines = [];
+
+    if (base === 'fan_out') {
+      var aggregation = configGet('fanOutAggregation', 'merge');
+      lines.push('Dispatch all agents in parallel in a single message. Collect results. Aggregation strategy: ' + aggregation + '.');
+    } else if (base === 'pipeline') {
+      var order = configGet('pipelineOrder', state.tasks.map(function(t) { return t.id; }));
+      var taskById = {};
+      state.tasks.forEach(function(t) { taskById[t.id] = t; });
+      var stageNames = order.map(function(id, i) {
+        var t = taskById[id];
+        return t ? (t.description.trim() || ('Task ' + id)) : ('Task ' + id);
+      });
+      var handoff = configGet('pipelineHandoff', 'json');
+      lines.push('Run stages sequentially in order: ' + stageNames.join(' \u2192 ') + '. Pass output of each stage as input to the next. Handoff format: ' + handoff + '.');
+    } else if (base === 'shared_workspace') {
+      var conflict = configGet('wsConflict', 'last_write');
+      var ownershipParts = state.tasks.map(function(t, i) {
+        var owns = configGet('wsOwns_' + t.id, '');
+        var desc = t.description.trim() || ('Task ' + t.id);
+        return 'Agent ' + (i + 1) + ' (' + desc + '): ' + (owns || 'unspecified');
+      });
+      lines.push('Each agent works in an isolated worktree. Artifact ownership: ' + ownershipParts.join('; ') + '. Merge strategy: ' + conflict + '.');
+    } else if (base === 'peer_coordination') {
+      var protocol = configGet('peerProtocol', 'dispatcher');
+      var roles = state.tasks.map(function(t, i) {
+        return configGet('peerRole_' + t.id, 'Agent ' + (i + 1));
+      });
+      lines.push('Relay questions between agents. Do not produce artifacts yourself. Communication: ' + protocol + '. Roles: ' + roles.join(', ') + '.');
+    }
+
+    if (hasCritic(topology)) {
+      var criteria = configGet('criticCriteria', '');
+      var maxIter = configGet('criticMaxIter', 3);
+      lines.push('After ' + topologyHumanLabel(base) + ' completes, run a critic pass. Review criteria: ' + (criteria || 'general quality review') + '. Max iterations: ' + maxIter + '.');
+    }
+
+    return lines;
+  }
+
+  function effectiveConcurrency(topology, config) {
+    var base = baseTopology(topology);
+    if (base === 'pipeline') return 1;
+    return configGet('fanOutConcurrency', 3);
+  }
+
+  function generateClaudeCodePrompt(tasks, topology, config) {
+    var lines = [];
+
+    lines.push('## Execution Topology: ' + topologyHumanLabel(topology));
+    lines.push('Rationale: ' + topologyRationale(topology));
+    lines.push('');
+    lines.push('## Agents');
+    tasks.forEach(function(task) {
+      var desc = task.description.trim();
+      var shortDesc = desc.length > 50 ? desc.slice(0, 50) : desc;
+      lines.push('- Agent: ' + shortDesc);
+      lines.push('  - subagent_type: general-purpose');
+      if (baseTopology(topology) === 'shared_workspace') {
+        lines.push('  - isolation: worktree');
+      }
+      lines.push('  - prompt: ' + JSON.stringify(desc));
+    });
+    lines.push('');
+    lines.push('## Coordination');
+    var coordLines = buildCoordinationBlock(topology, config);
+    coordLines.forEach(function(l) { lines.push('- ' + l); });
+    lines.push('');
+    lines.push('## Failure Handling');
+    lines.push('- Concurrency limit: ' + effectiveConcurrency(topology, config));
+    lines.push('- On partial failure: retry failed agents, then proceed with partial results');
+    lines.push('');
+    lines.push('## Expected Outputs');
+    tasks.forEach(function(task) {
+      var desc = task.description.trim();
+      lines.push('- ' + desc + ': ' + (task.producesArtifacts ? 'produces artifacts' : 'no artifacts'));
+    });
+
+    return lines.join('\n');
+  }
+
+  function generateGenericPrompt(tasks, topology, config) {
+    var lines = [];
+
+    lines.push('## Execution Topology: ' + topologyHumanLabel(topology));
+    lines.push('Rationale: ' + topologyRationale(topology));
+    lines.push('');
+    lines.push('## Agents');
+    tasks.forEach(function(task) {
+      var desc = task.description.trim();
+      var shortDesc = desc.length > 50 ? desc.slice(0, 50) : desc;
+      lines.push('- Agent: ' + shortDesc);
+      lines.push('  - Role: general-purpose worker');
+      if (baseTopology(topology) === 'shared_workspace') {
+        lines.push('  - Isolation: separate working copy');
+      }
+      lines.push('  - prompt: ' + JSON.stringify(desc));
+    });
+    lines.push('');
+    lines.push('## Coordination');
+
+    // Build generic coordination lines (same logic, different phrasing for fan_out)
+    var coordLines = buildCoordinationBlock(topology, config);
+    // Replace Claude Code-specific dispatch phrasing for fan_out
+    coordLines = coordLines.map(function(l) {
+      return l.replace(
+        'Dispatch all agents in parallel in a single message. Collect results.',
+        'Run all agents simultaneously. Collect results.'
+      );
+    });
+    coordLines.forEach(function(l) { lines.push('- ' + l); });
+    lines.push('');
+    lines.push('## Failure Handling');
+    lines.push('- Concurrency limit: ' + effectiveConcurrency(topology, config));
+    lines.push('- On partial failure: retry failed agents, then proceed with partial results');
+    lines.push('');
+    lines.push('## Expected Outputs');
+    tasks.forEach(function(task) {
+      var desc = task.description.trim();
+      lines.push('- ' + desc + ': ' + (task.producesArtifacts ? 'produces artifacts' : 'no artifacts'));
+    });
+
+    return lines.join('\n');
+  }
+
+  function generateCrewAIPrompt(tasks, topology, config) {
+    var lines = [];
+    var base = baseTopology(topology);
+
+    // Determine process type
+    // CrewAI supports sequential (one after another) and hierarchical (supervisor delegates)
+    var processType;
+    if (base === 'pipeline') {
+      processType = 'sequential';
+    } else {
+      processType = 'hierarchical';
+    }
+
+    lines.push('## Crew Configuration');
+    lines.push('');
+    lines.push('### Agents');
+    tasks.forEach(function(task, i) {
+      var desc = task.description.trim();
+      var role = configGet('peerRole_' + task.id, 'Worker ' + (i + 1));
+      lines.push('- agent:');
+      lines.push('    role: ' + JSON.stringify(role));
+      lines.push('    goal: ' + JSON.stringify(desc));
+      lines.push('    backstory: ' + JSON.stringify('You are a specialist responsible for ' + desc + '.'));
+    });
+    lines.push('');
+    lines.push('### Tasks');
+    tasks.forEach(function(task, i) {
+      var desc = task.description.trim();
+      var role = configGet('peerRole_' + task.id, 'Worker ' + (i + 1));
+      var expectedOutput = task.producesArtifacts
+        ? 'Artifact files produced for: ' + desc
+        : 'Completion confirmation for: ' + desc;
+      lines.push('- task:');
+      lines.push('    description: ' + JSON.stringify(desc));
+      lines.push('    expected_output: ' + JSON.stringify(expectedOutput));
+      lines.push('    agent: ' + JSON.stringify(role));
+    });
+    lines.push('');
+    lines.push('### Crew');
+    lines.push('- process: ' + processType);
+    lines.push('- max_rpm: ' + effectiveConcurrency(topology, config));
+
+    return lines.join('\n');
+  }
+
+  function renderGeneratePrompt() {
+    var framework = configGet('framework', 'claude_code');
+    var topology = state.recommendedTopology || 'fan_out';
+    var tasks = state.tasks.filter(function(t) { return t.description.trim().length > 0; });
+
+    var promptText;
+    if (framework === 'generic') {
+      promptText = generateGenericPrompt(tasks, topology, state.config);
+    } else if (framework === 'crewai') {
+      promptText = generateCrewAIPrompt(tasks, topology, state.config);
+    } else {
+      promptText = generateClaudeCodePrompt(tasks, topology, state.config);
+    }
+
+    function frameworkBtn(value, label) {
+      var cls = 'btn framework-btn' + (framework === value ? ' framework-btn-active' : '');
+      return '<button class="' + cls + '" onclick="configSet(\'framework\', \'' + value + '\'); renderGeneratePrompt();">'
+        + label + '</button>';
+    }
+
+    document.getElementById('app').innerHTML = '<div class="step-content">'
+      + '<div class="step-header">'
+        + '<h2>Generated Dispatch Prompt</h2>'
+        + '<p>Choose your framework and copy the prompt. Paste it into your orchestrator agent to dispatch the parallel fleet.</p>'
+      + '</div>'
+      + '<div class="framework-toggle">'
+        + frameworkBtn('claude_code', 'Claude Code')
+        + frameworkBtn('generic', 'Generic')
+        + frameworkBtn('crewai', 'CrewAI')
+      + '</div>'
+      + '<div class="prompt-output">'
+        + '<code id="promptCode">' + escapeHtml(promptText) + '</code>'
+      + '</div>'
+      + '<div class="action-row">'
+        + '<button class="btn btn-ghost" onclick="startOver()">Start over</button>'
+        + '<button class="btn btn-ghost" onclick="goToStep(3)">\u2190 Back</button>'
+        + '<button class="btn btn-primary" id="copyBtn" onclick="copyPrompt()">Copy to clipboard</button>'
+      + '</div>'
+    + '</div>';
+  }
+
+  function copyPrompt() {
+    var el = document.getElementById('promptCode');
+    var btn = document.getElementById('copyBtn');
+    if (!el || !btn) return;
+
+    var text = el.textContent;
+    var originalText = btn.textContent;
+
+    function flashLabel(label) {
+      btn.textContent = label;
+      setTimeout(function() {
+        var current = document.getElementById('copyBtn');
+        if (current) current.textContent = originalText;
+      }, 1500);
+    }
+
+    function fallbackCopy() {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'absolute';
+      textarea.style.left = '-9999px';
+      document.body.appendChild(textarea);
+      textarea.select();
+      var ok = false;
+      try { ok = document.execCommand && document.execCommand('copy'); } catch (e) { ok = false; }
+      document.body.removeChild(textarea);
+      flashLabel(ok ? 'Copied!' : 'Copy failed');
+    }
+
+    if (!navigator.clipboard || !navigator.clipboard.writeText) {
+      fallbackCopy();
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(function() {
+      flashLabel('Copied!');
+    }).catch(function() {
+      fallbackCopy();
+    });
+  }
+
+  function startOver() {
+    state.tasks = [];
+    state.wizardAnswers = {};
+    state.recommendedTopology = null;
+    state.config = {};
+    goToStep(1);
+  }
+
+  // ── Root render ────────────────────────────────────────────────────────────
+
+  function render() {
+    renderStepIndicator();
+    switch (currentStep) {
+      case 1: renderTaskInventory(); break;
+      case 2: renderDecisionWizard(); break;
+      case 3: renderConfiguration(); break;
+      case 4: renderGeneratePrompt(); break;
+    }
+  }
+
+  // ── Utilities ──────────────────────────────────────────────────────────────
+
+  function escapeAttr(str) {
+    return str
+      .replace(/&/g, '&amp;')
+      .replace(/"/g, '&quot;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;');
+  }
+
+  // ── Boot ───────────────────────────────────────────────────────────────────
+
+  render();
+</script>
+</body>
+</html>
