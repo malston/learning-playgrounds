@@ -876,6 +876,8 @@
       "cca-exam-guide": { name: "CCA Exam Guide (PDF)", path: "anthropic-training/Claude-Certified-Architect-Foundations-Certification/" },
       "cca-prep-article": { name: "CCA Prep Article", path: "active/CCA Foundations Exam Preparation.md" },
       "cca-scenario1": { name: "Scenario 1: Customer Support", path: "active/CCA Customer Support Resolution Agent Scenario.md" },
+      "cca-scenario3": { name: "Scenario 3: Multi-Agent Research", path: "anthropic-training/Claude-Certified-Architect-Foundations-Certification/CCA Mastering the Multi-Agent Research System Scenario.md" },
+      "cca-scenario6": { name: "Scenario 6: Structured Data Extraction", path: "anthropic-training/Claude-Certified-Architect-Foundations-Certification/CCA Structured Data Extraction.md" },
       // Enterprise ebook
       "enterprise-ebook": { name: "Building Trusted AI in the Enterprise", path: "anthropic-training/Anthropic-enterprise-ebook-digital.pdf" },
       // Community study guide
@@ -1396,6 +1398,46 @@
           "Structured state persistence means using the API's built-in conversation memory, which automatically saves and restores agent state across sessions. On resume, the API reloads the prior conversation from its server-side store. No manifest files or explicit state management are needed since this is handled at the platform level.",
           "Structured state persistence means persisting the full conversation history to a vector database, enabling semantic search across prior agent interactions. On crash recovery, the coordinator queries the vector database for relevant prior context and injects the most semantically similar passages. This approach recovers meaning rather than exact state.",
           "Structured state persistence means checkpointing the model's internal hidden states to disk, allowing exact resumption from the point of failure. This is more efficient than re-injecting summaries because the model does not need to re-process prior context -- it resumes from its exact internal representation at the crash point."
+        ]
+      },
+
+      {
+        id: "d1-039",
+        category: "agentic",
+        front: "In the Multi-Agent Research System scenario, what are the five specialized agents and their tool sets?",
+        back: "Web Researcher: search_web, fetch_page, extract_text, summarize_source. Document Analyzer: parse_document, extract_sections, identify_claims, check_citations. Data Extractor: query_database, transform_data, validate_schema, format_output. Fact Checker: verify_claim, cross_reference, score_reliability, flag_conflict. Coordinator: delegate_task, collect_results, resolve_conflicts, compile_report. Each agent has 4 tools -- meaningfully distinct within its domain so no two tools are easily confused.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course", "api-course"],
+        distractors: [
+          "The five agents are: Web Researcher (search_web, fetch_page), Document Analyzer (parse_document, extract_sections), Data Extractor (query_database, transform_data), Fact Checker (verify_claim, cross_reference), and Report Writer (outline_report, write_section, format_output, add_citations). The coordinator has no tools -- it is a prompt-only orchestrator that routes messages between agents without executing any operations itself.",
+          "The five agents are: Web Researcher, Document Analyzer, Data Extractor, Fact Checker, and Coordinator. Tool assignment is dynamic -- all 20 tools are registered in a shared MCP server, and each agent selects the tools it needs per task from the shared pool. This provides flexibility since agents can adapt their tool set based on the specific research query.",
+          "The five agents share a common base tool set (search, parse, validate, format) plus one unique specialty tool each. The coordinator assigns the specialty tool at delegation time based on the subtask. This reduces tool duplication across agents and ensures consistent interfaces for the coordinator to work with."
+        ]
+      },
+      {
+        id: "d1-040",
+        category: "agentic",
+        front: "How should a coordinator decompose a research query into parallel and sequential phases? Give the canonical task decomposition DAG.",
+        back: "Phase 1 (parallel): Web search and document analysis run simultaneously -- they draw from independent sources with no data dependencies. Phase 2 (sequential): Claim extraction depends on results from Phase 1. Phase 3: Fact checking depends on extracted claims. Phase 4: Conflict resolution depends on fact-checking results. Phase 5: Report compilation depends on resolved findings. The key decision: if Subtask B needs output from Subtask A, they run sequentially. If they work from independent inputs, they run in parallel.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course", "api-course"],
+        distractors: [
+          "All five phases should run in parallel for maximum throughput: web search, document analysis, claim extraction, fact checking, and report compilation. The coordinator collects all results at the end and resolves any inconsistencies in a final synthesis step. Sequential execution wastes time since each subagent operates independently in its own context.",
+          "The canonical DAG is fully sequential: web search → document analysis → claim extraction → fact checking → report compilation. Each phase must complete before the next begins because later phases may need to request additional data from earlier phases. Running web search and document analysis in parallel risks duplicate findings that complicate deduplication.",
+          "Phase 1 runs all subagents in parallel (web search, document analysis, data extraction, fact checking). Phase 2 is report compilation, which synthesizes all parallel results. The coordinator should maximize parallelism by launching every subagent simultaneously and handling dependency resolution during the synthesis phase rather than enforcing sequential ordering."
+        ]
+      },
+      {
+        id: "d1-041",
+        category: "agentic",
+        front: "Why does giving an agent 18 tools create an 'attention tax,' and how does it differ from just having bad tool descriptions?",
+        back: "With 18 tools, the model must evaluate all 18 descriptions on every tool selection decision. This consumes attention budget on bookkeeping rather than the actual task. As tool count rises, descriptions blur -- similar-sounding tools (search_web, search_internal_docs, search_database, search_archive) force fine distinctions on every call, increasing misrouting. Better descriptions help at the margins but do not fix the structural problem: task-irrelevant tools consume attention on every decision. The fix is architectural (decompose into 4-5 tools per agent), not descriptive.",
+        difficulty: 3,
+        refs: ["cca-scenario3", "subagents-course"],
+        distractors: [
+          "The 'attention tax' refers to the increased token cost of including 18 tool descriptions in the system prompt. Each tool description adds ~100 tokens, so 18 tools add ~1,800 tokens of overhead per API call. This increases cost and latency but does not affect selection accuracy -- the model can evaluate any number of descriptions with equal precision. Better descriptions reduce token count and fix the cost problem.",
+          "The 'attention tax' is real but only affects models below a certain capability threshold. Claude Sonnet and Opus can reliably select from 18+ tools because their larger parameter counts support more complex tool evaluation. The 4-5 tool recommendation applies to smaller models like Haiku. For production systems using Sonnet or Opus, improving tool descriptions is sufficient.",
+          "The 'attention tax' applies equally to 5 tools and 18 tools -- what matters is total description length, not tool count. Five tools with 200-word descriptions each create the same attention load as 18 tools with 55-word descriptions each. The real fix is keeping descriptions concise (under 50 words) regardless of how many tools the agent has."
         ]
       },
 
@@ -2227,6 +2269,86 @@
           "Write general instructions that establish the desired quality bar, such as 'Only report high-confidence findings' and 'Be conservative in your assessments.' These general guidelines are more effective than specific criteria because they give the model flexibility to apply its built-in understanding of code quality across different codebases and languages.",
           "Focus the review prompt on listing tools and frameworks the model should be familiar with (e.g., 'You are an expert in React, Node.js, and PostgreSQL'). Domain expertise framing is more effective than explicit criteria because it activates the model's relevant training knowledge. The model will naturally focus on important issues when it understands the tech stack.",
           "Write explicit criteria but keep them broad to avoid over-constraining the model. Example: 'Report bugs, security issues, and anything else that looks wrong.' Overly specific criteria cause the model to miss issues outside the defined categories. A broad scope with a general instruction to 'prioritize important findings' balances coverage with precision."
+        ]
+      },
+
+      // --- Structured Data Extraction (Scenario 6) ---
+      {
+        id: "d3-029",
+        category: "prompt-eng",
+        front: "What is the three-layer reliability model for structured data extraction, and why are the layers ordered the way they are?",
+        back: "Level 1: Prompt guidance -- tells Claude what to do (probabilistic nudge). Level 2: JSON schema enforcement at the API layer -- constrains what Claude must return (structural guarantee). Level 3: Programmatic validation -- verifies whether what Claude returned is actually correct (semantic check). The order matters because each layer solves a problem the previous layer cannot: prompts cannot guarantee structure, schemas cannot verify meaning, and validation cannot work on malformed data. Skip any layer and you have a gap that surfaces in production.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "repo-structured-outputs"],
+        distractors: [
+          "Level 1: Schema enforcement at the API layer. Level 2: Prompt guidance with few-shot examples. Level 3: Retry loops with human escalation. The order matters because you must define the schema before writing prompts that reference it, and retries only make sense after both schema and prompt are in place. Schema comes first because it is the foundation all other layers build on.",
+          "Level 1: Programmatic validation of business rules. Level 2: JSON schema enforcement. Level 3: Prompt guidance with output format instructions. Validation comes first because you need to know your business rules before defining a schema that encodes them. Schema enforcement then automates what validation checks manually. Prompt guidance is last because it is the least critical layer.",
+          "Level 1: Prompt guidance. Level 2: Programmatic validation. Level 3: Schema enforcement. The order follows the development lifecycle: you start with prompts during prototyping, add validation during testing, and add schema enforcement during production hardening. Each layer adds cost and complexity, so you only add the next layer when the previous one proves insufficient."
+        ]
+      },
+      {
+        id: "d3-030",
+        category: "prompt-eng",
+        front: "Why does the instruction 'Always return valid JSON' fail to guarantee structured output from Claude?",
+        back: "Claude is a probabilistic language model, not a deterministic parser. Every token is sampled from a probability distribution. The instruction 'return JSON' shifts that distribution strongly toward JSON-shaped output but cannot eliminate all other possibilities. There remains probability mass on wrapping JSON in markdown code fences, adding explanatory text before or after the JSON, returning valid JSON that does not match your schema, or truncating output under context pressure. You cannot prompt probability to zero. Prompt-based guidance is a suggestion; programmatic enforcement is a guarantee.",
+        difficulty: 1,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "The instruction fails because Claude's tokenizer does not have special tokens for JSON delimiters like braces and brackets. JSON characters are split across multiple tokens, making it statistically unlikely that all delimiters will be generated in the correct positions. The fix is to use a model fine-tuned specifically for JSON output, which has dedicated JSON tokens in its vocabulary.",
+          "The instruction fails because system prompts have lower priority than user messages in Claude's attention mechanism. If the user message does not also request JSON, the system prompt instruction is deprioritized. The fix is to repeat the JSON instruction in both the system prompt and the user message, which raises its attention weight above the threshold for reliable compliance.",
+          "The instruction usually works but fails when the context window exceeds 80% capacity. At high context utilization, Claude allocates fewer tokens to format compliance and more to content generation. The fix is to keep context utilization below 60% for extraction tasks, which ensures enough token budget remains for reliable JSON formatting."
+        ]
+      },
+      {
+        id: "d3-031",
+        category: "prompt-eng",
+        front: "How does the tool-forcing pattern enforce structured JSON output with the native Anthropic SDK?",
+        back: "Define a tool whose `input_schema` matches the data structure you want to extract, then set `tool_choice={\"type\": \"tool\", \"name\": \"your_tool_name\"}` to force Claude to call that specific tool. The tool does not need to do anything -- it is a schema enforcement mechanism disguised as a tool call. Because `tool_choice` constrains generation to conform to the tool's `input_schema`, you get clean, schema-compliant JSON with no markdown wrappers and no explanatory text. The extracted data is in `response.content[0].input`.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "repo-tool-choice", "cookbook-structured-json"],
+        distractors: [
+          "Define a tool whose output_schema matches the data structure you want, then set `tool_choice={\"type\": \"auto\"}` with a system prompt instructing Claude to prefer that tool. The `auto` setting lets Claude decide whether the tool is appropriate for the given input, which is important because forcing a tool on inappropriate input produces hallucinated data. The extracted data is in `response.content[0].output`.",
+          "Define a JSON schema in the system prompt and set `response_format={\"type\": \"json_object\", \"schema\": your_schema}` in the API call. This is the native Anthropic SDK approach to structured output -- it constrains the response format directly without the overhead of tool definitions. The extracted data is in `response.content[0].text` as a JSON string you parse.",
+          "Define a tool with your schema and call `client.tools.force(tool_name, input=document_text)` to bypass the message API entirely. The `tools.force()` method is a direct schema enforcement endpoint that skips the conversational layer and returns only the structured extraction. This is faster than `messages.create` because it avoids generating reasoning tokens."
+        ]
+      },
+      {
+        id: "d3-032",
+        category: "prompt-eng",
+        front: "How does `client.messages.parse()` with Pydantic models work for structured extraction, and how does it differ from tool-forcing?",
+        back: "Define Pydantic `BaseModel` classes for your data structure, then call `client.messages.parse(model=..., output_format=YourModel, messages=...)`. The response includes a `parsed_output` attribute that is a typed Pydantic object. It is a higher-level approach than tool-forcing: instead of manually defining a tool schema and extracting from `response.content[0].input`, you define Python classes and get typed objects back directly. Both approaches enforce structure at the API level, but `messages.parse()` provides Pydantic validation and type safety out of the box.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Call `client.messages.parse()` with a raw JSON schema string instead of a Pydantic model. The method accepts either format, but JSON schema strings are preferred because they avoid the overhead of Pydantic model instantiation. The response includes a `json_output` attribute containing the raw JSON string. The main advantage over tool-forcing is simpler syntax, not type safety.",
+          "Define Pydantic models and call `client.messages.create()` with `response_format=YourModel`. The `messages.parse()` method is deprecated in favor of passing Pydantic models directly to `messages.create()` via the `response_format` parameter. Both tool-forcing and `response_format` work identically -- the only difference is syntactic preference.",
+          "Define Pydantic models and call `client.completions.parse()` with the model class. The `completions` endpoint is the native SDK method for structured output, while `messages` is for conversational use. Using `messages.parse()` for extraction adds unnecessary conversation overhead. The `completions` endpoint returns Pydantic objects via `response.parsed` and is optimized for single-turn extraction."
+        ]
+      },
+      {
+        id: "d3-033",
+        category: "prompt-eng",
+        front: "On the CCA exam, what is the trap with `with_structured_output()` in questions about structured extraction using the native Anthropic SDK?",
+        back: "`with_structured_output()` is a LangChain method, not a native Anthropic SDK method. The exam mixes Anthropic SDK methods with LangChain methods in answer choices. If a question says 'using the native Anthropic SDK' and one answer mentions `with_structured_output()`, eliminate it immediately. The native SDK approaches are: 1) tool-forcing with `tool_choice` and 2) `client.messages.parse()` with Pydantic models.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "`with_structured_output()` is a native Anthropic SDK method available since version 0.28. It wraps the tool-forcing pattern in a higher-level interface. The trap is that the exam uses the older method name `with_structured_format()`, which was renamed. If you see `with_structured_format()`, that is the outdated LangChain equivalent. Both `with_structured_output()` and `messages.parse()` are valid native SDK approaches.",
+          "`with_structured_output()` is a method available in both the Anthropic SDK and LangChain, but with different signatures. The Anthropic version takes a JSON schema, while the LangChain version takes a Pydantic model. The trap is confusing the two signatures -- if the answer uses a Pydantic model with `with_structured_output()`, it is the LangChain version, but if it uses a JSON schema, it is the native Anthropic SDK version.",
+          "`with_structured_output()` is a community extension method that was merged into the official Anthropic SDK in early 2025. The exam tests whether you know it requires the `anthropic[structured]` extras package to be installed. The trap is that some answers reference it without the extras package, which would raise an ImportError in production."
+        ]
+      },
+      {
+        id: "d3-034",
+        category: "prompt-eng",
+        front: "What schema design considerations does the CCA exam test for structured data extraction?",
+        back: "Four key patterns: 1) Required vs. optional fields -- if a field might legitimately be missing from the source, make it optional; if it must always exist, make it required. Getting this wrong means rejecting valid extractions or accepting incomplete ones. 2) Enum constraints -- for categorical fields (status, currency), use enums to prevent Claude from inventing values that do not exist in your system. 3) Nested objects and arrays -- the schema must define the inner structure of arrays, not just say 'array'. 4) Type precision -- 'total' should be `number` not `string`; dates should be `string` with a format description since JSON Schema has no native date type.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "repo-structured-outputs"],
+        distractors: [
+          "Four key patterns: 1) All fields should be required to maximize extraction completeness -- optional fields signal to Claude that it can skip them, reducing extraction quality. 2) Avoid enums because they cause extraction failures when Claude encounters a value not in the enum list. 3) Use flat schemas only -- nested objects increase extraction errors because Claude struggles with deeply structured output. 4) Use string type for all fields and cast to appropriate types in post-processing, since type constraints can cause schema validation failures on edge cases.",
+          "Four key patterns: 1) Mark all fields as optional and validate completeness in post-processing, since required fields cause hard failures that bypass your retry logic. 2) Use descriptions instead of enums so Claude can handle unexpected values gracefully. 3) Limit array items to 10 to prevent token-heavy extractions. 4) Use the JSON Schema `format` keyword for dates, emails, and URLs, which Claude validates automatically during generation.",
+          "Four key patterns: 1) Use `additionalProperties: true` to let Claude include extra fields it discovers in the source document. 2) Enum constraints for all string fields, including free-text fields, to maximize structure. 3) Flatten nested structures into dot-notation keys for simpler parsing. 4) Use integer type for all numeric fields since floating-point precision causes validation mismatches between Claude's output and your validator."
         ]
       },
 
@@ -3074,6 +3196,113 @@
         ]
       },
 
+      {
+        id: "d5-037",
+        category: "context",
+        front: "What are the three conflict resolution strategies a coordinator should use when subagents return contradictory findings?",
+        back: "1) Source reliability ranking -- weight findings by the reliability score of their source (government database outranks blog post). 2) Majority consensus -- if three sources agree and one disagrees, go with the majority but flag the dissent. 3) Flag for human review -- when contradictions involve high-stakes claims, escalate rather than auto-resolve. These can be combined: use reliability ranking as the default, majority consensus as a tiebreaker, and human escalation as a safety valve for critical decisions.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course", "api-course"],
+        distractors: [
+          "The three strategies are: 1) First-result-wins -- accept whichever subagent responds first since faster responses indicate higher confidence. 2) Average the values -- if sources disagree on a number, report the mathematical average. 3) Drop conflicting data -- remove any findings where sources disagree and report only consensus findings. This produces cleaner reports without contradictions.",
+          "The three strategies are: 1) Model-based confidence scoring -- ask Claude to rate its confidence in each finding and select the highest-rated one. 2) Source recency ranking -- always prefer the most recent source since newer data supersedes older data. 3) Retry with combined context -- re-run the subagent with both conflicting sources in its context and ask it to reconcile. This leverages the model's reasoning ability to resolve conflicts automatically.",
+          "The three strategies are: 1) Deterministic priority ordering -- assign each subagent a fixed priority rank at configuration time and always prefer higher-priority agents. 2) Schema validation -- reject any findings that do not conform to the expected output schema, since schema violations indicate unreliable sources. 3) Consensus threshold -- require at least 80% agreement across sources before including any finding."
+        ]
+      },
+
+      // --- Structured Data Extraction (Scenario 6) ---
+      {
+        id: "d5-038",
+        category: "context",
+        front: "Why is JSON schema enforcement alone not enough for production data extraction? What additional layer is needed?",
+        back: "Schema enforcement guarantees structure (correct types, required fields present, valid JSON) but says nothing about meaning. A schema can require a `total` field of type `number` and you will always get a number, but nothing checks whether that number equals the sum of line items. Nothing checks whether a date is a real calendar date or whether a vendor name matches your system's known vendors. You need programmatic validation gates that check business rules and semantic correctness. Think of it like a check: a perfectly formatted check is not the same as a check that will clear.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Schema enforcement is sufficient for production because JSON Schema supports custom validation keywords like `x-validate` that can encode business rules directly in the schema definition. For example, you can add `x-validate: sum_of_line_items` to the total field, and the API will verify the arithmetic before returning the response. Additional validation code is redundant with a well-designed schema.",
+          "Schema enforcement handles both structure and basic semantics through the `description` field. When you add descriptions like 'must equal sum of line items' to schema properties, Claude uses those descriptions as validation instructions during generation. The combination of type constraints and descriptive validation covers most production needs without separate validation code.",
+          "Schema enforcement is sufficient when combined with Claude's built-in self-verification. When `tool_choice` forces a tool call, Claude internally validates its extraction against the source document before returning. Adding programmatic validation creates a redundant check that increases latency without catching additional errors beyond what schema enforcement and self-verification already handle."
+        ]
+      },
+      {
+        id: "d5-039",
+        category: "context",
+        front: "Describe the complete validation-retry feedback loop pattern the CCA exam rewards for structured data extraction.",
+        back: "Extract → Validate → [Pass] → Store. [Fail] → Feedback → Retry → Validate. [Max retries] → Human Escalation. Step 1: Claude extracts data with JSON schema enforcement (tool-forcing or `messages.parse()`). Step 2: Programmatic validator checks both structure and business rules. Step 3: If validation fails, send specific error messages back to Claude (not 'try again' but 'the total was 150 but line items sum to 175'). Step 4: Claude re-extracts with the original document plus error feedback in context. Step 5: After a bounded number of retries (2-3), escalate to human review with the original document, last extraction attempt, validation errors, and attempt count.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "cookbook-structured-json"],
+        distractors: [
+          "Extract → Self-Check → [Confident] → Store. [Low Confidence] → Retry with higher temperature → Self-Check. [Max retries] → Store with confidence warning. The key is asking Claude to rate its extraction confidence on each attempt. High-confidence extractions are stored immediately. Low-confidence extractions trigger a retry with increased temperature to explore alternative interpretations. After max retries, store the highest-confidence attempt with a flag for eventual human review.",
+          "Extract → Schema Validate → [Pass] → Store. [Fail] → Re-extract from scratch with a fresh context. [Max retries] → Automatic fallback to regex extraction. The retry should start a completely new conversation without the failed attempt in context, since including errors in context biases Claude toward the same mistakes. If retries are exhausted, fall back to deterministic regex patterns for the most critical fields.",
+          "Extract → Validate → [Pass] → Store. [Fail] → Split document into smaller chunks → Extract each chunk → Merge results → Validate merged output. [Fail again] → Human Escalation. The retry strategy is to decompose the document rather than re-attempt the same extraction, since validation failures usually mean the document was too complex for single-pass extraction."
+        ]
+      },
+      {
+        id: "d5-040",
+        category: "context",
+        front: "What is the difference between blind retry and informed retry in a data extraction pipeline, and why does it matter?",
+        back: "Blind retry: 'That was wrong, try again.' Claude has no idea what was wrong and may repeat the same mistake or make a different one. This is barely better than not retrying at all -- you are spending tokens on a coin flip. Informed retry: 'The invoice_date field contained last Tuesday but we need YYYY-MM-DD format. The source document mentions March 15, 2026 in the header. Please re-extract with the correct date.' Claude now has specific, actionable correction guidance. The quality of feedback determines whether retries converge. The exam tests this directly: 'Your retry rarely fixes the problem. What should you change?' Answer: include specific validation error messages in the retry prompt.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Blind retry re-sends the exact same request hoping for a different result due to temperature sampling. Informed retry increases the temperature parameter on each retry attempt to force more diverse outputs. The difference matters because blind retry at the same temperature will likely produce the same output, while informed retry with escalating temperature explores more of the output space. Set temperature to 0.3, 0.6, then 0.9 across three retries.",
+          "Blind retry uses the same model for each attempt. Informed retry escalates to a more capable model on each retry -- for example, starting with Haiku, upgrading to Sonnet, then Opus. The difference matters because extraction failures usually indicate the task exceeds the current model's capability. Model escalation is more effective than prompt modification because the underlying reasoning capacity increases with each retry.",
+          "Blind retry reprocesses the full document on each attempt. Informed retry narrows the extraction scope to only the fields that failed validation. The difference is efficiency: informed retry avoids re-extracting fields that already passed validation, reducing token usage and latency. This is why informed retry converges faster -- it focuses extraction capacity on the specific problem areas."
+        ]
+      },
+      {
+        id: "d5-041",
+        category: "context",
+        front: "Why must extraction retry loops be bounded, and what happens when retries are exhausted?",
+        back: "Unbounded retry loops are a reliability failure. They burn tokens without converging and can loop forever on genuinely ambiguous documents. Set a maximum retry count (2-3 attempts), then escalate to human review. The escalation must pass the human reviewer everything they need: the original document, the last extraction attempt, the validation errors, and how many attempts were made. This is the human-in-the-loop pattern the exam rewards. If an answer says 'retry until success' or 'keep retrying until validation passes,' eliminate it -- production systems require a finite exit condition.",
+        difficulty: 1,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Retry loops should be bounded by total token spend rather than attempt count. Set a token budget (e.g., 50K tokens) and retry until the budget is exhausted. When the budget runs out, return the best extraction so far based on the highest validation score across attempts. Token-based bounds are more precise than attempt-based bounds because they account for varying document lengths and extraction complexity.",
+          "Retry loops should be bounded at 5-7 attempts for most extraction tasks, with each retry using a different extraction strategy (tool-forcing, then Pydantic, then prompt-only, then chunked extraction). When all strategies are exhausted, automatically fall back to a deterministic template-matching approach that extracts only the fields matchable by regex. Human escalation is a last resort because it does not scale.",
+          "Retry loops should be unbounded for high-value documents (invoices over $10K, legal contracts) because the cost of incorrect extraction exceeds the cost of additional API calls. Bounding retries makes sense only for low-value documents where extraction errors have minimal business impact. The exam rewards cost-aware retry strategies that scale retry effort proportionally to document value."
+        ]
+      },
+      {
+        id: "d5-042",
+        category: "context",
+        front: "Why does extraction accuracy drop on long documents, and what is the mitigation?",
+        back: "The 'lost in the middle' effect: Claude's attention is strongest at the beginning and end of the context window. Key data buried in the middle of a long document gets less attention, leading to extraction errors. The mitigation is to chunk long documents, extract from each chunk independently, then merge and deduplicate results. This is especially relevant for multi-page invoices, long legal documents, or concatenated email threads. Exam pattern: 'Extraction works on short documents but accuracy drops on 50+ page documents.' Answer: chunk and extract per chunk.",
+        difficulty: 1,
+        refs: ["cca-scenario6", "api-course", "api-notes"],
+        distractors: [
+          "Accuracy drops because long documents exhaust the model's working memory during extraction. The token generation budget is fixed regardless of input length, so longer inputs leave fewer tokens available for the extraction output. The mitigation is to increase `max_tokens` proportionally to input length, ensuring the model has enough output budget to generate all extracted fields completely.",
+          "Accuracy drops because Claude's JSON generation becomes less reliable as the ratio of input tokens to output tokens increases beyond 10:1. At high ratios, the model prioritizes completing the JSON structure over accuracy. The mitigation is to split the extraction into multiple sequential API calls, each extracting a subset of fields, then combine the results. This keeps the input-to-output ratio manageable.",
+          "Accuracy drops because the model's context window has a hard attention limit of approximately 100K tokens, regardless of the advertised context size. Documents beyond this limit are silently truncated. The mitigation is to check document length before extraction and reject documents exceeding the attention limit, routing them to a specialized large-document extraction service."
+        ]
+      },
+      {
+        id: "d5-043",
+        category: "context",
+        front: "When should you use the Message Batches API for data extraction, and what are its characteristics?",
+        back: "Use the Batch API when processing large volumes of documents with no real-time requirement (nightly processing runs, bulk document migration, historical data extraction). Key characteristics: 50% cost discount versus standard API calls, most batches complete within 1 hour with a 24-hour maximum processing window, up to 100,000 requests per batch. Anti-pattern: processing 5,000 documents through the real-time API one at a time. Correct pattern: Batch API for non-blocking bulk extraction, real-time API only for user-facing blocking workflows.",
+        difficulty: 1,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Use the Batch API when you need guaranteed sub-second latency on extraction results. The Batch API pre-allocates dedicated compute resources for your requests, providing consistent low-latency responses that the standard API cannot guarantee under load. Key characteristics: 2x cost premium for dedicated resources, guaranteed 500ms response time, up to 1,000 requests per batch. Use the standard API for cost-sensitive non-urgent workloads.",
+          "Use the Batch API when you need to extract data from documents larger than 200K tokens. The Batch API supports extended context windows (up to 1M tokens) that are not available on the standard API, making it the only option for very large documents. Key characteristics: same cost as standard API, 4x larger context window, processing time scales linearly with document size.",
+          "Use the Batch API when you need atomic all-or-nothing extraction across a set of related documents. The Batch API processes all requests as a transaction -- if any extraction fails validation, the entire batch is rolled back. Key characteristics: 25% cost discount, transactional guarantees, results are held until all requests complete so you can accept or reject the batch as a unit."
+        ]
+      },
+      {
+        id: "d5-044",
+        category: "context",
+        front: "In the CCA exam, a retry loop handles semantic validation failures (incorrect totals, bad dates) but crashes when the API call fails or Claude returns text instead of a tool call. What is wrong with this pattern?",
+        back: "The retry loop only handles soft failures (semantic errors from validation) and assumes hard failures never happen. In production, API calls can fail, `response.content` can be empty, the response may not contain a `tool_use` block, or the tool block may lack an `.input` attribute. A complete retry loop must wrap the API call and response checks in error handling so both transport/schema failures and semantic failures are retried within the same bounded loop. The exam rewards retry loops that handle both execution failures and validation failures. A loop that retries only on semantic checks but crashes on tool or schema errors is a partial reliability pattern.",
+        difficulty: 3,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "The pattern is correct for its scope. API failures and malformed responses are infrastructure concerns that should be handled by a separate infrastructure retry layer (e.g., HTTP client retries with exponential backoff) below the extraction logic. Mixing infrastructure retries with semantic retries in the same loop violates separation of concerns. The extraction loop should assume it receives valid API responses and focus exclusively on semantic validation.",
+          "The pattern needs a pre-flight check, not a broader retry loop. Before entering the extraction loop, call a lightweight API health check endpoint. If the API is healthy, the extraction loop can safely assume API calls will succeed. This is more efficient than wrapping every API call in error handling, since API failures are rare (< 0.1%) and the overhead of try/catch on every iteration is unnecessary.",
+          "The pattern is fine because tool-forcing with `tool_choice` guarantees that Claude always returns a tool call. If `tool_choice` is set to a specific tool name, the API will never return text instead of a tool call -- that is the entire point of tool-forcing. The only failures the retry loop needs to handle are semantic validation failures. API-level errors should bubble up as unhandled exceptions for the ops team to investigate."
+        ]
+      },
+
       // ========================================
       // Anti-Patterns (ap)
       // ========================================
@@ -3244,6 +3473,47 @@
           "Reduce the total context window size to under 4,000 tokens so the model can attend equally to all content. The 'lost in the middle' effect only occurs in context windows above 8,000 tokens. Shorter prompts eliminate the issue entirely, making placement irrelevant.",
           "Split the 12,000-token context across multiple sequential API calls, each under 4,000 tokens. Process the examples first, then the business rules, then the closing instructions in separate calls. The model attends fully to each smaller context, avoiding the middle attention gap.",
           "Duplicate the business rules at the beginning, middle, and end of the context window so the model encounters them at every position. Repeating critical instructions three times ensures the model attends to them regardless of position, with only a small token overhead increase."
+        ]
+      },
+
+      // --- Structured Data Extraction Anti-Patterns (Scenario 6) ---
+      {
+        id: "ap-014",
+        category: "anti-patterns",
+        front: "An extraction pipeline describes the expected JSON schema in the system prompt ('Return a JSON object with fields vendor_name (string), total (number)...') but does not use schema enforcement at the API level. Claude usually follows it. What is the problem?",
+        back: "Schema described in prompt text only is an anti-pattern. Claude sees the description and usually follows it, but 'usually' is not 'always.' The prompt is a probabilistic nudge. Claude can still add extra fields, omit required fields, use wrong types, wrap output in markdown fences, or add explanatory text. The correct pattern is schema defined in code and enforced at the API level using tool-forcing or `client.messages.parse()`. On the exam, any solution that operates at the prompt layer rather than the code layer cannot fix structural reliability.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "repo-structured-outputs"],
+        distractors: [
+          "The approach is correct and sufficient for production. Describing the schema in the prompt gives Claude maximum flexibility to handle edge cases -- for example, if a field is ambiguous, Claude can include an explanatory note alongside the JSON. API-level schema enforcement is too rigid: it forces Claude to populate every field even when the source document is ambiguous, leading to hallucinated values. Prompt-level schemas produce more honest extractions.",
+          "The problem is that the schema description takes up too many tokens in the system prompt. Long schema descriptions reduce the effective context window for the source document, which lowers extraction accuracy. The fix is to move the schema description to the user message alongside the document, where it competes less with the system prompt's other instructions. API-level enforcement is one option but is not necessary if the schema is positioned correctly.",
+          "The approach works but needs reinforcement. Add 2-3 few-shot examples of correctly formatted JSON output to the system prompt. The combination of schema description plus few-shot examples achieves 99%+ compliance in production. API-level schema enforcement adds latency because the API must validate the output before returning it, which is unnecessary when prompt engineering achieves the same reliability."
+        ]
+      },
+      {
+        id: "ap-015",
+        category: "anti-patterns",
+        front: "A team asks Claude to self-report its confidence in each extraction ('On a scale of 1-10, how confident are you?') and only flags low-confidence results for human review. Why is this an anti-pattern?",
+        back: "LLM confidence scores are poorly calibrated. Claude might say it is 90% confident in an extraction that is completely wrong, or 60% confident in one that is perfect. A hallucinated vendor name looks just as confident to the model as a correctly extracted one. The model cannot see ground truth. Self-reported confidence is not a reliable production validation mechanism. The correct pattern is external programmatic validation that checks actual data quality: dates, ranges, sums, and cross-references against business rules your code enforces. Programmatic validation does not ask Claude anything -- it independently verifies the data.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "The approach is sound but the confidence scale needs calibration. Collect production data mapping confidence scores to actual accuracy, then adjust the threshold until it achieves the desired precision/recall balance. A well-calibrated confidence threshold is more flexible than programmatic validation because it adapts to new document types without requiring new validation rules for each one.",
+          "The approach works for triage but the scale is wrong. Binary confidence (high/low) is more reliable than a 1-10 scale because the model only needs to distinguish two states. Ask Claude 'Are you confident in this extraction? Yes or No' and flag all 'No' responses. Binary confidence reduces the calibration problem to a simple classification task that Claude handles reliably.",
+          "The confidence score is reliable but should be collected differently. Instead of asking Claude to self-report after extraction, use the `logprobs` parameter to read the token-level probabilities from the API response. Low average logprobs across the extracted fields indicate low confidence. This is a direct measurement of model uncertainty rather than a self-report, making it a valid validation signal."
+        ]
+      },
+      {
+        id: "ap-016",
+        category: "anti-patterns",
+        front: "An extraction pipeline retries on validation failure by sending 'That was wrong, try again' without specifying what failed. The retry rarely fixes the problem. What is the anti-pattern?",
+        back: "This is blind retry. Without specific error feedback, Claude has no idea what was wrong. It might repeat the same mistake or make a different one. Blind retry burns tokens and produces random variation. The correct pattern is informed retry: include the specific validation errors in the retry message. Example: 'The total was 150.00 but line items sum to 175.00. Please re-examine the source document and correct the total or line item amounts.' Specific error messages that reference the validation logic convert most retry attempts into successful extractions.",
+        difficulty: 1,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "The problem is insufficient retries. A single retry is not enough for complex documents. Increase the retry count to 5-7 attempts. With enough attempts, random variation will eventually produce a correct extraction. The message content does not matter as much as the number of attempts, since each retry samples from the model's output distribution independently.",
+          "The problem is that the retry includes the failed extraction in the conversation context, which biases Claude toward the same answer. The correct approach is to start a fresh conversation for each retry attempt, removing the failed extraction from context entirely. This gives Claude a clean slate to re-extract from the original document without being anchored to its previous errors.",
+          "The problem is that retries use the same model temperature. Each retry should increase the temperature by 0.2 (starting at 0.0, then 0.2, then 0.4) to explore more diverse extractions. Higher temperature produces more variation, making it more likely that at least one attempt generates the correct extraction. The retry message is less important than the sampling parameters."
         ]
       },
 
@@ -3950,6 +4220,85 @@
           "Correct Answer: D. Increasing the context window gives the model more space to evaluate all 12 tool descriptions thoroughly. With a larger context, the model can maintain the full description of each tool in its working memory during selection, reducing confusion between similar tools. Splitting into subagents (C) is unnecessary when the model simply needs more room to deliberate."
         ]
       },
+      {
+        id: "sq-011",
+        category: "sample-questions",
+        front: "Scenario 3, Q1 (Context Isolation): A coordinator agent has specific instructions about required citation format. The coordinator delegates a research task to a subagent. The subagent returns results with incorrect citation formatting. What is the most likely root cause?\n\nA) The subagent's model does not support the required citation format\nB) The coordinator's instructions were ambiguous\nC) The citation format requirements were not explicitly passed to the subagent\nD) The subagent's tools do not support citation formatting",
+        back: "Correct Answer: C. This is the context isolation question. Subagents do not inherit the coordinator's context. If the coordinator has citation formatting rules in its context but does not explicitly include them in the task delegation, the subagent has no knowledge of those requirements. Option B is the most tempting distractor because ambiguous instructions are a real problem, but the question specifies the coordinator had 'specific instructions' -- pointing to a passing problem, not an ambiguity problem. The instructions existed; they just were not sent.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course"],
+        distractors: [
+          "Correct Answer: B. The coordinator's instructions were ambiguous. Even though the coordinator had 'specific' instructions, specificity does not guarantee clarity. Citation formats like APA have many sub-rules, and the instructions likely did not cover all edge cases. The subagent interpreted the ambiguous parts differently, resulting in incorrect formatting.",
+          "Correct Answer: A. The subagent's model does not support the required citation format. Not all Claude model versions have been trained on all citation standards. If the subagent uses a smaller model (like Haiku) for cost efficiency, it may lack knowledge of specialized formats like APA 7th edition or Chicago. The fix is to use a more capable model for the citation-sensitive subagent.",
+          "Correct Answer: D. The subagent's tools do not support citation formatting. The subagent's document parsing tools extract raw text without preserving citation metadata. Without tools that specifically handle citation detection and reformatting, the subagent cannot apply the correct format regardless of what instructions it receives."
+        ]
+      },
+      {
+        id: "sq-012",
+        category: "sample-questions",
+        front: "Scenario 3, Q2 (Tool Overload): A research agent is configured with 18 tools covering web search, document parsing, data extraction, fact checking, report writing, email, and database access. The agent frequently selects the wrong tool for the current task. What is the recommended architectural change?\n\nA) Improve tool descriptions to help the model differentiate between tools\nB) Add a tool-selection pre-processing step that filters available tools per query\nC) Decompose into specialized subagents with 4-5 focused tools each\nD) Switch to a model with better tool selection capabilities",
+        back: "Correct Answer: C. Decompose into focused subagents. With 18 tools, a significant portion of the model's attention is spent evaluating irrelevant tool descriptions on every decision, creating cognitive overload and increasing misrouting. Breaking the system into specialized agents with 4-5 tools each reduces attention fragmentation and improves reliability. Option A is the most tempting distractor because better descriptions do help, but only at the margins -- they do not fix the structural problem of too many tools competing for attention. Option B adds complexity without addressing root cause. Option D incorrectly assumes a model limitation when the issue is architectural.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course", "repo-tool-use"],
+        distractors: [
+          "Correct Answer: A. Improve tool descriptions. The root cause of misrouting is ambiguity in tool descriptions, not tool count. With clear, specific descriptions that include input/output formats and usage examples, 18 tools is manageable. Decomposing into subagents (C) introduces coordination overhead that outweighs any selection accuracy gains.",
+          "Correct Answer: B. Add a tool-selection pre-processing step. A lightweight classifier that filters the 18 tools down to 3-4 candidates per query gives the model a focused subset to evaluate. This preserves the single-agent simplicity while reducing the effective tool count for each decision. Decomposing into subagents (C) is over-engineering.",
+          "Correct Answer: D. Switch to a more capable model. Tool selection accuracy is primarily a function of model capability. Claude Opus handles 18 tools reliably due to its larger reasoning capacity. The 4-5 tool limit (C) applies to smaller models like Haiku. For production systems that can afford Opus-tier pricing, a single capable agent is simpler than multi-agent coordination."
+        ]
+      },
+      {
+        id: "sq-013",
+        category: "sample-questions",
+        front: "Scenario 3, Q3 (Silent Failure): A multi-agent research system produces a report on a controversial topic. After review, a critical contradictory source is missing from the report. Investigation reveals the subagent responsible for that source encountered an API timeout. What architectural change would prevent this issue?\n\nA) Increase the timeout duration for subagent API calls\nB) Add a retry mechanism with exponential backoff\nC) Require subagents to return structured error context so the coordinator can flag data gaps\nD) Add a validation step that checks report completeness against a source list",
+        back: "Correct Answer: C. The core issue is not the timeout itself, but the lack of visibility into the failure. Without structured error context, the coordinator cannot distinguish between 'no relevant data found' and 'source unavailable.' Structured error reporting enables informed decisions: retrying, substituting sources, or flagging incomplete results. Option B is the most tempting distractor because retries are a best practice, but they do not eliminate failures -- when retries are exhausted, the system still needs error transparency. Option A only reduces frequency, not impact. Option D is a useful safeguard but secondary and does not address the root cause of silent failures.",
+        difficulty: 2,
+        refs: ["cca-scenario3", "subagents-course", "mcp-advanced"],
+        distractors: [
+          "Correct Answer: B. Add a retry mechanism with exponential backoff. API timeouts are transient failures that resolve on retry in most cases. Exponential backoff prevents overwhelming the source while maximizing the chance of successful retrieval. Structured error context (C) is unnecessary complexity -- if retries succeed, there is no error to report, and if they fail after maximum attempts, the coordinator can simply note the source was unavailable.",
+          "Correct Answer: A. Increase the timeout duration. The subagent timed out because the default timeout was too aggressive for the source's response time. Doubling the timeout duration would have allowed the request to complete successfully. Structured error context (C) does not prevent the data gap -- it only reports it. Preventing the timeout in the first place is a better solution.",
+          "Correct Answer: D. Add a validation step that checks report completeness against a source list. A post-synthesis validation step compares the final report's citations against the expected source list and flags any missing sources. This catches gaps regardless of cause (timeouts, parsing errors, or omissions) and is more comprehensive than structured error context (C), which only catches errors the subagent explicitly reports."
+        ]
+      },
+      // --- Structured Data Extraction (Scenario 6) ---
+      {
+        id: "sq-014",
+        category: "sample-questions",
+        front: "Scenario 6, Q1 (Invoice Extraction): Your team built an invoice extraction pipeline using Claude. The system prompt instructs Claude to 'always return valid JSON matching the invoice schema.' Testing shows 92% accuracy, but 8% of extractions either produce unparseable JSON or contain incorrect totals. A teammate suggests adding few-shot examples. What is the BEST improvement?\n\nA) Add few-shot examples as the teammate suggests\nB) Increase the context window to give Claude more room\nC) Add strict JSON schema enforcement with programmatic validation of business rules and a retry loop with specific error feedback\nD) Have Claude rate its confidence and flag low-confidence extractions for review",
+        back: "Correct Answer: C. The system has two distinct failure modes: unparseable JSON (structural) and incorrect totals (semantic). The best answer addresses both with deterministic safeguards. Schema enforcement prevents invalid JSON. Business-rule validation catches incorrect totals. A retry loop with targeted feedback like 'total was X but line items sum to Y' gives Claude a chance to repair the specific defect. Option A is the main distractor -- few-shot examples may improve formatting somewhat but remain prompt-based and do nothing for arithmetic correctness. Option B is unrelated to the root cause. Option D is the confidence-score trap -- LLM self-rated confidence is poorly calibrated and cannot replace programmatic validation. When an exam question presents multiple failure modes, the correct answer solves all of them, not just one.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course", "repo-structured-outputs"],
+        distractors: [
+          "Correct Answer: A. Add few-shot examples. Few-shot examples are the most effective way to improve both JSON formatting and extraction accuracy. By showing Claude 3-4 examples of correctly formatted invoices with accurate totals, you establish an output pattern that the model follows consistently. Schema enforcement (C) is over-engineering for a 92% accuracy system -- few-shot examples can push accuracy above 99% without the complexity of validation pipelines.",
+          "Correct Answer: D. Have Claude rate its confidence. Confidence-based routing is the most operationally mature approach. Low-confidence extractions get human review; high-confidence ones proceed automatically. This handles both failure modes because Claude will naturally report low confidence when it cannot parse the JSON structure or is unsure about totals. Schema enforcement (C) is rigid and creates false rejections when validation rules do not account for legitimate invoice variations.",
+          "Correct Answer: B. Increase the context window. The 8% failure rate correlates with longer invoices that exceed the effective context window. When Claude runs out of context space, it truncates JSON output (causing parse failures) and approximates totals (causing incorrect values). Giving Claude more room eliminates both failure modes at the root cause. Schema enforcement (C) treats symptoms rather than the underlying capacity constraint."
+        ]
+      },
+      {
+        id: "sq-015",
+        category: "sample-questions",
+        front: "Scenario 6, Q2 (Retry Quality): Your extraction pipeline retries on validation failure but the retry rarely fixes the problem. The retry message says 'The previous extraction had errors. Please try again with the same document.' What should you change?\n\nA) Increase the retry count from 2 to 5\nB) Use a more capable model (Opus instead of Sonnet) for retries\nC) Include specific validation error messages in the retry prompt that identify which fields failed and why\nD) Start a fresh conversation for each retry to avoid context bias",
+        back: "Correct Answer: C. The retry message lacks specific error feedback. 'Please try again' is blind retry -- Claude does not know what went wrong. Including specific errors like 'invoice_date contained last Tuesday but we need YYYY-MM-DD format' or 'total was 150 but line items sum to 175' gives Claude actionable correction guidance. Option A increases attempts without improving each attempt's quality. Option B throws money at the problem without fixing the information gap. Option D removes the error context that would help Claude understand what to correct -- previous attempts with feedback should stay in context so Claude learns from its mistakes.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Correct Answer: A. Increase the retry count. With only 2 retries, the system does not give Claude enough attempts to explore the solution space. Extraction is probabilistic -- each attempt samples differently from the output distribution. With 5 retries, the probability of at least one correct extraction exceeds 99% even without changing the retry message. More attempts is simpler and more reliable than engineering specific feedback messages.",
+          "Correct Answer: B. Use Opus for retries. The retry fails because Sonnet lacks the reasoning capacity to correct its own extraction errors. Opus has stronger self-correction capabilities and will produce accurate extractions on retry even with a generic retry message. Using Sonnet for first attempts (cost-efficient) and Opus for retries (higher accuracy) is the standard model-escalation pattern for production pipelines.",
+          "Correct Answer: D. Start a fresh conversation. Including the failed extraction in the retry context anchors Claude to its previous errors. Starting fresh removes this anchoring bias and lets Claude approach the document without preconceptions. Each retry should be a completely independent extraction attempt. Including error messages (C) actually reinforces the anchoring effect by drawing attention to the wrong answers."
+        ]
+      },
+      {
+        id: "sq-016",
+        category: "sample-questions",
+        front: "Scenario 6, Q3 (SDK Method): You need to enforce structured output for a data extraction pipeline using the native Anthropic SDK. Which approach is correct?\n\nA) Call `client.messages.create()` with `response_format={\"type\": \"json_object\"}`\nB) Define a Pydantic model and call `client.messages.parse(output_format=YourModel)`\nC) Use `chain.with_structured_output(YourModel)` to wrap the extraction call\nD) Add `output_schema=your_json_schema` to the system prompt metadata",
+        back: "Correct Answer: B. `client.messages.parse()` with a Pydantic model is a native Anthropic SDK method for structured extraction. It returns typed Pydantic objects via `response.parsed_output`. Option A uses OpenAI's `response_format` syntax, which is not an Anthropic SDK parameter. Option C uses LangChain's `with_structured_output()`, not the native SDK. Option D is not a real API parameter. The other valid native SDK approach (not listed) is tool-forcing with `tool_choice={\"type\": \"tool\", \"name\": \"...\"}`. The exam mixes methods from different SDKs to test whether you know which belongs where.",
+        difficulty: 2,
+        refs: ["cca-scenario6", "api-course"],
+        distractors: [
+          "Correct Answer: A. The `response_format` parameter was added to the Anthropic SDK in version 0.30 to align with the industry standard established by OpenAI. Setting `response_format={\"type\": \"json_object\"}` constrains Claude's output to valid JSON. Option B's `messages.parse()` is a beta method that may change. Option C is the LangChain equivalent. For production stability, use the standardized `response_format` parameter.",
+          "Correct Answer: C. `with_structured_output()` is a universal method available in both LangChain and the native Anthropic SDK since they adopted a common interface standard. It is the recommended approach because it works identically regardless of which SDK you use, making your code portable. Option B is Anthropic-specific and creates vendor lock-in.",
+          "Correct Answer: D. The `output_schema` parameter in the system prompt metadata is the most recent addition to the Anthropic SDK, designed specifically for extraction use cases. It combines prompt-level guidance with API-level enforcement by embedding the schema in the system prompt where Claude can reference it while also validating the output against it. Options B and C are older approaches that have been superseded."
+        ]
+      },
     ];
 
     // ================================================
@@ -3985,6 +4334,27 @@
     }
 
     // ================================================
+    // stripAnswerPrefix - remove "Correct Answer: X." from quiz option display
+    // ================================================
+    function stripAnswerPrefix(text) {
+      return text.replace(/^Correct Answer:\s*[A-D][\.\)]\s*/i, '');
+    }
+
+    // ================================================
+    // stripEmbeddedChoices - remove A) B) C) D) from question front in quiz mode
+    // ================================================
+    function stripEmbeddedChoices(text) {
+      return text.replace(/\n\s*A\)[\s\S]*$/, '').replace(/\s+A\)\s[\s\S]*$/, '').trim();
+    }
+
+    // ================================================
+    // stripCrossReferences - remove "Option X is..." analysis from quiz options
+    // ================================================
+    function stripCrossReferences(text) {
+      return text.replace(/\s*Options?\s+[A-D](?:[\s,]+(?:and\s+)?[A-D])*\s+(?:is|are|reference|would|adds?|does|incorrectly|only)[\s\S]*$/, '').trim();
+    }
+
+    // ================================================
     // generateQuizOptions utility
     // ================================================
     function generateQuizOptions(card, allCards) {
@@ -3996,10 +4366,25 @@
         return excerpt;
       };
 
+      // For cards with embedded A/B/C/D choices in the front and "Correct Answer: X"
+      // in the back, extract the correct option text from the front so the quiz shows
+      // the actual answer choice rather than the explanation.
+      function extractCorrectOptionFromFront(card) {
+        const letterMatch = card.back.match(/^Correct Answer:\s*([A-D])/i);
+        if (!letterMatch) return null;
+        const letter = letterMatch[1].toUpperCase();
+        const choicePattern = new RegExp(letter + '\\)\\s*([\\s\\S]*?)(?=\\n\\s*[B-D]\\)|$)');
+        const choiceMatch = card.front.match(choicePattern);
+        if (!choiceMatch) return null;
+        return choiceMatch[1].trim();
+      }
+
       let wrongOptions;
       if (card.distractors && card.distractors.length === 3) {
-        wrongOptions = card.distractors.map(d => ({ text: truncate(d, 2), fullText: d, isCorrect: false }));
+        // Pre-authored distractors: show full text (written to be read as quiz options)
+        wrongOptions = card.distractors.map(d => ({ text: d, fullText: d, isCorrect: false }));
       } else {
+        // Fallback: random card backs as distractors, truncate since they weren't written as quiz options
         const sameCategory = allCards.filter(c => c.category === card.category && c.id !== card.id);
         const pool = sameCategory.length >= 3 ? sameCategory : allCards.filter(c => c.id !== card.id);
         const shuffled = [...pool].sort(() => Math.random() - 0.5);
@@ -4007,8 +4392,17 @@
         wrongOptions = sampled.map(d => ({ text: truncate(d.back, 2), fullText: d.back, isCorrect: false }));
       }
 
+      const hasDistractors = card.distractors && card.distractors.length === 3;
+      const frontOptionText = extractCorrectOptionFromFront(card);
+      let correctText;
+      if (frontOptionText) {
+        // Card has embedded choices: use the option text from the front
+        correctText = 'Correct Answer: ' + card.back.match(/^Correct Answer:\s*([A-D])/i)[1].toUpperCase() + '. ' + frontOptionText;
+      } else {
+        correctText = hasDistractors ? card.back : truncate(card.back, 3);
+      }
       const options = [
-        { text: truncate(card.back, 3), fullText: card.back, isCorrect: true },
+        { text: correctText, fullText: card.back, isCorrect: true },
         ...wrongOptions
       ];
       return options.sort(() => Math.random() - 0.5);
@@ -4359,7 +4753,7 @@
       return (
         <div className="view-enter">
           <div className="quiz-score">
-            <strong>{score}</strong> / {currentIndex + (showResult ? 1 : 0)} correct
+            <strong>{score}</strong> / {deck.length} correct
           </div>
           <ProgressBar current={currentIndex + 1} total={deck.length} />
           <div className="card-container">
@@ -4374,7 +4768,7 @@
                 {currentCard.difficulty === 1 ? 'easy' : currentCard.difficulty === 2 ? 'medium' : 'hard'}
               </span>
               <p style={{ marginTop: '1rem', fontSize: '1.05rem', lineHeight: '1.7' }}>
-                {renderCardText(currentCard.front)}
+                {renderCardText(stripEmbeddedChoices(currentCard.front))}
               </p>
             </div>
           </div>
@@ -4396,7 +4790,7 @@
                   onClick={() => handleSelect(i)}
                 >
                   <span style={{ fontFamily: 'var(--font-mono)', marginRight: '0.75rem', opacity: 0.5 }}>{i + 1}.</span>
-                  {opt.text}
+                  {stripAnswerPrefix(stripCrossReferences(opt.text))}
                 </button>
               );
             })}
@@ -4411,7 +4805,7 @@
                 fontSize: '0.95rem',
                 lineHeight: '1.7'
               }}>
-                {renderCardText(currentCard.back)}
+                {renderCardText(stripAnswerPrefix(currentCard.back))}
               </div>
               <div style={{ textAlign: 'center', marginTop: '1rem' }}>
                 <button className="btn" onClick={handleNext}>
