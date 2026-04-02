@@ -974,7 +974,7 @@ function buildAllSections() {
             <div class="timeline-marker" style="left:0%"><div class="label" style="color:var(--cyan)">Day 0</div><div class="dot" style="background:var(--cyan)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">Model release.<br>Native updated.</div></div>
             <div class="timeline-marker" style="left:25%"><div class="label" style="color:var(--text-dim)">Day 1-7</div><div class="dot" style="background:var(--border)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">Frameworks<br>begin testing</div></div>
             <div class="timeline-marker" style="left:55%"><div class="label" style="color:var(--green)">Day 7-30</div><div class="dot" style="background:var(--green)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">GSD, Superpowers<br>release updates</div></div>
-            <div class="timeline-marker" style="left:85%"><div class="label" style="color:var(--red)">Day 30-90</div><div class="dot" style="background:var(--red)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">BMAD,<br>slower fwks</div></div>
+            <div class="timeline-marker" style="left:85%"><div class="label" style="color:var(--red)">Day 30-90</div><div class="dot" style="background:var(--red)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">BMAD,<br>slower frameworks</div></div>
           </div>
         </div>
         <div class="insight" style="margin-top:60px"><strong>Example:</strong> GSD's <span class="tip">context isolation<span class="tip-text">Starting each phase fresh to prevent contamination.</span></span> was designed to solve <span class="tip">context anxiety<span class="tip-text">When models prematurely end tasks as context fills. Opus 4.6 doesn't exhibit this.</span></span>, which Opus 4.6 doesn't have. During the lag window, new capabilities run through old scaffolding.</div>
@@ -1039,7 +1039,7 @@ function buildAllSections() {
           <tr><td>Code review</td><td>Fresh subagent review</td><td>Superpowers review</td></tr>
           <tr><td>TDD</td><td>Hooks (pre-commit)</td><td>Superpowers TDD</td></tr>
           <tr><td>State</td><td>CLAUDE.md, memory, MCP</td><td>GSD STATE.md</td></tr>
-          <tr><td>Evaluation</td><td>Custom evaluator</td><td>All fwks verify step</td></tr>
+          <tr><td>Evaluation</td><td>Custom evaluator</td><td>All frameworks verify step</td></tr>
           <tr><td>Context</td><td>Auto compaction</td><td>GSD context isolation</td></tr>
           <tr><td>Inter-agent</td><td><span class="tip">Agent teams<span class="tip-text">Direct agent-to-agent messaging. Claude-only.</span></span></td><td>None (file-based)</td></tr>
         </tbody></table>
@@ -1245,7 +1245,10 @@ function renderArchDiagrams() {
       node.style.color = data.color;
       node.style.minWidth = '80px';
       node.textContent = n.label;
-      node.addEventListener('click', () => {
+      node.setAttribute('role', 'button');
+      node.setAttribute('tabindex', '0');
+      node.setAttribute('aria-pressed', 'false');
+      const activateNode = () => {
         document.querySelectorAll('.arch-node').forEach(an => an.classList.remove('selected'));
         node.classList.add('selected');
         const det = document.getElementById('arch-detail');
@@ -1270,6 +1273,12 @@ function renderArchDiagrams() {
           body.appendChild(fi);
         });
         det.classList.add('visible');
+        document.querySelectorAll('.arch-node').forEach(an => an.setAttribute('aria-pressed', 'false'));
+        node.setAttribute('aria-pressed', 'true');
+      };
+      node.addEventListener('click', activateNode);
+      node.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateNode(); }
       });
       diagram.appendChild(node);
     });
@@ -1566,6 +1575,9 @@ function renderGaps() {
     const tr = document.createElement('tr');
     tr.className = 'clickable-row';
     tr.style.cursor = 'pointer';
+    tr.setAttribute('tabindex', '0');
+    tr.setAttribute('role', 'button');
+    tr.setAttribute('aria-expanded', 'false');
 
     const tdGap = document.createElement('td');
     tdGap.textContent = row[0];
@@ -1605,7 +1617,14 @@ function renderGaps() {
     expandTd.appendChild(expandDiv);
     expandTr.appendChild(expandTd);
 
-    tr.addEventListener('click', () => expandDiv.classList.toggle('visible'));
+    const toggleGap = () => {
+      expandDiv.classList.toggle('visible');
+      tr.setAttribute('aria-expanded', expandDiv.classList.contains('visible'));
+    };
+    tr.addEventListener('click', toggleGap);
+    tr.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGap(); }
+    });
 
     tbody.appendChild(tr);
     tbody.appendChild(expandTr);
@@ -1713,7 +1732,7 @@ function updatePrompt() {
   if (state.activeTab === 'ablation') {
     const removed = ablationComponents.filter(c => !state.ablation[c.key]);
     const kept = ablationComponents.filter(c => state.ablation[c.key]);
-    if (removed.length > 0 && removed.length < 6) {
+    if (removed.length > 0 && removed.length < ablationComponents.length) {
       parts.push('Based on ablation analysis, I want a harness that keeps ' + kept.map(c=>c.name.toLowerCase()).join(', ') + ' but drops ' + removed.map(c=>c.name.toLowerCase()).join(', ') + '.');
       const risky = removed.filter(c => c.opusImpact === 'red');
       if (risky.length) parts.push('Note: removing ' + risky.map(c=>c.name.toLowerCase()).join(' and ') + ' has significant impact even on Opus 4.6.');
@@ -1823,15 +1842,16 @@ function init() {
 try {
   init();
 } catch (e) {
+  const err = e instanceof Error ? e : new Error(String(e));
   document.body.style.cssText = 'background:#0c0f14;color:#ef4444;padding:24px;font-family:monospace';
   document.body.textContent = '';
   const h = document.createElement('h2');
   h.textContent = 'Failed to initialize';
   const pre = document.createElement('pre');
-  pre.textContent = e.message + '\n' + e.stack;
+  pre.textContent = err.message + '\n' + err.stack;
   document.body.appendChild(h);
   document.body.appendChild(pre);
-  console.error('Init failed:', e);
+  console.error('Init failed:', err);
 }
 </script>
 </body>
