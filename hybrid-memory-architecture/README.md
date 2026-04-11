@@ -18,6 +18,18 @@ Interactive playground exploring a four-layer memory architecture that teaches A
 - **Claude-Mem vs Episodic** -- Side-by-side comparison and decision helper
 - **Session Lifecycle** -- Timeline with token budget breakdown
 
-## Usage
+## Input
 
-Open `index.html` in a browser. No dependencies required.
+See [prompt.md](prompt.md)
+
+## Output
+
+See [results.md](results.md)
+
+## Try It Out
+
+Run this from the root directory in order for Claude Code to pick up the [settings](../.claude/settings.json)
+
+```sh
+cat <(echo "/playground") hybrid-memory-architecture/prompt.md | CLAUDE_CODE_MAX_OUTPUT_TOKENS=64000 claude --dangerously-skip-permissions
+```
