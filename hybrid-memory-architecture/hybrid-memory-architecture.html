@@ -1037,44 +1037,74 @@
 
     <!-- Token budget -->
     <h2 class="section-title">Token Budget at Startup</h2>
-    <p class="section-subtitle">Approximate cost per session start on a 200K context window.</p>
+    <p class="section-subtitle">Approximate cost per session start. Varies by setup -- use <span class="mono">/context</span> in Claude Code for exact numbers.</p>
 
     <div class="budget-container" id="budget-container" aria-label="Token budget breakdown">
       <div class="budget-row">
-        <span class="budget-label">System prompt + skills</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:100%;background:var(--text-dim);"></div></div>
-        <span class="budget-value">~17,500</span>
+        <span class="budget-label" style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;">Anthropic-provided (fixed)</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:0%;"></div></div>
+        <span class="budget-value"></span>
       </div>
       <div class="budget-row">
-        <span class="budget-label">Global CLAUDE.md</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:16%;background:var(--text-dim);"></div></div>
-        <span class="budget-value">~2,800</span>
+        <span class="budget-label">Base system prompt</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:6.75%;background:var(--text-dim);"></div></div>
+        <span class="budget-value">~2,700</span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Built-in tool definitions</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:25%;background:var(--text-dim);"></div></div>
+        <span class="budget-value">~10,000</span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label" style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;">User-configured (variable)</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:0%;"></div></div>
+        <span class="budget-value"></span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">MCP tool definitions</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:100%;background:var(--red);"></div></div>
+        <span class="budget-value">0-40,000+</span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Skills catalog (one-liners)</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:18.5%;background:var(--text-dim);"></div></div>
+        <span class="budget-value">~7,400</span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label">Global CLAUDE.md + rules</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:12.8%;background:var(--text-dim);"></div></div>
+        <span class="budget-value">~5,100</span>
       </div>
       <div class="budget-row">
         <span class="budget-label">Project CLAUDE.md</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:4.6%;background:var(--text-dim);"></div></div>
-        <span class="budget-value">~800</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:2.5%;background:var(--text-dim);"></div></div>
+        <span class="budget-value">0-1,000</span>
+      </div>
+      <div class="budget-row">
+        <span class="budget-label" style="color:var(--text-dim);font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-top:8px;">Memory layers</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:0%;"></div></div>
+        <span class="budget-value"></span>
       </div>
       <div class="budget-row">
         <span class="budget-label">Auto-Memory files</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:2.3%;background:var(--purple);"></div></div>
-        <span class="budget-value">~400</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:3.6%;background:var(--purple);"></div></div>
+        <span class="budget-value">~1,400</span>
       </div>
       <div class="budget-row">
         <span class="budget-label">Claude-Mem context</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:1.7%;background:var(--green);"></div></div>
-        <span class="budget-value">~300</span>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:0.6%;background:var(--green);"></div></div>
+        <span class="budget-value">~200</span>
       </div>
       <div class="budget-row">
         <span class="budget-label">bd prime</span>
-        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:8.6%;background:var(--cyan);"></div></div>
+        <div class="budget-bar-track" role="presentation"><div class="budget-bar-fill" style="width:3.75%;background:var(--cyan);"></div></div>
         <span class="budget-value">~1,500</span>
       </div>
       <div class="budget-total">
-        <span class="total-label">Total startup cost</span>
-        <span class="total-value">~23,300 tokens (~12% of 200K)</span>
+        <span class="total-label">Typical range</span>
+        <span class="total-value">~28K (minimal) to ~70K+ (power user)</span>
       </div>
-      <div class="budget-note">Offset by not wasting thousands of tokens per session on re-orientation.</div>
+      <div class="budget-note">MCP tools are the biggest variable. Enable tool search to load them on demand instead of upfront.</div>
     </div>
 
   </div>
