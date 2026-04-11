@@ -1,0 +1,1858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Agent Harness Decision Framework</title>
+<style>
+  :root {
+    --bg: #0c0f14;
+    --bg-card: #141820;
+    --bg-hover: #1a1f2a;
+    --bg-active: #1e2536;
+    --border: #2a3040;
+    --text: #c8cdd8;
+    --text-dim: #6b7280;
+    --text-bright: #e8ecf4;
+    --cyan: #22d3ee;
+    --cyan-dim: #0e7490;
+    --blue: #3b82f6;
+    --blue-dim: #1e40af;
+    --green: #22c55e;
+    --green-dim: #166534;
+    --amber: #f59e0b;
+    --amber-dim: #92400e;
+    --red: #ef4444;
+    --red-dim: #991b1b;
+    --purple: #a78bfa;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+
+  .mono { font-family: 'SF Mono', 'Fira Code', 'Cascadia Code', monospace; }
+
+  header {
+    padding: 20px 24px 0;
+    border-bottom: 1px solid var(--border);
+  }
+  header h1 {
+    font-size: 20px;
+    color: var(--text-bright);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  header p {
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .tabs {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 10px 16px;
+    font-size: 13px;
+    color: var(--text-dim);
+    cursor: pointer;
+    border-bottom: 2px solid transparent;
+    white-space: nowrap;
+    transition: all 0.2s;
+    background: none;
+    border-top: none;
+    border-left: none;
+    border-right: none;
+    font-family: inherit;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--cyan);
+    border-bottom-color: var(--cyan);
+  }
+
+  main {
+    padding: 24px;
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-bottom: 120px;
+  }
+  .section { display: none; }
+  .section.active { display: block; }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    margin-bottom: 16px;
+  }
+  .card h2 {
+    font-size: 16px;
+    color: var(--text-bright);
+    margin-bottom: 4px;
+  }
+  .card h3 {
+    font-size: 14px;
+    color: var(--text-bright);
+    margin-bottom: 8px;
+  }
+  .card .subtitle {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-bottom: 16px;
+  }
+
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+
+  @media (max-width: 900px) {
+    .grid-2, .grid-3 { grid-template-columns: 1fr; }
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  th {
+    text-align: left;
+    padding: 8px 12px;
+    color: var(--text-dim);
+    font-weight: 500;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--border);
+  }
+  td {
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+
+  .switch {
+    position: relative;
+    width: 40px;
+    height: 22px;
+    flex-shrink: 0;
+    display: inline-block;
+  }
+  .switch input { opacity: 0; width: 0; height: 0; }
+  .switch .slider {
+    position: absolute;
+    inset: 0;
+    background: var(--border);
+    border-radius: 11px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .switch .slider::before {
+    content: '';
+    position: absolute;
+    width: 16px;
+    height: 16px;
+    left: 3px;
+    top: 3px;
+    background: var(--text);
+    border-radius: 50%;
+    transition: transform 0.2s;
+  }
+  .switch input:checked + .slider { background: var(--cyan); }
+  .switch input:checked + .slider::before { transform: translateX(18px); }
+
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+  .badge-green { background: var(--green-dim); color: var(--green); }
+  .badge-amber { background: var(--amber-dim); color: var(--amber); }
+  .badge-red { background: var(--red-dim); color: var(--red); }
+  .badge-blue { background: var(--blue-dim); color: var(--blue); }
+
+  .arch-diagram {
+    min-height: 280px;
+    position: relative;
+    overflow: hidden;
+  }
+  .arch-node {
+    position: absolute;
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-align: center;
+    z-index: 2;
+    background: var(--bg-card);
+  }
+  .arch-node:hover {
+    border-color: var(--cyan);
+    background: var(--bg-active);
+    z-index: 3;
+  }
+  .arch-node.selected {
+    border-color: var(--cyan);
+    box-shadow: 0 0 12px rgba(34, 211, 238, 0.2);
+  }
+  .arch-svg {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+  }
+
+  .node-detail {
+    background: var(--bg-active);
+    border: 1px solid var(--cyan-dim);
+    border-radius: 8px;
+    padding: 16px;
+    margin-top: 12px;
+    font-size: 13px;
+    display: none;
+  }
+  .node-detail.visible { display: block; }
+  .node-detail h4 {
+    color: var(--cyan);
+    margin-bottom: 8px;
+    font-size: 14px;
+  }
+  .flow-item {
+    display: flex;
+    gap: 8px;
+    margin: 4px 0;
+    font-size: 12px;
+  }
+  .flow-item .arrow { color: var(--cyan); flex-shrink: 0; }
+
+  .wizard-step {
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  .wizard-step.active { display: block; }
+  @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+
+  .wizard-option {
+    display: block;
+    width: 100%;
+    padding: 14px 18px;
+    margin: 8px 0;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-size: 14px;
+    text-align: left;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: inherit;
+  }
+  .wizard-option:hover {
+    border-color: var(--cyan-dim);
+    background: var(--bg-hover);
+  }
+  .wizard-option.selected {
+    border-color: var(--cyan);
+    background: var(--bg-active);
+  }
+  .wizard-option .opt-desc {
+    font-size: 12px;
+    color: var(--text-dim);
+    margin-top: 4px;
+  }
+
+  .wizard-progress {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 20px;
+  }
+  .wizard-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--border);
+    transition: all 0.3s;
+  }
+  .wizard-dot.done { background: var(--cyan); }
+  .wizard-dot.current {
+    background: var(--cyan);
+    box-shadow: 0 0 8px rgba(34,211,238,0.4);
+  }
+
+  .wizard-result {
+    display: none;
+    animation: fadeIn 0.3s;
+  }
+  .wizard-result.active { display: block; }
+
+  .elim-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 8px 0;
+    font-size: 13px;
+  }
+  .elim-row.eliminated { text-decoration: line-through; color: var(--text-dim); }
+  .elim-icon { width: 20px; text-align: center; }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    background: var(--border);
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: var(--cyan);
+    cursor: pointer;
+    box-shadow: 0 0 6px rgba(34,211,238,0.3);
+  }
+
+  .slot {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px;
+    margin-bottom: 12px;
+  }
+  .slot h4 {
+    font-size: 13px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-bottom: 10px;
+  }
+  .slot-options { display: flex; flex-wrap: wrap; gap: 8px; }
+  .slot-opt {
+    padding: 6px 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: none;
+    color: var(--text);
+    font-family: inherit;
+  }
+  .slot-opt:hover { border-color: var(--cyan-dim); }
+  .slot-opt.selected { border-color: var(--cyan); background: rgba(34,211,238,0.1); color: var(--cyan); }
+
+  .conflict-msg {
+    margin-top: 12px;
+    padding: 10px 14px;
+    background: rgba(245,158,11,0.1);
+    border: 1px solid var(--amber-dim);
+    border-radius: 6px;
+    font-size: 12px;
+    color: var(--amber);
+    display: none;
+  }
+  .conflict-msg.visible { display: block; }
+
+  .timeline-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin: 40px 0;
+    position: relative;
+  }
+  .timeline-marker {
+    position: absolute;
+    top: -32px;
+    transform: translateX(-50%);
+    text-align: center;
+    font-size: 11px;
+  }
+  .timeline-marker .dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    margin: 4px auto 0;
+  }
+
+  .venn-container {
+    position: relative;
+    height: 220px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  .venn-circle {
+    position: absolute;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    border: 2px solid;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 500;
+    text-align: center;
+    padding: 20px;
+  }
+
+  #prompt-output-container {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: var(--bg-card);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+  }
+  .prompt-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 24px;
+    cursor: pointer;
+  }
+  .prompt-header span {
+    font-size: 12px;
+    color: var(--text-dim);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+  .prompt-body {
+    padding: 0 24px 14px;
+    max-height: 200px;
+    overflow-y: auto;
+  }
+  #prompt-text {
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    color: var(--text);
+    white-space: pre-wrap;
+  }
+  .copy-btn {
+    padding: 6px 14px;
+    background: var(--cyan-dim);
+    color: var(--cyan);
+    border: none;
+    border-radius: 4px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .copy-btn:hover { background: var(--cyan); color: var(--bg); }
+  .copy-btn.copied { background: var(--green); color: white; }
+
+  .chevron {
+    display: inline-block;
+    transition: transform 0.2s;
+    color: var(--text-dim);
+    font-size: 14px;
+  }
+  .chevron.up { transform: rotate(180deg); }
+
+  .tip {
+    position: relative;
+    cursor: help;
+    border-bottom: 1px dotted var(--text-dim);
+  }
+  .tip .tip-text {
+    display: none;
+    position: absolute;
+    bottom: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--bg-active);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-size: 12px;
+    color: var(--text);
+    white-space: normal;
+    width: 250px;
+    z-index: 50;
+    pointer-events: none;
+    font-weight: 400;
+  }
+  .tip:hover .tip-text { display: block; }
+
+  .insight {
+    background: rgba(34,211,238,0.06);
+    border-left: 3px solid var(--cyan-dim);
+    padding: 12px 16px;
+    margin: 16px 0;
+    font-size: 13px;
+    color: var(--text);
+  }
+  .insight strong { color: var(--cyan); }
+
+  .category-legend {
+    display: flex;
+    gap: 16px;
+    margin: 12px 0;
+    font-size: 12px;
+  }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .reset-btn {
+    padding: 6px 14px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+  }
+  .reset-btn:hover { border-color: var(--text-dim); color: var(--text); }
+
+  .presets {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+  }
+  .preset-btn {
+    padding: 5px 12px;
+    background: var(--bg-hover);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 12px;
+    cursor: pointer;
+    font-family: inherit;
+    transition: all 0.2s;
+  }
+  .preset-btn:hover { border-color: var(--cyan-dim); color: var(--text); }
+  .preset-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(34,211,238,0.08); }
+
+  .gap-expand {
+    display: none;
+    padding: 12px 16px;
+    background: var(--bg-hover);
+    border-top: 1px solid var(--border);
+    font-size: 12px;
+  }
+  .gap-expand.visible { display: block; }
+
+  .clickable-row { cursor: pointer; }
+  .clickable-row:hover { background: var(--bg-hover); }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Agent Harness Decision Framework</h1>
+  <p>Should you adopt a third-party framework, build on native capabilities, or compose a hybrid?</p>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Framework analysis sections"></div>
+</header>
+
+<main id="main-content"></main>
+
+<div id="prompt-output-container">
+  <div class="prompt-header" id="prompt-toggle" role="button" tabindex="0" aria-expanded="true" aria-label="Toggle prompt output">
+    <span>Prompt Output <span class="chevron" id="prompt-chevron">&#9650;</span></span>
+    <button class="copy-btn" id="copy-btn">Copy</button>
+  </div>
+  <div class="prompt-body" id="prompt-body">
+    <div id="prompt-text">Explore the tabs above. Your selections will generate a contextual prompt here.</div>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const state = {
+  activeTab: 'ablation',
+  ablation: {
+    sprintDecomp: true, contextResets: true, detailedSpecs: true,
+    sprintContract: true, evaluator: true, planner: true
+  },
+  wizard: { step: 0, answers: {}, complete: false },
+  obsolescence: 30,
+  hybrid: { planner: null, generator: null, evaluator: null, methodology: null, orchestration: null },
+  promptCollapsed: false
+};
+
+// ===== DATA =====
+const ablationComponents = [
+  { key: 'sprintDecomp', name: 'Sprint Decomposition', desc: 'Breaking work into small task batches',
+    opus: ['None', 'model maintained coherence'], opusImpact: 'green',
+    sonnet: ['Significant', 'lost coherence on long tasks'], sonnetImpact: 'red' },
+  { key: 'contextResets', name: 'Context Resets', desc: 'Clearing context between phases',
+    opus: ['None', 'no context anxiety observed'], opusImpact: 'green',
+    sonnet: ['Significant', 'premature task completion'], sonnetImpact: 'red' },
+  { key: 'detailedSpecs', name: 'Detailed Task Specs', desc: 'Micro-level step-by-step instructions',
+    opus: ['Negative', 'micro-specs caused cascading errors'], opusImpact: 'green',
+    sonnet: ['Positive', 'model needed guidance'], sonnetImpact: 'red' },
+  { key: 'sprintContract', name: 'Sprint Contract', desc: 'Generator/evaluator negotiate "done"',
+    opus: ['Minimal', 'generator handled quality solo'], opusImpact: 'green',
+    sonnet: ['Moderate', 'evaluator had to catch gaps'], sonnetImpact: 'amber' },
+  { key: 'evaluator', name: 'Evaluator Agent', desc: 'Grades output quality with rubrics',
+    opus: ['Significant', 'critical for subjective tasks'], opusImpact: 'red',
+    sonnet: ['Significant', 'needed across all tasks'], sonnetImpact: 'red' },
+  { key: 'planner', name: 'Planner Agent', desc: 'Scopes work at a high level',
+    opus: ['Significant', 'generators under-scoped'], opusImpact: 'red',
+    sonnet: ['Significant', 'same impact'], sonnetImpact: 'red' },
+];
+
+const archData = {
+  bmad: {
+    color: 'var(--red)', label: 'BMAD', sublabel: 'Documentation-First',
+    nodes: [
+      { id: 'analyst', label: 'Analyst', x: 100, y: 20,
+        detail: 'Gathers requirements and produces a PRD.', dataIn: 'User requirements, existing docs', dataOut: 'PRD (Product Requirements Document)', comm: 'File-based: writes PRD.md' },
+      { id: 'architect', label: 'Architect', x: 100, y: 75,
+        detail: 'Designs system architecture from the PRD.', dataIn: 'PRD.md', dataOut: 'Architecture Document', comm: 'File-based: reads PRD, writes ARCHITECTURE.md' },
+      { id: 'pm', label: 'PM', x: 100, y: 130,
+        detail: 'Creates user stories and task breakdowns.', dataIn: 'PRD + Architecture docs', dataOut: 'User stories, task list', comm: 'File-based: reads upstream docs, writes stories' },
+      { id: 'developer', label: 'Developer', x: 100, y: 185,
+        detail: 'Implements code from the task list.', dataIn: 'Stories + task specs', dataOut: 'Source code', comm: 'File-based: reads tasks, writes code' },
+      { id: 'qa', label: 'QA', x: 100, y: 240,
+        detail: 'Reviews code from multiple angles.', dataIn: 'Source code + requirements', dataOut: 'Review feedback', comm: 'File-based: reads code, writes review' },
+    ],
+    edges: [[0,1],[1,2],[2,3],[3,4]]
+  },
+  gsd: {
+    color: 'var(--amber)', label: 'GSD', sublabel: 'Spec-Driven',
+    nodes: [
+      { id: 'orch', label: 'Orchestrator', x: 110, y: 20,
+        detail: 'Central dispatcher managing the 5-phase pipeline.', dataIn: 'User task description', dataOut: 'Phase activation signals', comm: 'File-based: CONTEXT.md, STATE.md' },
+      { id: 'research', label: 'Researcher (4)', x: 40, y: 100,
+        detail: '4 agents investigating the codebase and requirements.', dataIn: 'CONTEXT.md', dataOut: 'Research findings', comm: 'File-based: writes to shared context' },
+      { id: 'planner', label: 'Planner + Checker', x: 170, y: 100,
+        detail: 'Creates atomic execution plan in XML. Checker validates quality.', dataIn: 'Research findings', dataOut: 'PLAN.md (atomic tasks with deps)', comm: 'File-based: PLAN.md' },
+      { id: 'executor', label: 'Parallel Executors', x: 110, y: 185,
+        detail: 'Wave-based execution. Independent tasks run in parallel.', dataIn: 'PLAN.md tasks', dataOut: 'Implemented code', comm: 'File-based: STATE.md progress' },
+      { id: 'verifier', label: 'Verifier', x: 110, y: 250,
+        detail: 'Pass/fail verification against plan specifications.', dataIn: 'Code + plan specs', dataOut: 'Pass/fail result', comm: 'File-based: reads STATE.md' },
+    ],
+    edges: [[0,1],[0,2],[1,3],[2,3],[3,4]]
+  },
+  superpowers: {
+    color: 'var(--green)', label: 'Superpowers', sublabel: 'Skills-Based',
+    nodes: [
+      { id: 'brainstorm', label: 'Brainstorm', x: 110, y: 20,
+        detail: 'Socratic questioning to explore requirements.', dataIn: 'User request', dataOut: 'Clarified requirements', comm: 'Conversational (in-context)' },
+      { id: 'plan', label: 'Plan (2-5 min)', x: 110, y: 95,
+        detail: 'Breaks work into small testable tasks (2-5 min each).', dataIn: 'Clarified requirements', dataOut: 'Task plan', comm: 'Plan file' },
+      { id: 'execute', label: 'Execute', x: 110, y: 170,
+        detail: 'Dispatches subagents for independent tasks.', dataIn: 'Task plan', dataOut: 'Implemented code', comm: 'Subagent dispatch' },
+      { id: 'tdd', label: 'TDD + Review', x: 110, y: 245,
+        detail: 'Tests first. Fresh subagent reviews code independently.', dataIn: 'Implementation', dataOut: 'Tested, reviewed code', comm: 'Skill composition' },
+    ],
+    edges: [[0,1],[1,2],[2,3]]
+  },
+  native: {
+    color: 'var(--cyan)', label: 'Anthropic Native', sublabel: 'Minimal Scaffolding',
+    nodes: [
+      { id: 'planner', label: 'Planner', x: 110, y: 30,
+        detail: 'Scopes work at a high product-level. No micro-specifications.', dataIn: 'User spec or requirements', dataOut: 'High-level plan', comm: 'Agent teams (direct messaging)' },
+      { id: 'generator', label: 'Generator', x: 50, y: 155,
+        detail: 'Writes code. Can spawn subagents. Direct communication.', dataIn: 'Plan + codebase context', dataOut: 'Source code, tests', comm: 'Agent teams (direct messaging)' },
+      { id: 'evaluator', label: 'Evaluator', x: 170, y: 155,
+        detail: 'Scores output on multiple dimensions (1-10 per rubric).', dataIn: 'Generated code', dataOut: 'Graded scores + feedback', comm: 'Agent teams (direct messaging)' },
+    ],
+    edges: [[0,1],[1,2],[2,1]]
+  }
+};
+
+const wizardQuestions = [
+  {
+    question: 'Are you Claude-only or multi-provider?',
+    options: [
+      { label: 'Claude-only', desc: 'Team uses Claude Code exclusively', key: 'claude' },
+      { label: 'Multi-provider', desc: 'Team uses different AI coding assistants', key: 'multi' },
+    ],
+    eliminations: { claude: {}, multi: { native: 'Requires Claude. You need a provider-agnostic option.' } },
+    boosts: { claude: ['native', 'superpowers'], multi: ['gsd', 'bmad'] }
+  },
+  {
+    question: "What's your primary concern?",
+    options: [
+      { label: 'Building the wrong thing', desc: 'Vague requirements, wasted implementation', key: 'wrong' },
+      { label: 'Building it sloppily', desc: 'Skipped tests, inconsistent quality', key: 'sloppy' },
+      { label: 'Losing context', desc: 'Long or multi-session projects', key: 'context' },
+      { label: 'Proving what was done', desc: 'Compliance, audits, team turnover', key: 'audit' },
+    ],
+    eliminations: { wrong: {}, sloppy: {}, context: {}, audit: {} },
+    boosts: { wrong: ['bmad', 'native'], sloppy: ['superpowers'], context: ['gsd'], audit: ['bmad', 'gsd'] }
+  },
+  {
+    question: 'How long do your AI-assisted sessions run?',
+    options: [
+      { label: 'Short bursts', desc: 'Features, bug fixes -- hours at most', key: 'short' },
+      { label: 'Extended sessions', desc: '6+ hours of continuous work', key: 'long' },
+      { label: 'Multi-session projects', desc: 'Spanning days or weeks', key: 'multi_sess' },
+    ],
+    eliminations: { short: {}, long: {}, multi_sess: {} },
+    boosts: { short: ['native', 'superpowers'], long: ['gsd', 'superpowers'], multi_sess: ['gsd', 'bmad'] }
+  },
+  {
+    question: 'Is TDD non-negotiable?',
+    options: [
+      { label: 'Yes, structural enforcement', desc: 'Need guardrails, not encouragement', key: 'strict' },
+      { label: 'We practice it', desc: "Don't need guardrails", key: 'practice' },
+      { label: 'Not a priority', desc: 'Other qualities matter more', key: 'no' },
+    ],
+    eliminations: { strict: {}, practice: {}, no: {} },
+    boosts: { strict: ['superpowers'], practice: ['native'], no: ['bmad', 'gsd'] }
+  },
+  {
+    question: 'How much setup overhead is acceptable?',
+    options: [
+      { label: 'Minimal', desc: 'Install a plugin and go', key: 'minimal' },
+      { label: 'Moderate', desc: 'Configure some files and personas', key: 'moderate' },
+      { label: 'Heavy is fine', desc: 'The structure pays off', key: 'heavy' },
+    ],
+    eliminations: { minimal: { bmad: 'Too much setup (12+ agent personas).' }, moderate: {}, heavy: {} },
+    boosts: { minimal: ['superpowers', 'native'], moderate: ['gsd', 'native'], heavy: ['bmad'] }
+  }
+];
+
+const obsComponents = [
+  { name: 'BMAD micro-task sharding', source: 'BMAD', cat: 'workaround', baseValue: 20, baseRisk: 95 },
+  { name: 'BMAD PRD generation', source: 'BMAD', cat: 'discipline', baseValue: 80, baseRisk: 15 },
+  { name: 'GSD context isolation', source: 'GSD', cat: 'workaround', baseValue: 25, baseRisk: 90 },
+  { name: 'GSD parallel waves', source: 'GSD', cat: 'orchestration', baseValue: 60, baseRisk: 20 },
+  { name: 'Superpowers TDD enforcement', source: 'Superpowers', cat: 'discipline', baseValue: 85, baseRisk: 5 },
+  { name: 'Superpowers brainstorming', source: 'Superpowers', cat: 'discipline', baseValue: 85, baseRisk: 5 },
+  { name: 'Superpowers task breakdown', source: 'Superpowers', cat: 'workaround', baseValue: 55, baseRisk: 65 },
+  { name: 'Anthropic graded evaluation', source: 'Anthropic', cat: 'discipline', baseValue: 85, baseRisk: 10 },
+  { name: 'Anthropic high-level planning', source: 'Anthropic', cat: 'discipline', baseValue: 90, baseRisk: 5 },
+];
+
+const hybridSlots = [
+  { key: 'planner', label: 'Planner', options: [
+    { id: 'native-plan', label: 'Anthropic high-level', source: 'Anthropic', desc: 'Product-level spec, avoids micro-planning' },
+    { id: 'bmad-plan', label: 'BMAD analyst/PM', source: 'BMAD', desc: 'Domain-specialized planning pipeline' },
+    { id: 'gsd-plan', label: 'GSD research', source: 'GSD', desc: '4 research agents + atomic XML plan' },
+    { id: 'sp-plan', label: 'Superpowers brainstorm', source: 'Superpowers', desc: 'Socratic questioning before planning' },
+  ]},
+  { key: 'generator', label: 'Generator', options: [
+    { id: 'native-gen', label: 'Native subagents', source: 'Anthropic', desc: 'Claude Code Agent tool' },
+    { id: 'gsd-gen', label: 'GSD wave executor', source: 'GSD', desc: 'Dependency-aware parallel waves' },
+    { id: 'sp-gen', label: 'Superpowers execute', source: 'Superpowers', desc: 'Subagent dispatch + skills' },
+  ]},
+  { key: 'evaluator', label: 'Evaluator', options: [
+    { id: 'native-eval', label: 'Anthropic graded scoring', source: 'Anthropic', desc: 'Multi-dimension rubrics (1-10)' },
+    { id: 'sp-eval', label: 'Superpowers TDD + review', source: 'Superpowers', desc: 'TDD + fresh subagent review' },
+    { id: 'gsd-eval', label: 'GSD pass/fail', source: 'GSD', desc: 'Binary verification against specs' },
+    { id: 'bmad-eval', label: 'BMAD QA agent', source: 'BMAD', desc: 'Multi-angle code review' },
+  ]},
+  { key: 'methodology', label: 'Methodology', options: [
+    { id: 'sp-method', label: 'Superpowers TDD + brainstorm', source: 'Superpowers', desc: 'Structured TDD + Socratic questioning' },
+    { id: 'gate-method', label: 'Phase gates', source: 'Custom', desc: 'Gates between planning, execution, review' },
+    { id: 'none-method', label: 'None', source: '--', desc: 'No methodology enforcement' },
+  ]},
+  { key: 'orchestration', label: 'Orchestration', options: [
+    { id: 'native-orch', label: 'Native agent teams', source: 'Anthropic', desc: 'Direct agent-to-agent messaging' },
+    { id: 'gsd-orch', label: 'GSD wave model', source: 'GSD', desc: 'Dep graph + wave parallel execution' },
+    { id: 'none-orch', label: 'None', source: '--', desc: 'Manual orchestration' },
+  ]}
+];
+
+const hybridConflicts = [
+  { test: s => s.generator === 'gsd-gen' && s.orchestration === 'native-orch',
+    msg: 'GSD wave executor uses file-based state (STATE.md), while native agent teams use direct messaging. These are different coordination models -- pick one.' },
+  { test: s => s.planner === 'bmad-plan' && s.orchestration === 'native-orch',
+    msg: 'BMAD agents use file-based handoffs but native agent teams use direct messaging. You would need to bridge between communication styles.' },
+];
+
+const gapDetails = [
+  { diy: 'Write role-specific system prompts for a BA, architect, PM. Route them in sequence. 2-3 hours setup.', fw: 'Pre-built persona prompts tested across project types, file-based handoff conventions.' },
+  { diy: 'Implement dependency tracking, topological sort, wave grouping, failure handling. Substantial engineering.', fw: 'Battle-tested wave executor, STATE.md tracking, automatic dependency resolution.' },
+  { diy: 'Write a pre-commit hook + CLAUDE.md rule. 30 minutes.', fw: 'Integrated TDD workflow structuring the entire development cycle, not just a gate at commit.' },
+  { diy: 'Write an evaluator agent prompt with scoring dimensions and 1-10 scales. 1 hour.', fw: 'This IS what Anthropic recommends. Their research provides the pattern directly.' },
+  { diy: 'Write a brainstorming prompt that asks clarifying questions before planning. 30 minutes.', fw: 'Multi-round questioning protocol ensuring requirements are explored before code.' },
+  { diy: 'Use CLAUDE.md + memory files + MCP servers. 2-4 hours to design the schema.', fw: 'ROADMAP.md with automatic progress, STATE.md for context, integrated with wave executor.' },
+];
+
+// ===== RENDERING =====
+const tabDefs = [
+  { id: 'ablation', label: 'Ablation Explorer' },
+  { id: 'architecture', label: 'Architecture' },
+  { id: 'wizard', label: 'Decision Wizard' },
+  { id: 'dilution', label: 'Dilution' },
+  { id: 'obsolescence', label: 'Obsolescence' },
+  { id: 'native', label: 'Native vs Framework' },
+  { id: 'hybrid', label: 'Hybrid Builder' },
+];
+
+function initTabs() {
+  const tabBar = document.getElementById('tabs');
+  tabDefs.forEach((t, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'tab' + (t.id === state.activeTab ? ' active' : '');
+    btn.textContent = t.label;
+    btn.dataset.tab = t.id;
+    btn.setAttribute('role', 'tab');
+    btn.setAttribute('aria-selected', t.id === state.activeTab ? 'true' : 'false');
+    btn.setAttribute('aria-controls', 'sec-' + t.id);
+    btn.id = 'tab-' + t.id;
+    if (t.id !== state.activeTab) btn.setAttribute('tabindex', '-1');
+    btn.addEventListener('click', () => switchTab(t.id));
+    tabBar.appendChild(btn);
+  });
+
+  tabBar.addEventListener('keydown', (e) => {
+    const tabs = Array.from(tabBar.querySelectorAll('[role="tab"]'));
+    const current = tabs.findIndex(t => t.dataset.tab === state.activeTab);
+    let next = -1;
+    if (e.key === 'ArrowRight') next = (current + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (current - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    if (next >= 0) {
+      e.preventDefault();
+      switchTab(tabs[next].dataset.tab);
+      tabs[next].focus();
+    }
+  });
+}
+
+function switchTab(id) {
+  state.activeTab = id;
+  document.querySelectorAll('.tab').forEach(t => {
+    const isActive = t.dataset.tab === id;
+    t.classList.toggle('active', isActive);
+    t.setAttribute('aria-selected', isActive ? 'true' : 'false');
+    t.setAttribute('tabindex', isActive ? '0' : '-1');
+  });
+  document.querySelectorAll('.section').forEach(s => s.classList.toggle('active', s.id === 'sec-' + id));
+  updatePrompt();
+}
+
+function el(tag, attrs, children) {
+  const e = document.createElement(tag);
+  if (attrs) Object.entries(attrs).forEach(([k,v]) => {
+    if (k === 'style' && typeof v === 'object') Object.assign(e.style, v);
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2), v);
+    else if (k === 'className') e.className = v;
+    else e.setAttribute(k, v);
+  });
+  if (children) {
+    if (typeof children === 'string') e.textContent = children;
+    else if (Array.isArray(children)) children.forEach(c => { if (c) e.appendChild(typeof c === 'string' ? document.createTextNode(c) : c); });
+    else e.appendChild(children);
+  }
+  return e;
+}
+
+function html(parent, markup) {
+  const t = document.createElement('template');
+  t.innerHTML = markup;
+  const frag = t.content;
+  parent.appendChild(frag);
+}
+
+// ===== BUILD SECTIONS =====
+function buildAllSections() {
+  const main = document.getElementById('main-content');
+
+  // 1. Ablation
+  const secAbl = el('div', { id: 'sec-ablation', className: 'section active' });
+  html(secAbl, `
+    <div class="card">
+      <h2>Harness Ablation Explorer</h2>
+      <p class="subtitle">Toggle each harness component off to see its impact. Based on Anthropic's experiments with their SWE-bench agent.</p>
+      <div class="presets" id="abl-presets"></div>
+      <div class="grid-2">
+        <div><table id="abl-table"><thead><tr><th style="width:40px"></th><th>Component</th><th>Opus 4.6</th><th>Sonnet 4.5</th></tr></thead><tbody id="abl-tbody"></tbody></table></div>
+        <div>
+          <div class="card" style="background:var(--bg)"><h3>Surviving Core</h3><div id="abl-core"></div></div>
+          <div class="card" style="background:var(--bg);margin-top:12px"><h3>Active: <span id="abl-count">6</span>/6</h3><div id="abl-summary"></div></div>
+        </div>
+      </div>
+      <div class="insight"><strong>Key insight:</strong> Every harness component encodes an assumption about what the model cannot do on its own. These assumptions go stale as models improve. The surviving core -- <span class="tip">planner<span class="tip-text">Scopes work at a high level. Without it, generators under-scope.</span></span>, <span class="tip">generator<span class="tip-text">The model doing the work. Always needed.</span></span>, <span class="tip">evaluator<span class="tip-text">Grades quality. Critical for subjective tasks. Uses rubric-based scoring.</span></span> -- encodes engineering discipline, not model limitations.</div>
+    </div>
+  `);
+  main.appendChild(secAbl);
+
+  // 2. Architecture
+  const secArch = el('div', { id: 'sec-architecture', className: 'section' });
+  html(secArch, `
+    <div class="card">
+      <h2>Framework Architectures</h2>
+      <p class="subtitle">Click any node to see what it does and how data flows.</p>
+      <div class="grid-2" id="arch-grid"></div>
+      <div class="node-detail" id="arch-detail"><h4 id="arch-detail-title"></h4><div id="arch-detail-body"></div></div>
+    </div>
+    <div class="card">
+      <h3>Side-by-Side Comparison</h3>
+      <div style="overflow-x:auto">
+        <table>
+          <thead><tr><th>Dimension</th><th style="color:var(--red)">BMAD</th><th style="color:var(--amber)">GSD</th><th style="color:var(--green)">Superpowers</th><th style="color:var(--cyan)">Native</th></tr></thead>
+          <tbody>
+            <tr><td>Provider</td><td>Agnostic</td><td>Agnostic (9+)</td><td>Claude-first</td><td>Claude-only</td></tr>
+            <tr><td>Core value</td><td>Domain agents</td><td><span class="tip">Context isolation<span class="tip-text">Each phase starts fresh, preventing contamination.</span></span> + parallel</td><td>TDD + methodology</td><td><span class="tip">Graded eval<span class="tip-text">Scores on multiple 1-10 rubric dimensions.</span></span> + minimal scaffold</td></tr>
+            <tr><td>Planning</td><td>Heavy: PRD&#8594;arch&#8594;stories</td><td>Medium: research&#8594;XML</td><td>Medium: brainstorm&#8594;tasks</td><td>Light: product spec</td></tr>
+            <tr><td>Evaluation</td><td>Code review + QA</td><td>Pass/fail</td><td>TDD + review</td><td>Graded rubrics (1-10)</td></tr>
+            <tr><td>Agents</td><td>12+</td><td>5 phases</td><td>Composable skills</td><td>3 core</td></tr>
+            <tr><td>Communication</td><td><span class="tip">File-based<span class="tip-text">Agents write/read files to communicate.</span></span></td><td>File-based</td><td>Subagent + skills</td><td><span class="tip">Agent teams<span class="tip-text">Direct agent-to-agent messaging. Claude-only.</span></span></td></tr>
+            <tr><td>Setup</td><td>High</td><td>Medium</td><td>Low</td><td>Medium (DIY)</td></tr>
+            <tr><td>Alignment</td><td><span class="badge badge-red">Low</span></td><td><span class="badge badge-amber">Med</span></td><td><span class="badge badge-green">High</span></td><td><span class="badge badge-blue">Full</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  `);
+  main.appendChild(secArch);
+
+  // 3. Wizard
+  const secWiz = el('div', { id: 'sec-wizard', className: 'section' });
+  html(secWiz, `
+    <div class="card">
+      <h2>Decision Wizard</h2>
+      <p class="subtitle">Answer 5 questions. Each answer narrows the option space.</p>
+      <div class="wizard-progress" id="wiz-progress"></div>
+      <div class="grid-2">
+        <div id="wiz-steps"></div>
+        <div>
+          <div class="card" style="background:var(--bg)"><h3>Elimination Tracker</h3><div id="elim-tracker"></div></div>
+        </div>
+      </div>
+      <div class="wizard-result" id="wiz-result"><div class="card" style="border-color:var(--cyan-dim)"><h3>Recommendation</h3><div id="wiz-rec"></div></div></div>
+      <button class="reset-btn" id="wiz-reset" style="margin-top:12px">Reset Wizard</button>
+    </div>
+  `);
+  main.appendChild(secWiz);
+
+  // 4. Dilution
+  const secDil = el('div', { id: 'sec-dilution', className: 'section' });
+  html(secDil, `
+    <div class="card"><h2>Multi-Provider Dilution</h2><p class="subtitle">Three ways that supporting multiple providers degrades framework quality.</p></div>
+    <div class="grid-3">
+      <div class="card">
+        <h3>Lowest Common Denominator</h3>
+        <p class="subtitle">Multi-provider frameworks can only use the overlap.</p>
+        <div class="venn-container">
+          <div class="venn-circle" style="left:22%;border-color:var(--cyan);background:rgba(34,211,238,0.06)"><span style="margin-left:-30px">Claude<br>features</span></div>
+          <div class="venn-circle" style="left:42%;border-color:var(--amber);background:rgba(245,158,11,0.06)"><span style="margin-right:-30px">GPT<br>features</span></div>
+          <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);font-size:10px;font-weight:600;color:var(--text-bright);z-index:2;text-align:center;line-height:1.3">Safe<br>overlap</div>
+        </div>
+        <table style="margin-top:12px"><thead><tr><th>Framework</th><th>Optimization</th><th>Lost</th></tr></thead><tbody>
+          <tr><td style="color:var(--red)">BMAD</td><td>None</td><td>Claude features</td></tr>
+          <tr><td style="color:var(--amber)">GSD</td><td>Install varies</td><td>Agent teams, MCP</td></tr>
+          <tr><td style="color:var(--green)">Superpowers</td><td>Claude-first</td><td>Drifting generic</td></tr>
+          <tr><td style="color:var(--cyan)">Native</td><td>100% Claude</td><td>Nothing</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h3>Update Lag Timeline</h3>
+        <p class="subtitle">What happens when a new model drops.</p>
+        <div style="padding:30px 10px 10px">
+          <div class="timeline-track">
+            <div style="position:absolute;top:-2px;left:0;width:100%;height:8px;background:rgba(245,158,11,0.15);border-radius:4px"></div>
+            <div class="timeline-marker" style="left:0%"><div class="label" style="color:var(--cyan)">Day 0</div><div class="dot" style="background:var(--cyan)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">Model release.<br>Native updated.</div></div>
+            <div class="timeline-marker" style="left:25%"><div class="label" style="color:var(--text-dim)">Day 1-7</div><div class="dot" style="background:var(--border)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">Frameworks<br>begin testing</div></div>
+            <div class="timeline-marker" style="left:55%"><div class="label" style="color:var(--green)">Day 7-30</div><div class="dot" style="background:var(--green)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">GSD, Superpowers<br>release updates</div></div>
+            <div class="timeline-marker" style="left:85%"><div class="label" style="color:var(--red)">Day 30-90</div><div class="dot" style="background:var(--red)"></div><div style="font-size:10px;color:var(--text-dim);margin-top:28px">BMAD,<br>slower frameworks</div></div>
+          </div>
+        </div>
+        <div class="insight" style="margin-top:60px"><strong>Example:</strong> GSD's <span class="tip">context isolation<span class="tip-text">Starting each phase fresh to prevent contamination.</span></span> was designed to solve <span class="tip">context anxiety<span class="tip-text">When models prematurely end tasks as context fills. Opus 4.6 doesn't exhibit this.</span></span>, which Opus 4.6 doesn't have. During the lag window, new capabilities run through old scaffolding.</div>
+      </div>
+      <div class="card">
+        <h3>Abstraction Tax</h3>
+        <p class="subtitle">Layers between you and the model.</p>
+        <div style="margin:20px 0;text-align:center">
+          <div style="display:inline-flex;flex-direction:column;gap:4px;width:100%;max-width:300px">
+            <div style="padding:10px;background:var(--cyan-dim);border-radius:6px 6px 0 0;font-size:12px;color:var(--cyan)">Your Prompt</div>
+            <div style="padding:8px;background:var(--bg-hover);font-size:11px;border-left:2px solid var(--red)">Framework orchestration</div>
+            <div style="padding:8px;background:var(--bg-hover);font-size:11px;border-left:2px solid var(--red)">Agent persona templates</div>
+            <div style="padding:8px;background:var(--bg-hover);font-size:11px;border-left:2px solid var(--amber)">File-based state mgmt</div>
+            <div style="padding:8px;background:var(--bg-hover);font-size:11px;border-left:2px solid var(--amber)">Prompt construction</div>
+            <div style="padding:10px;background:var(--blue-dim);border-radius:0 0 6px 6px;font-size:12px;color:var(--blue)">Model</div>
+          </div>
+          <table style="margin:16px auto;width:auto"><thead><tr><th>Approach</th><th>Layers</th></tr></thead><tbody>
+            <tr><td style="color:var(--cyan)">Native</td><td><span class="badge badge-green">1-2</span></td></tr>
+            <tr><td style="color:var(--green)">Superpowers</td><td><span class="badge badge-green">2-3</span></td></tr>
+            <tr><td style="color:var(--amber)">GSD</td><td><span class="badge badge-amber">3-4</span></td></tr>
+            <tr><td style="color:var(--red)">BMAD</td><td><span class="badge badge-red">4-5</span></td></tr>
+          </tbody></table>
+        </div>
+        <div class="insight">Extra abstraction layers obscure the underlying prompts and responses, making debugging harder.</div>
+      </div>
+    </div>
+  `);
+  main.appendChild(secDil);
+
+  // 5. Obsolescence
+  const secObs = el('div', { id: 'sec-obsolescence', className: 'section' });
+  html(secObs, `
+    <div class="card">
+      <h2>Obsolescence Risk Matrix</h2>
+      <p class="subtitle">Slide from current to future models to see which components hold value.</p>
+      <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+        <span style="font-size:12px;color:var(--text-dim)">Current Models</span>
+        <input type="range" id="obs-slider" min="0" max="100" value="30" style="flex:1">
+        <span style="font-size:12px;color:var(--text-dim)">Future Models</span>
+      </div>
+      <div class="category-legend">
+        <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Engineering discipline</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Orchestration pattern</div>
+        <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Model limitation workaround</div>
+      </div>
+      <table><thead><tr><th>Component</th><th>Source</th><th>Category</th><th>Current Value</th><th>Obsolescence Risk</th></tr></thead><tbody id="obs-tbody"></tbody></table>
+      <div class="insight" style="margin-top:16px"><strong>The pattern:</strong> Components encoding <span style="color:var(--green)">engineering discipline</span> have low obsolescence risk. Components encoding <span style="color:var(--red)">model limitation workarounds</span> go stale with every release.</div>
+    </div>
+  `);
+  main.appendChild(secObs);
+
+  // 6. Native vs Framework
+  const secNat = el('div', { id: 'sec-native', className: 'section' });
+  html(secNat, `
+    <div class="grid-2">
+      <div class="card">
+        <h2>What You Get Natively</h2>
+        <p class="subtitle">Built into Claude Code -- no framework needed.</p>
+        <table><thead><tr><th>Capability</th><th>Native</th><th>Framework Equiv.</th></tr></thead><tbody>
+          <tr><td>Planning</td><td>Plan mode, custom planner</td><td>BMAD pipeline</td></tr>
+          <tr><td>Parallel exec</td><td>Subagent dispatch</td><td>GSD wave executor</td></tr>
+          <tr><td>Code review</td><td>Fresh subagent review</td><td>Superpowers review</td></tr>
+          <tr><td>TDD</td><td>Hooks (pre-commit)</td><td>Superpowers TDD</td></tr>
+          <tr><td>State</td><td>CLAUDE.md, memory, MCP</td><td>GSD STATE.md</td></tr>
+          <tr><td>Evaluation</td><td>Custom evaluator</td><td>All frameworks verify step</td></tr>
+          <tr><td>Context</td><td>Auto compaction</td><td>GSD context isolation</td></tr>
+          <tr><td>Inter-agent</td><td><span class="tip">Agent teams<span class="tip-text">Direct agent-to-agent messaging. Claude-only.</span></span></td><td>None (file-based)</td></tr>
+        </tbody></table>
+      </div>
+      <div class="card">
+        <h2>Framework Value-Adds</h2>
+        <p class="subtitle">Genuine gaps. Click a row to expand.</p>
+        <table id="gaps-table"><thead><tr><th>Gap</th><th>Source</th><th>DIY</th></tr></thead><tbody id="gaps-tbody"></tbody></table>
+      </div>
+    </div>
+  `);
+  main.appendChild(secNat);
+
+  // 7. Hybrid
+  const secHyb = el('div', { id: 'sec-hybrid', className: 'section' });
+  html(secHyb, `
+    <div class="card">
+      <h2>Hybrid Builder</h2>
+      <p class="subtitle">Pick components from each approach to compose your stack.</p>
+      <div class="presets" id="hyb-presets"></div>
+      <div id="hyb-slots"></div>
+      <div class="conflict-msg" id="hyb-conflicts"></div>
+      <div class="card" style="background:var(--bg);margin-top:16px"><h3>Your Stack</h3><div id="hyb-summary" style="font-size:13px;color:var(--text-dim)">Select components above.</div></div>
+    </div>
+  `);
+  main.appendChild(secHyb);
+
+  // Add tabpanel ARIA to all sections
+  tabDefs.forEach(t => {
+    const sec = document.getElementById('sec-' + t.id);
+    if (sec) {
+      sec.setAttribute('role', 'tabpanel');
+      sec.setAttribute('aria-labelledby', 'tab-' + t.id);
+    }
+  });
+}
+
+// ===== ABLATION RENDERER =====
+function renderAblation() {
+  const tbody = document.getElementById('abl-tbody');
+  tbody.textContent = '';
+
+  ablationComponents.forEach(c => {
+    const on = state.ablation[c.key];
+    const tr = document.createElement('tr');
+    tr.style.transition = 'opacity 0.3s';
+    tr.style.opacity = on ? '1' : '0.4';
+
+    const tdSwitch = document.createElement('td');
+    const sw = document.createElement('label');
+    sw.className = 'switch';
+    const inp = document.createElement('input');
+    inp.type = 'checkbox';
+    inp.checked = on;
+    inp.setAttribute('aria-label', 'Toggle ' + c.name);
+    inp.addEventListener('change', () => { state.ablation[c.key] = !state.ablation[c.key]; clearAblPresets(); renderAblation(); });
+    const sl = document.createElement('span');
+    sl.className = 'slider';
+    sw.appendChild(inp);
+    sw.appendChild(sl);
+    tdSwitch.appendChild(sw);
+    tr.appendChild(tdSwitch);
+
+    const tdName = document.createElement('td');
+    const nameSpan = document.createElement('span');
+    nameSpan.style.fontWeight = '500';
+    nameSpan.style.color = 'var(--text-bright)';
+    nameSpan.textContent = c.name;
+    tdName.appendChild(nameSpan);
+    tdName.appendChild(document.createElement('br'));
+    const descSpan = document.createElement('span');
+    descSpan.style.fontSize = '11px';
+    descSpan.style.color = 'var(--text-dim)';
+    descSpan.textContent = c.desc;
+    tdName.appendChild(descSpan);
+    tr.appendChild(tdName);
+
+    [['opus', 'opusImpact'], ['sonnet', 'sonnetImpact']].forEach(([model, impact]) => {
+      const td = document.createElement('td');
+      const badge = document.createElement('span');
+      badge.className = 'badge badge-' + (on ? c[impact] : 'green');
+      badge.textContent = on ? c[model][0] : 'Removed';
+      td.appendChild(badge);
+      if (on && c[model][1]) {
+        td.appendChild(document.createElement('br'));
+        const detail = document.createElement('span');
+        detail.style.fontSize = '11px';
+        detail.style.color = 'var(--text-dim)';
+        detail.textContent = c[model][1];
+        td.appendChild(detail);
+      }
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+
+  // Core viz
+  const core = document.getElementById('abl-core');
+  core.textContent = '';
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap';
+  const generator = { name: 'Generator', essential: true };
+  const active = ablationComponents.filter(c => state.ablation[c.key]);
+  const all = [generator, ...active.map(c => ({ name: c.name, essential: ['evaluator','planner'].includes(c.key) }))];
+  all.forEach(c => {
+    const d = document.createElement('div');
+    const clr = c.essential ? 'var(--cyan)' : 'var(--text-dim)';
+    d.style.cssText = `padding:8px 14px;border:1px solid ${clr};border-radius:6px;font-size:12px;background:${c.essential ? 'rgba(34,211,238,0.1)' : 'var(--bg-hover)'};color:${clr}`;
+    d.textContent = c.name;
+    wrap.appendChild(d);
+  });
+  core.appendChild(wrap);
+
+  document.getElementById('abl-count').textContent = active.length;
+
+  const summary = document.getElementById('abl-summary');
+  summary.textContent = '';
+  const removed = ablationComponents.filter(c => !state.ablation[c.key]);
+  if (removed.length === 0) {
+    summary.textContent = 'All components active. Toggle off to see what Opus 4.6 handles alone.';
+    summary.style.color = 'var(--text-dim)';
+    summary.style.fontSize = '13px';
+  } else {
+    const safe = removed.filter(c => c.opusImpact === 'green');
+    const risky = removed.filter(c => c.opusImpact === 'red');
+    const d = document.createElement('div');
+    d.style.fontSize = '13px';
+    if (safe.length) { const p = document.createElement('div'); p.style.color = 'var(--green)'; p.style.marginBottom = '4px'; p.textContent = 'Safe to remove (' + safe.length + '): ' + safe.map(c=>c.name).join(', '); d.appendChild(p); }
+    if (risky.length) { const p = document.createElement('div'); p.style.color = 'var(--red)'; p.textContent = 'Significant loss (' + risky.length + '): ' + risky.map(c=>c.name).join(', '); d.appendChild(p); }
+    summary.appendChild(d);
+  }
+  updatePrompt();
+}
+
+function clearAblPresets() {
+  document.querySelectorAll('#abl-presets .preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function initAblPresets() {
+  const presets = document.getElementById('abl-presets');
+  [['Full Harness','full'],['Minimal (P+G+E)','minimal'],['Bare Generator','bare']].forEach(([label,key]) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn' + (key === 'full' ? ' active' : '');
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#abl-presets .preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (key === 'full') Object.keys(state.ablation).forEach(k => state.ablation[k] = true);
+      else if (key === 'minimal') { state.ablation = { sprintDecomp:false, contextResets:false, detailedSpecs:false, sprintContract:false, evaluator:true, planner:true }; }
+      else Object.keys(state.ablation).forEach(k => state.ablation[k] = false);
+      renderAblation();
+    });
+    presets.appendChild(btn);
+  });
+}
+
+// ===== ARCHITECTURE RENDERER =====
+function renderArchDiagrams() {
+  const grid = document.getElementById('arch-grid');
+  Object.entries(archData).forEach(([key, data]) => {
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.style.background = 'var(--bg)';
+    const h3 = document.createElement('h3');
+    h3.style.color = data.color;
+    h3.textContent = data.label + ' ';
+    const sub = document.createElement('span');
+    sub.style.cssText = 'font-size:11px;color:var(--text-dim);font-weight:400';
+    sub.textContent = data.sublabel;
+    h3.appendChild(sub);
+    card.appendChild(h3);
+
+    const diagram = document.createElement('div');
+    diagram.className = 'arch-diagram';
+    diagram.style.height = '300px';
+
+    // SVG edges
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.classList.add('arch-svg');
+    svg.setAttribute('width', '100%');
+    svg.setAttribute('height', '100%');
+    data.edges.forEach(([fi, ti]) => {
+      const n1 = data.nodes[fi], n2 = data.nodes[ti];
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', n1.x + 45); line.setAttribute('y1', n1.y + 24);
+      line.setAttribute('x2', n2.x + 45); line.setAttribute('y2', n2.y + 4);
+      line.setAttribute('stroke', 'var(--border)'); line.setAttribute('stroke-width', '1.5');
+      svg.appendChild(line);
+      const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      dot.setAttribute('cx', n2.x + 45); dot.setAttribute('cy', n2.y + 4);
+      dot.setAttribute('r', '3'); dot.setAttribute('fill', 'var(--border)');
+      svg.appendChild(dot);
+    });
+    diagram.appendChild(svg);
+
+    data.nodes.forEach(n => {
+      const node = document.createElement('div');
+      node.className = 'arch-node';
+      node.style.left = n.x + 'px';
+      node.style.top = n.y + 'px';
+      node.style.borderColor = data.color;
+      node.style.color = data.color;
+      node.style.minWidth = '80px';
+      node.textContent = n.label;
+      node.setAttribute('role', 'button');
+      node.setAttribute('tabindex', '0');
+      node.setAttribute('aria-pressed', 'false');
+      const activateNode = () => {
+        document.querySelectorAll('.arch-node').forEach(an => an.classList.remove('selected'));
+        node.classList.add('selected');
+        const det = document.getElementById('arch-detail');
+        document.getElementById('arch-detail-title').textContent = n.label + ' (' + data.label + ')';
+        const body = document.getElementById('arch-detail-body');
+        body.textContent = '';
+        const p = document.createElement('p');
+        p.style.marginBottom = '8px';
+        p.textContent = n.detail;
+        body.appendChild(p);
+        [['In:', n.dataIn], ['Out:', n.dataOut], ['Comm:', n.comm]].forEach(([lbl, val]) => {
+          const fi = document.createElement('div');
+          fi.className = 'flow-item';
+          const arrow = document.createElement('span');
+          arrow.className = 'arrow';
+          arrow.textContent = lbl === 'In:' ? '\u2192' : lbl === 'Out:' ? '\u2190' : '\u2194';
+          fi.appendChild(arrow);
+          const strong = document.createElement('strong');
+          strong.textContent = lbl + ' ';
+          fi.appendChild(strong);
+          fi.appendChild(document.createTextNode(val));
+          body.appendChild(fi);
+        });
+        det.classList.add('visible');
+        document.querySelectorAll('.arch-node').forEach(an => an.setAttribute('aria-pressed', 'false'));
+        node.setAttribute('aria-pressed', 'true');
+      };
+      node.addEventListener('click', activateNode);
+      node.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activateNode(); }
+      });
+      diagram.appendChild(node);
+    });
+
+    card.appendChild(diagram);
+    grid.appendChild(card);
+  });
+}
+
+// ===== WIZARD SCORING (shared by tracker, result, and prompt) =====
+const FW_NAMES = { bmad:'BMAD', gsd:'GSD', superpowers:'Superpowers', native:'Anthropic Native' };
+const FW_COLORS = { bmad:'var(--red)', gsd:'var(--amber)', superpowers:'var(--green)', native:'var(--cyan)' };
+
+function computeWizardScores() {
+  const eliminated = {};
+  const scores = { bmad: 0, gsd: 0, superpowers: 0, native: 0 };
+  Object.entries(state.wizard.answers).forEach(([i, key]) => {
+    const q = wizardQuestions[i];
+    if (q.eliminations[key]) {
+      Object.entries(q.eliminations[key]).forEach(([fw, reason]) => {
+        if (!eliminated[fw]) eliminated[fw] = [];
+        eliminated[fw].push({ q: Number(i) + 1, reason });
+      });
+    }
+    if (q.boosts && q.boosts[key]) q.boosts[key].forEach(fw => scores[fw] += 2);
+  });
+  Object.keys(eliminated).forEach(fw => delete scores[fw]);
+  const sorted = Object.entries(scores).sort((a, b) => b[1] - a[1]);
+  return { eliminated, scores, sorted };
+}
+
+// ===== WIZARD RENDERER =====
+function renderWizard() {
+  const steps = document.getElementById('wiz-steps');
+  const progress = document.getElementById('wiz-progress');
+  steps.textContent = '';
+  progress.textContent = '';
+
+  wizardQuestions.forEach((q, i) => {
+    const dot = document.createElement('div');
+    dot.className = 'wizard-dot';
+    if (i < state.wizard.step) dot.classList.add('done');
+    if (i === state.wizard.step && !state.wizard.complete) dot.classList.add('current');
+    if (state.wizard.complete) dot.classList.add('done');
+    progress.appendChild(dot);
+
+    const step = document.createElement('div');
+    step.className = 'wizard-step' + (i === state.wizard.step && !state.wizard.complete ? ' active' : '');
+    const h = document.createElement('h3');
+    h.style.cssText = 'margin-bottom:12px;font-size:15px';
+    h.textContent = 'Q' + (i+1) + ': ' + q.question;
+    step.appendChild(h);
+    q.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'wizard-option' + (state.wizard.answers[i] === opt.key ? ' selected' : '');
+      const lbl = document.createTextNode(opt.label);
+      btn.appendChild(lbl);
+      const desc = document.createElement('div');
+      desc.className = 'opt-desc';
+      desc.textContent = opt.desc;
+      btn.appendChild(desc);
+      btn.addEventListener('click', () => {
+        state.wizard.answers[i] = opt.key;
+        if (i < wizardQuestions.length - 1) state.wizard.step = i + 1;
+        else state.wizard.complete = true;
+        renderWizard();
+        updatePrompt();
+      });
+      step.appendChild(btn);
+    });
+    steps.appendChild(step);
+  });
+
+  updateElimTracker();
+  if (state.wizard.complete) showWizResult();
+}
+
+function updateElimTracker() {
+  const tracker = document.getElementById('elim-tracker');
+  tracker.textContent = '';
+  const { eliminated, scores } = computeWizardScores();
+
+  const meta = { bmad: ['BMAD','var(--red)'], gsd: ['GSD','var(--amber)'], superpowers: ['Superpowers','var(--green)'], native: ['Anthropic Native','var(--cyan)'] };
+  Object.entries(meta).forEach(([fw, [name, color]]) => {
+    const row = document.createElement('div');
+    row.className = 'elim-row' + (eliminated[fw] ? ' eliminated' : '');
+    const icon = document.createElement('span');
+    icon.className = 'elim-icon';
+    if (eliminated[fw]) {
+      icon.textContent = '\u2717';
+      row.appendChild(icon);
+      row.appendChild(document.createTextNode(' ' + name + ' '));
+      const reason = document.createElement('span');
+      reason.style.cssText = 'font-size:11px;color:var(--text-dim);margin-left:8px';
+      reason.textContent = '(Q' + eliminated[fw][0].q + ': ' + eliminated[fw][0].reason + ')';
+      row.appendChild(reason);
+    } else {
+      icon.style.color = color;
+      icon.textContent = '\u25A0';
+      row.appendChild(icon);
+      row.appendChild(document.createTextNode(' ' + name + ' '));
+      if (Object.keys(state.wizard.answers).length > 0) {
+        const sc = document.createElement('span');
+        sc.style.cssText = 'font-size:11px;color:var(--text-dim);margin-left:8px';
+        sc.textContent = 'Score: ' + scores[fw];
+        row.appendChild(sc);
+      }
+    }
+    tracker.appendChild(row);
+  });
+}
+
+function showWizResult() {
+  const result = document.getElementById('wiz-result');
+  result.classList.add('active');
+
+  const { eliminated, sorted } = computeWizardScores();
+  if (!sorted.length) return;
+  const primary = sorted[0];
+  const secondary = sorted[1];
+
+  const rec = document.getElementById('wiz-rec');
+  rec.textContent = '';
+
+  const title = document.createElement('div');
+  title.style.cssText = 'font-size:18px;font-weight:600;margin-bottom:12px';
+  title.style.color = FW_COLORS[primary[0]];
+  title.textContent = FW_NAMES[primary[0]];
+  rec.appendChild(title);
+
+  if (secondary && secondary[1] > 0) {
+    const comp = document.createElement('div');
+    comp.style.cssText = 'font-size:13px;color:var(--text-dim);margin-bottom:16px';
+    comp.textContent = 'Complementary: ';
+    const cs = document.createElement('span');
+    cs.style.color = FW_COLORS[secondary[0]];
+    cs.textContent = FW_NAMES[secondary[0]];
+    comp.appendChild(cs);
+    rec.appendChild(comp);
+  }
+
+  // Answers summary
+  const ansSection = document.createElement('div');
+  ansSection.style.marginBottom = '16px';
+  const ansH = document.createElement('h4');
+  ansH.style.cssText = 'font-size:12px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px';
+  ansH.textContent = 'Your answers';
+  ansSection.appendChild(ansH);
+  const ansBody = document.createElement('div');
+  ansBody.style.fontSize = '13px';
+  Object.entries(state.wizard.answers).forEach(([i, key]) => {
+    const opt = wizardQuestions[i].options.find(o => o.key === key);
+    if (!opt) return;
+    const line = document.createElement('div');
+    const b = document.createElement('strong');
+    b.textContent = 'Q' + (Number(i) + 1) + ': ';
+    line.appendChild(b);
+    line.appendChild(document.createTextNode(opt.label));
+    ansBody.appendChild(line);
+  });
+  ansSection.appendChild(ansBody);
+  rec.appendChild(ansSection);
+
+  // Eliminations
+  if (Object.keys(eliminated).length) {
+    const eSection = document.createElement('div');
+    eSection.style.marginBottom = '16px';
+    const eH = document.createElement('h4');
+    eH.style.cssText = 'font-size:12px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px';
+    eH.textContent = 'Eliminations';
+    eSection.appendChild(eH);
+    const eBody = document.createElement('div');
+    eBody.style.fontSize = '13px';
+    Object.entries(eliminated).forEach(([fw, reasons]) => {
+      const line = document.createElement('div');
+      const fwSpan = document.createElement('span');
+      fwSpan.style.color = FW_COLORS[fw];
+      fwSpan.textContent = FW_NAMES[fw];
+      line.appendChild(fwSpan);
+      line.appendChild(document.createTextNode(' eliminated at Q' + reasons[0].q + ': ' + reasons[0].reason));
+      eBody.appendChild(line);
+    });
+    eSection.appendChild(eBody);
+    rec.appendChild(eSection);
+  }
+
+  // Tradeoffs
+  const tradeoffs = [];
+  if (primary[0] === 'native') { tradeoffs.push('No pre-built domain agents -- you build your own'); tradeoffs.push('No methodology enforcement -- TDD is encouraged, not mandated'); }
+  if (primary[0] === 'superpowers') { tradeoffs.push('Skills are composable but opinionated'); tradeoffs.push('Multi-provider requires workarounds'); }
+  if (primary[0] === 'gsd') { tradeoffs.push('Higher abstraction tax -- more layers'); tradeoffs.push('Update lag when new models release'); }
+  if (primary[0] === 'bmad') { tradeoffs.push('Heavy setup (12+ personas)'); tradeoffs.push('Contradicts Anthropic findings on micro vs high-level planning'); }
+  if (tradeoffs.length) {
+    const tSection = document.createElement('div');
+    const tH = document.createElement('h4');
+    tH.style.cssText = 'font-size:12px;color:var(--text-dim);text-transform:uppercase;margin-bottom:8px';
+    tH.textContent = 'Tradeoffs accepted';
+    tSection.appendChild(tH);
+    const tBody = document.createElement('div');
+    tBody.style.fontSize = '13px';
+    tradeoffs.forEach(t => { const d = document.createElement('div'); d.textContent = '\u2022 ' + t; tBody.appendChild(d); });
+    tSection.appendChild(tBody);
+    rec.appendChild(tSection);
+  }
+}
+
+function initWizReset() {
+  document.getElementById('wiz-reset').addEventListener('click', () => {
+    state.wizard = { step: 0, answers: {}, complete: false };
+    document.getElementById('wiz-result').classList.remove('active');
+    renderWizard();
+    updatePrompt();
+  });
+}
+
+// ===== OBSOLESCENCE RENDERER =====
+function renderObsolescence() {
+  const slider = document.getElementById('obs-slider');
+  state.obsolescence = Number(slider.value);
+  const future = state.obsolescence / 100;
+  const tbody = document.getElementById('obs-tbody');
+  tbody.textContent = '';
+
+  obsComponents.forEach(c => {
+    let value, risk;
+    if (c.cat === 'workaround') { value = Math.max(0, c.baseValue - future * c.baseValue * 1.2); risk = Math.min(100, c.baseRisk + future * 10); }
+    else if (c.cat === 'orchestration') { value = Math.max(20, c.baseValue - future * 15); risk = Math.min(40, c.baseRisk + future * 10); }
+    else { value = Math.min(100, c.baseValue + future * 5); risk = Math.max(0, c.baseRisk - future * 3); }
+
+    const catColor = { discipline:'green', orchestration:'blue', workaround:'red' }[c.cat];
+    const catLabel = { discipline:'Engineering discipline', orchestration:'Orchestration pattern', workaround:'Model workaround' }[c.cat];
+    const valColor = value > 60 ? 'green' : value > 30 ? 'amber' : 'red';
+    const riskColor = risk > 60 ? 'red' : risk > 30 ? 'amber' : 'green';
+
+    const tr = document.createElement('tr');
+    const tdName = document.createElement('td');
+    tdName.style.fontWeight = '500';
+    tdName.textContent = c.name;
+    tr.appendChild(tdName);
+
+    const tdSrc = document.createElement('td');
+    tdSrc.style.cssText = 'font-size:12px;color:var(--text-dim)';
+    tdSrc.textContent = c.source;
+    tr.appendChild(tdSrc);
+
+    const tdCat = document.createElement('td');
+    const catBadge = document.createElement('span');
+    catBadge.className = 'badge badge-' + catColor;
+    catBadge.textContent = catLabel;
+    tdCat.appendChild(catBadge);
+    tr.appendChild(tdCat);
+
+    [['value', value, valColor], ['risk', risk, riskColor]].forEach(([, val, clr]) => {
+      const td = document.createElement('td');
+      const wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;align-items:center;gap:8px';
+      const bar = document.createElement('div');
+      bar.style.cssText = 'width:60px;height:6px;background:var(--border);border-radius:3px;overflow:hidden';
+      const fill = document.createElement('div');
+      fill.style.cssText = 'height:100%;border-radius:3px;transition:width 0.3s';
+      fill.style.width = Math.round(val) + '%';
+      fill.style.background = 'var(--' + clr + ')';
+      bar.appendChild(fill);
+      wrap.appendChild(bar);
+      const num = document.createElement('span');
+      num.className = 'mono';
+      num.style.fontSize = '11px';
+      num.textContent = Math.round(val) + '%';
+      wrap.appendChild(num);
+      td.appendChild(wrap);
+      tr.appendChild(td);
+    });
+
+    tbody.appendChild(tr);
+  });
+  updatePrompt();
+}
+
+// ===== GAPS RENDERER =====
+function renderGaps() {
+  const tbody = document.getElementById('gaps-tbody');
+  const gapRows = [
+    ['Domain-specialized planning agents', 'BMAD', 'amber', 'Medium'],
+    ['Wave-based parallel execution', 'GSD', 'red', 'High'],
+    ['Methodology enforcement', 'Superpowers', 'green', 'Low'],
+    ['Graded scoring rubrics', 'Anthropic', 'green', 'Low'],
+    ['Socratic brainstorming', 'Superpowers', 'green', 'Low'],
+    ['Multi-session roadmap', 'GSD', 'amber', 'Medium'],
+  ];
+  const srcColors = { BMAD:'var(--red)', GSD:'var(--amber)', Superpowers:'var(--green)', Anthropic:'var(--cyan)' };
+
+  gapRows.forEach((row, i) => {
+    const tr = document.createElement('tr');
+    tr.className = 'clickable-row';
+    tr.style.cursor = 'pointer';
+    tr.setAttribute('tabindex', '0');
+    tr.setAttribute('role', 'button');
+    tr.setAttribute('aria-expanded', 'false');
+
+    const tdGap = document.createElement('td');
+    tdGap.textContent = row[0];
+    tr.appendChild(tdGap);
+
+    const tdSrc = document.createElement('td');
+    tdSrc.style.color = srcColors[row[1]];
+    tdSrc.textContent = row[1];
+    tr.appendChild(tdSrc);
+
+    const tdDiy = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = 'badge badge-' + row[2];
+    badge.textContent = row[3];
+    tdDiy.appendChild(badge);
+    tr.appendChild(tdDiy);
+
+    const expandTr = document.createElement('tr');
+    const expandTd = document.createElement('td');
+    expandTd.colSpan = 3;
+    const expandDiv = document.createElement('div');
+    expandDiv.className = 'gap-expand';
+    expandDiv.style.fontSize = '12px';
+    const diy = document.createElement('div');
+    const diyB = document.createElement('strong');
+    diyB.textContent = 'Build yourself: ';
+    diy.appendChild(diyB);
+    diy.appendChild(document.createTextNode(gapDetails[i].diy));
+    expandDiv.appendChild(diy);
+    const fw = document.createElement('div');
+    fw.style.marginTop = '6px';
+    const fwB = document.createElement('strong');
+    fwB.textContent = 'Framework gives: ';
+    fw.appendChild(fwB);
+    fw.appendChild(document.createTextNode(gapDetails[i].fw));
+    expandDiv.appendChild(fw);
+    expandTd.appendChild(expandDiv);
+    expandTr.appendChild(expandTd);
+
+    const toggleGap = () => {
+      expandDiv.classList.toggle('visible');
+      tr.setAttribute('aria-expanded', expandDiv.classList.contains('visible'));
+    };
+    tr.addEventListener('click', toggleGap);
+    tr.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggleGap(); }
+    });
+
+    tbody.appendChild(tr);
+    tbody.appendChild(expandTr);
+  });
+}
+
+// ===== HYBRID RENDERER =====
+function renderHybrid() {
+  const container = document.getElementById('hyb-slots');
+  container.textContent = '';
+
+  hybridSlots.forEach(slot => {
+    const div = document.createElement('div');
+    div.className = 'slot';
+    const h4 = document.createElement('h4');
+    h4.textContent = slot.label;
+    div.appendChild(h4);
+    const opts = document.createElement('div');
+    opts.className = 'slot-options';
+    slot.options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'slot-opt' + (state.hybrid[slot.key] === opt.id ? ' selected' : '');
+      btn.textContent = opt.label;
+      btn.title = opt.desc;
+      btn.addEventListener('click', () => {
+        state.hybrid[slot.key] = state.hybrid[slot.key] === opt.id ? null : opt.id;
+        clearHybPresets();
+        renderHybrid();
+        updatePrompt();
+      });
+      opts.appendChild(btn);
+    });
+    div.appendChild(opts);
+    container.appendChild(div);
+  });
+
+  // Conflicts
+  const conflictEl = document.getElementById('hyb-conflicts');
+  const active = hybridConflicts.filter(c => c.test(state.hybrid));
+  if (active.length) {
+    conflictEl.textContent = active[0].msg;
+    conflictEl.classList.add('visible');
+  } else {
+    conflictEl.classList.remove('visible');
+  }
+
+  // Summary
+  const summary = document.getElementById('hyb-summary');
+  summary.textContent = '';
+  const selections = hybridSlots.map(s => {
+    if (!state.hybrid[s.key]) return null;
+    const opt = s.options.find(o => o.id === state.hybrid[s.key]);
+    if (!opt) return null;
+    return { label: s.label, choice: opt.label, source: opt.source };
+  }).filter(Boolean);
+
+  if (selections.length) {
+    selections.forEach(sel => {
+      const line = document.createElement('div');
+      const b = document.createElement('strong');
+      b.textContent = sel.label + ': ';
+      line.appendChild(b);
+      line.appendChild(document.createTextNode(sel.choice + ' '));
+      const src = document.createElement('span');
+      src.style.color = 'var(--text-dim)';
+      src.textContent = '(' + sel.source + ')';
+      line.appendChild(src);
+      summary.appendChild(line);
+    });
+  } else {
+    summary.textContent = 'Select components above to build your hybrid stack.';
+    summary.style.color = 'var(--text-dim)';
+  }
+}
+
+function clearHybPresets() {
+  document.querySelectorAll('#hyb-presets .preset-btn').forEach(b => b.classList.remove('active'));
+}
+
+function initHybPresets() {
+  const presets = document.getElementById('hyb-presets');
+  [['Recommended (Claude-only)','recommended'],['Max Structure','maxStructure'],['Lightweight','lightweight'],['Clear All','clear']].forEach(([label,key]) => {
+    const btn = document.createElement('button');
+    btn.className = 'preset-btn';
+    btn.textContent = label;
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('#hyb-presets .preset-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      if (key === 'recommended') state.hybrid = { planner:'native-plan', generator:'native-gen', evaluator:'native-eval', methodology:'sp-method', orchestration:'native-orch' };
+      else if (key === 'maxStructure') state.hybrid = { planner:'bmad-plan', generator:'gsd-gen', evaluator:'sp-eval', methodology:'sp-method', orchestration:'gsd-orch' };
+      else if (key === 'lightweight') state.hybrid = { planner:'sp-plan', generator:'native-gen', evaluator:'sp-eval', methodology:'none-method', orchestration:'none-orch' };
+      else state.hybrid = { planner:null, generator:null, evaluator:null, methodology:null, orchestration:null };
+      renderHybrid();
+      updatePrompt();
+    });
+    presets.appendChild(btn);
+  });
+}
+
+// ===== PROMPT =====
+function updatePrompt() {
+  const parts = [];
+
+  if (state.activeTab === 'ablation') {
+    const removed = ablationComponents.filter(c => !state.ablation[c.key]);
+    const kept = ablationComponents.filter(c => state.ablation[c.key]);
+    if (removed.length > 0 && removed.length < ablationComponents.length) {
+      parts.push('Based on ablation analysis, I want a harness that keeps ' + kept.map(c=>c.name.toLowerCase()).join(', ') + ' but drops ' + removed.map(c=>c.name.toLowerCase()).join(', ') + '.');
+      const risky = removed.filter(c => c.opusImpact === 'red');
+      if (risky.length) parts.push('Note: removing ' + risky.map(c=>c.name.toLowerCase()).join(' and ') + ' has significant impact even on Opus 4.6.');
+    } else if (removed.length === 0) {
+      parts.push('Evaluating the full harness configuration. All components active.');
+    } else {
+      parts.push('Testing with bare generator only -- no scaffolding. This works for strong models on well-defined tasks.');
+    }
+  }
+
+  if (state.activeTab === 'wizard' && state.wizard.complete) {
+    const answers = Object.entries(state.wizard.answers).map(([i, key]) => {
+      const opt = wizardQuestions[i].options.find(o => o.key === key);
+      return opt ? opt.label.toLowerCase() : key;
+    });
+    parts.push('Decision context: ' + answers.join('; ') + '.');
+    const { sorted } = computeWizardScores();
+    if (sorted.length) {
+      parts.push('Primary recommendation: ' + FW_NAMES[sorted[0][0]] + '. Help me implement this approach.');
+    }
+  }
+
+  if (state.activeTab === 'obsolescence') {
+    const level = state.obsolescence > 70 ? 'far-future' : state.obsolescence > 40 ? 'near-future' : 'current';
+    parts.push('At ' + level + ' model capability (' + state.obsolescence + '%), which harness components remain valuable and which are obsolete? Focus on the boundary between engineering discipline and model limitation workarounds.');
+  }
+
+  if (state.activeTab === 'hybrid') {
+    const selections = hybridSlots.map(s => {
+      if (!state.hybrid[s.key]) return null;
+      const opt = s.options.find(o => o.id === state.hybrid[s.key]);
+      if (!opt) return null;
+      return s.label + ': ' + opt.label;
+    }).filter(Boolean);
+    if (selections.length) {
+      parts.push('My hybrid agent harness:\n' + selections.join('\n'));
+      parts.push('\nHelp me implement this stack. What are the integration points and potential issues?');
+    }
+  }
+
+  if (state.activeTab === 'dilution') {
+    parts.push('I want to understand the tradeoffs of multi-provider vs Claude-only agent frameworks. What specific capabilities do I lose by going provider-agnostic, and how does update lag affect framework value?');
+  }
+
+  if (state.activeTab === 'native') {
+    parts.push('Compare what Claude Code provides natively vs what third-party agent frameworks add. Where are the genuine gaps that justify adopting a framework?');
+  }
+
+  if (state.activeTab === 'architecture') {
+    parts.push('Compare the architectures of BMAD, GSD, Superpowers, and Anthropic Native harness designs. Focus on communication patterns (file-based vs agent teams) and how agent count affects debuggability.');
+  }
+
+  document.getElementById('prompt-text').textContent = parts.join('\n\n');
+}
+
+function initPrompt() {
+  const promptToggle = document.getElementById('prompt-toggle');
+  function togglePromptPanel(e) {
+    if (e.target.closest('.copy-btn')) return;
+    state.promptCollapsed = !state.promptCollapsed;
+    document.getElementById('prompt-body').style.display = state.promptCollapsed ? 'none' : 'block';
+    document.getElementById('prompt-chevron').classList.toggle('up', state.promptCollapsed);
+    promptToggle.setAttribute('aria-expanded', !state.promptCollapsed);
+  }
+  promptToggle.addEventListener('click', togglePromptPanel);
+  promptToggle.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); togglePromptPanel(e); }
+  });
+  document.getElementById('copy-btn').addEventListener('click', (e) => {
+    e.stopPropagation();
+    const text = document.getElementById('prompt-text').textContent;
+    const btn = document.getElementById('copy-btn');
+    if (!navigator.clipboard) {
+      btn.textContent = 'Failed';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+      return;
+    }
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = 'Copied!';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copy'; btn.classList.remove('copied'); }, 1500);
+    }).catch(() => {
+      btn.textContent = 'Failed';
+      setTimeout(() => { btn.textContent = 'Copy'; }, 1500);
+    });
+  });
+}
+
+// ===== INIT =====
+function init() {
+  buildAllSections();
+  initTabs();
+  initAblPresets();
+  renderAblation();
+  renderArchDiagrams();
+  renderWizard();
+  initWizReset();
+  document.getElementById('obs-slider').addEventListener('input', renderObsolescence);
+  renderObsolescence();
+  renderGaps();
+  initHybPresets();
+  renderHybrid();
+  initPrompt();
+  updatePrompt();
+}
+
+try {
+  init();
+} catch (e) {
+  const err = e instanceof Error ? e : new Error(String(e));
+  document.body.style.cssText = 'background:#0c0f14;color:#ef4444;padding:24px;font-family:monospace';
+  document.body.textContent = '';
+  const h = document.createElement('h2');
+  h.textContent = 'Failed to initialize';
+  const pre = document.createElement('pre');
+  pre.textContent = err.message + '\n' + err.stack;
+  document.body.appendChild(h);
+  document.body.appendChild(pre);
+  console.error('Init failed:', err);
+}
+</script>
+</body>
+</html>

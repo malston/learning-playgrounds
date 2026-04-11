@@ -40,6 +40,7 @@ Each topic lives in its own directory:
 
 ### AI Agent Tooling
 
+- **[hybrid-memory-architecture](hybrid-memory-architecture/)** -- Interactive explorer for a four-layer hybrid memory architecture that teaches AI coding agents to remember across sessions, compactions, and projects. Layer overview with expandable detail cards, memory routing table with interactive quiz, claude-mem vs episodic memory decision helper, and session lifecycle timeline with token budget breakdown.
 - **[agent-harness-decision-framework](agent-harness-decision-framework/)** _(prompt only)_ -- Decision playground for choosing between third-party agent frameworks (BMAD, GSD, Superpowers) and Anthropic's native harness design. Ablation explorer, architecture comparison, decision wizard, multi-provider dilution visualizer, obsolescence risk matrix, native vs. framework comparison, and hybrid builder.
 - **[spec-builder](spec-builder/)** -- Interactive AI agent spec builder that walks through seven dimensions of agent configuration: project vision, commands & environment, project structure, code style & patterns, boundaries, testing strategy, and git workflow. Score each dimension and generate a complete agent specification.
 - **[agent-memory-lifecycle](agent-memory-lifecycle/)** -- Session lifecycle explorer for AI coding agents. Interactive timeline showing memory operations across a session, layer explorer mapping intent to the command an agent runs, and a query router showing which memory layer handles each type of recall.
