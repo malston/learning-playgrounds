@@ -45,6 +45,7 @@ Each topic lives in its own directory:
 - **[spec-builder](spec-builder/)** -- Interactive AI agent spec builder that walks through seven dimensions of agent configuration: project vision, commands & environment, project structure, code style & patterns, boundaries, testing strategy, and git workflow. Score each dimension and generate a complete agent specification.
 - **[agent-memory-lifecycle](agent-memory-lifecycle/)** -- Session lifecycle explorer for AI coding agents. Interactive timeline showing memory operations across a session, layer explorer mapping intent to the command an agent runs, and a query router showing which memory layer handles each type of recall.
 - **[parallel-dispatch](parallel-dispatch/)** -- Parallel agent dispatch builder with a task inventory, decision wizard for choosing dispatch patterns, and configuration generator. Covers fan-out, pipeline, shared workspace, and peer coordination patterns with optional critic stages.
+- **[context-engineering](context-engineering/)** -- Interactive explorer for the context window and the "lost in the middle" U-curve. Token-aware simulator that steps through a conversation and shows how large pastes push critical constraints into the danger zone, countermeasure cards (persistent artifacts, front-loading, staged prompting, phase gates, terse corrections), and a concept quiz. Directory also includes a Jupyter notebook with runnable experiments on context rot, RAG, multi-agent isolation, and compression.
 
 ### Other
 

@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Context Window Playground</title>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  html, body { margin: 0; padding: 0; background: #030712; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef } = React;
+
+
+const TECHNIQUES = [
+  {
+    id: "artifacts",
+    title: "Persistent Artifacts",
+    icon: "📄",
+    tagline: "Files outlive chat",
+    description:
+      "Write critical context to external files — plan.md, research.md, decisions.md. Files exist outside the context window and can be re-injected at any point. Chat is ephemeral; files are durable.",
+    example: "Instead of: 'Remember, we decided to use Postgres'\nDo: Write it to decisions.md, reference it each session",
+    impact: "high",
+  },
+  {
+    id: "frontload",
+    title: "Front-Load Critical Context",
+    icon: "🎯",
+    tagline: "The beginning gets remembered",
+    description:
+      "Since the start of context gets privileged attention, put your non-negotiable constraints there. CLAUDE.md in Claude Code is the institutionalized version — it loads at session start.",
+    example: "Put hard constraints at the TOP of your prompt, not buried in paragraph 4.",
+    impact: "high",
+  },
+  {
+    id: "staged",
+    title: "Staged Prompting",
+    icon: "🪜",
+    tagline: "One concern per session",
+    description:
+      "Each phase has a single responsibility: research, plan, build, verify. Sequential phases mean each context window is focused on one concern — you're not fighting the U-curve if sessions stay short and purposeful.",
+    example: "Research session → Plan session → Build session\nNever all three at once.",
+    impact: "high",
+  },
+  {
+    id: "repeat",
+    title: "Repeat Near Point of Use",
+    icon: "🔁",
+    tagline: "Don't mention it once and trust it",
+    description:
+      "Treat middle-of-conversation context as unreliable by default. If you said 'don't change the function signatures' ten messages ago, say it again in the prompt where it matters.",
+    example: "'As a reminder: no changes to public API signatures.'\nSay this again before each relevant implementation step.",
+    impact: "medium",
+  },
+  {
+    id: "gates",
+    title: "Explicit Phase Gates",
+    icon: "🚧",
+    tagline: '"Don\'t implement yet"',
+    description:
+      "Every planning pass ends with 'don't implement yet.' Without this guard, Claude jumps to code the moment it thinks the plan is good enough. Keeps planning and execution in separate, focused sessions.",
+    example: "End every plan review with:\n'Don't implement yet. Wait for my approval.'",
+    impact: "medium",
+  },
+  {
+    id: "terse",
+    title: "Terse Corrections in Execution",
+    icon: "✂️",
+    tagline: "Shorter messages, less accumulation",
+    description:
+      "Once Claude is executing against a solid plan, prompts become dramatically shorter. Terse corrections work because Claude has full context of the plan. Short messages mean less middle-of-context accumulation.",
+    example: "'You missed the deduplicateByTitle function.'\nNot: a long explanation of what the function should do.",
+    impact: "low",
+  },
+];
+
+// Total window for demo purposes: 8000 tokens
+// Danger zone: 15% – 80% of window (tokens 1200–6400)
+const WINDOW_SIZE = 8000;
+const DANGER_START = 0.15;
+const DANGER_END = 0.80;
+
+const MESSAGES = [
+  {
+    id: 1, role: "user",
+    label: "Initial brief + constraints",
+    tokens: 95,
+    tokenLabel: "short message",
+    content: "You are helping build a SaaS billing system. Key constraint: never modify the payments table schema. Use Stripe's webhook model.",
+    note: null,
+  },
+  {
+    id: 2, role: "assistant",
+    label: "Acknowledged + architecture overview",
+    tokens: 420,
+    tokenLabel: "medium response",
+    content: "Understood — payments table is read-only, webhooks for all Stripe events. Here's my proposed architecture: a webhook handler service, an events queue, a billing calculator, and a read layer over the existing payments table...",
+    note: null,
+  },
+  {
+    id: 3, role: "user",
+    label: "📋 Pasted: database schema (payments + users)",
+    tokens: 1340,
+    tokenLabel: "⚠ large paste",
+    content: "Here's the full schema:\n\nCREATE TABLE payments (\n  id UUID PRIMARY KEY,\n  user_id UUID NOT NULL,\n  amount_cents INTEGER NOT NULL,\n  currency VARCHAR(3),\n  status VARCHAR(20),\n  stripe_payment_intent VARCHAR(100),\n  created_at TIMESTAMPTZ,\n  ...\n);\n\n[+ 18 more tables, indexes, constraints]",
+    note: "A single schema paste just consumed 17% of the window. You're now past the safe zone.",
+  },
+  {
+    id: 4, role: "assistant",
+    label: "Schema analysis + recommendations",
+    tokens: 680,
+    tokenLabel: "long response",
+    content: "I can see the payments table is already well-normalized. The user_id foreign key gives us what we need for billing lookups. I'll build the tier system as a separate subscriptions table that references users, keeping payments untouched...",
+    note: null,
+  },
+  {
+    id: 5, role: "user",
+    label: "⚠️ Critical constraint: ORM only, no raw SQL",
+    tokens: 38,
+    tokenLabel: "short message",
+    content: "Don't use raw SQL anywhere — use the ORM exclusively. We've had production incidents from raw queries bypassing connection pooling.",
+    note: "This critical constraint is only 38 tokens — but it's now sitting in the danger zone.",
+  },
+  {
+    id: 6, role: "assistant",
+    label: "ORM confirmation",
+    tokens: 55,
+    tokenLabel: "short response",
+    content: "Got it — ORM exclusively. No raw SQL anywhere in the implementation.",
+    note: null,
+  },
+  {
+    id: 7, role: "user",
+    label: "📋 Pasted: existing ORM models file",
+    tokens: 1820,
+    tokenLabel: "⚠ large paste",
+    content: "Here are our current ORM models for reference:\n\nclass Payment(Base):\n    __tablename__ = 'payments'\n    id = Column(UUID, primary_key=True)\n    user_id = Column(UUID, ForeignKey('users.id'))\n    amount_cents = Column(Integer)\n    ...\n\n[+ 340 lines of model definitions]",
+    note: "Another large paste. The ORM constraint from message 5 is now buried deep in the middle.",
+  },
+  {
+    id: 8, role: "assistant",
+    label: "Tier implementation plan",
+    tokens: 590,
+    tokenLabel: "long response",
+    content: "Based on the existing models, I'll add a Subscription model and TierConfig. The billing calculator will query through the ORM relationships...",
+    note: null,
+  },
+  {
+    id: 9, role: "user",
+    label: "Add invoice generation",
+    tokens: 44,
+    tokenLabel: "short message",
+    content: "Also add invoice generation for enterprise customers — PDF output, line items, due dates.",
+    note: null,
+  },
+  {
+    id: 10, role: "user",
+    label: "Implementation request",
+    tokens: 18,
+    tokenLabel: "short message",
+    content: "Go ahead and implement all of this.",
+    note: null,
+  },
+  {
+    id: 11, role: "assistant",
+    label: "❌ Violates both constraints",
+    tokens: 510,
+    tokenLabel: "long response",
+    content: "I'll implement the billing system now.\n\nFor invoice generation, I'll use a raw SQL query since the ORM doesn't support the complex aggregation we need here:\n\n  cursor.execute('SELECT * FROM payments WHERE...')\n\nI'll also add a payments_summary column to the payments table to cache invoice totals — it's the cleanest approach for performance...",
+    note: "Raw SQL used. payments table modified. Both constraints violated — they were buried in the middle and lost.",
+  },
+];
+
+function UCurveChart({ highlighted }) {
+  const points = [
+    { x: 0, y: 20, label: "Start" },
+    { x: 16.7, y: 35 },
+    { x: 33.3, y: 72 },
+    { x: 50, y: 88, label: "Middle" },
+    { x: 66.7, y: 72 },
+    { x: 83.3, y: 35 },
+    { x: 100, y: 20, label: "End" },
+  ];
+
+  const toSVG = (x, y) => ({ cx: (x / 100) * 340 + 30, cy: (y / 100) * 120 + 10 });
+
+  const pathD = points
+    .map((p, i) => {
+      const { cx, cy } = toSVG(p.x, p.y);
+      return i === 0 ? `M ${cx} ${cy}` : `L ${cx} ${cy}`;
+    })
+    .join(" ");
+
+  return (
+    <div className="relative">
+      <div className="text-xs font-mono text-center mb-1" style={{ color: "#6b7280" }}>
+        ← likelihood of being "lost" →
+      </div>
+      <svg width="400" height="160" viewBox="0 0 400 160" className="w-full">
+        <defs>
+          <linearGradient id="dangerGrad" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+            <stop offset="100%" stopColor="#ef4444" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+
+        {/* Grid lines */}
+        {[0, 25, 50, 75, 100].map((pct) => (
+          <line
+            key={pct}
+            x1={(pct / 100) * 340 + 30}
+            y1="10"
+            x2={(pct / 100) * 340 + 30}
+            y2="130"
+            stroke="#1f2937"
+            strokeWidth="1"
+            strokeDasharray="3,3"
+          />
+        ))}
+
+        {/* Filled area */}
+        <path
+          d={`${pathD} L ${toSVG(100, 100).cx} ${toSVG(100, 100).cy} L ${toSVG(0, 100).cx} ${toSVG(0, 100).cy} Z`}
+          fill="url(#dangerGrad)"
+        />
+
+        {/* Curve */}
+        <path d={pathD} fill="none" stroke="#ef4444" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+
+        {/* Highlight zones */}
+        {highlighted === "start" && (
+          <rect x="30" y="10" width="68" height="120" fill="#22c55e" fillOpacity="0.15" rx="3" />
+        )}
+        {highlighted === "end" && (
+          <rect x="302" y="10" width="68" height="120" fill="#22c55e" fillOpacity="0.15" rx="3" />
+        )}
+        {highlighted === "middle" && (
+          <rect x="130" y="10" width="140" height="120" fill="#ef4444" fillOpacity="0.15" rx="3" />
+        )}
+
+        {/* Labels */}
+        <text x="30" y="150" fontSize="10" fill="#6b7280" fontFamily="monospace">START</text>
+        <text x="170" y="150" fontSize="10" fill="#6b7280" fontFamily="monospace" textAnchor="middle">MIDDLE</text>
+        <text x="370" y="150" fontSize="10" fill="#6b7280" fontFamily="monospace" textAnchor="end">END</text>
+
+        {/* Safe zone labels */}
+        <text x="64" y="22" fontSize="9" fill="#22c55e" fontFamily="monospace" textAnchor="middle">SAFE</text>
+        <text x="336" y="22" fontSize="9" fill="#22c55e" fontFamily="monospace" textAnchor="middle">SAFE</text>
+        <text x="200" y="22" fontSize="9" fill="#ef4444" fontFamily="monospace" textAnchor="middle">DANGER ZONE</text>
+      </svg>
+    </div>
+  );
+}
+
+function TokenBar({ messages, currentStep }) {
+  const totalUsed = messages.slice(0, currentStep + 1).reduce((sum, m) => sum + m.tokens, 0);
+  const usedPct = totalUsed / WINDOW_SIZE;
+
+  // Build segments
+  let cursor = 0;
+  const segments = messages.slice(0, currentStep + 1).map((m, i) => {
+    const startPct = cursor / WINDOW_SIZE;
+    const widthPct = m.tokens / WINDOW_SIZE;
+    const midPct = startPct + widthPct / 2;
+    let zone;
+    if (midPct < DANGER_START) zone = "safe-start";
+    else if (midPct > DANGER_END) zone = "safe-end";
+    else zone = "danger";
+    cursor += m.tokens;
+    return { ...m, startPct, widthPct, zone, index: i };
+  });
+
+  const getSegColor = (zone, isLast) => {
+    if (zone === "safe-start") return isLast ? "#22c55e" : "#166534";
+    if (zone === "safe-end") return isLast ? "#3b82f6" : "#1e3a5f";
+    return isLast ? "#ef4444" : "#7f1d1d";
+  };
+
+  return (
+    <div className="mb-5 p-4 rounded" style={{ background: "#0f172a", border: "1px solid #1e293b" }}>
+      <div className="flex justify-between items-center mb-2">
+        <div className="text-xs font-mono" style={{ color: "#475569" }}>CONTEXT WINDOW — TOKEN VIEW</div>
+        <div className="text-xs font-mono" style={{ color: totalUsed / WINDOW_SIZE > DANGER_START ? "#ef4444" : "#22c55e" }}>
+          {totalUsed.toLocaleString()} / {WINDOW_SIZE.toLocaleString()} tokens ({Math.round(usedPct * 100)}%)
+        </div>
+      </div>
+
+      {/* Bar */}
+      <div className="relative h-8 rounded overflow-hidden" style={{ background: "#111827" }}>
+        {/* Danger zone overlay */}
+        <div
+          className="absolute top-0 h-full"
+          style={{
+            left: `${DANGER_START * 100}%`,
+            width: `${(DANGER_END - DANGER_START) * 100}%`,
+            background: "rgba(239,68,68,0.06)",
+            borderLeft: "1px dashed #7f1d1d",
+            borderRight: "1px dashed #7f1d1d",
+          }}
+        />
+
+        {/* Token segments */}
+        {segments.map((seg, i) => (
+          <div
+            key={seg.id}
+            className="absolute top-0 h-full transition-all"
+            style={{
+              left: `${seg.startPct * 100}%`,
+              width: `${Math.max(seg.widthPct * 100, 0.3)}%`,
+              background: getSegColor(seg.zone, i === segments.length - 1),
+              borderRight: "1px solid #030712",
+              opacity: i === segments.length - 1 ? 1 : 0.6,
+            }}
+            title={`${seg.label} — ${seg.tokens} tokens`}
+          />
+        ))}
+
+        {/* Zone labels inside bar */}
+        <div className="absolute inset-0 flex items-center pointer-events-none px-1">
+          <span className="text-xs font-mono" style={{ color: "#22c55e", opacity: 0.7, fontSize: "9px" }}>SAFE</span>
+          <div className="flex-1" />
+          <span className="text-xs font-mono" style={{ color: "#ef4444", opacity: 0.5, fontSize: "9px" }}>· · · DANGER ZONE · · ·</span>
+          <div className="flex-1" />
+          <span className="text-xs font-mono" style={{ color: "#3b82f6", opacity: 0.7, fontSize: "9px" }}>SAFE</span>
+        </div>
+      </div>
+
+      {/* Legend */}
+      <div className="flex gap-4 mt-2">
+        <span className="text-xs font-mono" style={{ color: "#166534" }}>▪ safe-start msgs</span>
+        <span className="text-xs font-mono" style={{ color: "#7f1d1d" }}>▪ danger zone msgs</span>
+        <span className="text-xs font-mono" style={{ color: "#1e3a5f" }}>▪ safe-end msgs</span>
+        <span className="ml-auto text-xs font-mono" style={{ color: "#374151" }}>brighter = current msg</span>
+      </div>
+    </div>
+  );
+}
+
+function ConversationSimulator() {
+  const [step, setStep] = useState(0);
+  const currentMsg = MESSAGES[step];
+
+  // Calculate cumulative tokens up to and including current message
+  const tokensUpTo = (idx) => MESSAGES.slice(0, idx + 1).reduce((s, m) => s + m.tokens, 0);
+  const totalUsed = tokensUpTo(step);
+  const usedPct = totalUsed / WINDOW_SIZE;
+
+  // Determine zone of current message's midpoint
+  const prevTokens = tokensUpTo(step) - currentMsg.tokens;
+  const midToken = prevTokens + currentMsg.tokens / 2;
+  const midPct = midToken / WINDOW_SIZE;
+  const zone = midPct < DANGER_START ? "safe-start" : midPct > DANGER_END ? "safe-end" : "danger";
+
+  const zoneColor = zone === "safe-start" ? "#22c55e" : zone === "safe-end" ? "#3b82f6" : "#ef4444";
+  const zoneLabel = zone === "safe-start" ? "✓ SAFE — start of window" : zone === "safe-end" ? "✓ SAFE — end of window" : "⚠ DANGER ZONE";
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-4">
+        <div className="text-sm font-mono" style={{ color: "#9ca3af" }}>
+          Message {step + 1} of {MESSAGES.length}
+        </div>
+        <div className="flex gap-2">
+          <button
+            onClick={() => setStep(Math.max(0, step - 1))}
+            disabled={step === 0}
+            className="px-3 py-1 text-xs font-mono rounded"
+            style={{ background: "#1f2937", color: step === 0 ? "#374151" : "#9ca3af", border: "1px solid #374151" }}
+          >
+            ← prev
+          </button>
+          <button
+            onClick={() => setStep(Math.min(MESSAGES.length - 1, step + 1))}
+            disabled={step === MESSAGES.length - 1}
+            className="px-3 py-1 text-xs font-mono rounded"
+            style={{ background: "#1f2937", color: step === MESSAGES.length - 1 ? "#374151" : "#9ca3af", border: "1px solid #374151" }}
+          >
+            next →
+          </button>
+        </div>
+      </div>
+
+      <TokenBar messages={MESSAGES} currentStep={step} />
+
+      {/* Current message card */}
+      <div className="p-4 rounded mb-3" style={{ background: "#0f172a", border: `1px solid ${zoneColor}` }}>
+        <div className="flex flex-wrap gap-2 items-start mb-3">
+          <span
+            className="text-xs font-mono px-2 py-0.5 rounded"
+            style={{ background: currentMsg.role === "user" ? "#1e3a5f" : "#1a2e1a", color: currentMsg.role === "user" ? "#93c5fd" : "#86efac" }}
+          >
+            {currentMsg.role === "user" ? "YOU" : "CLAUDE"}
+          </span>
+          <span className="text-xs font-mono px-2 py-0.5 rounded" style={{ background: "#111827", color: "#f59e0b" }}>
+            {currentMsg.tokens.toLocaleString()} tokens · {currentMsg.tokenLabel}
+          </span>
+          <span className="text-xs font-mono px-2 py-0.5 rounded ml-auto" style={{ background: "#111827", color: zoneColor }}>
+            {zoneLabel}
+          </span>
+        </div>
+
+        <div className="text-sm font-mono font-semibold mb-2" style={{ color: "#e2e8f0" }}>
+          {currentMsg.label}
+        </div>
+        <div className="text-sm whitespace-pre-wrap" style={{ color: "#94a3b8", fontFamily: "'IBM Plex Sans', sans-serif", lineHeight: "1.6" }}>
+          {currentMsg.content}
+        </div>
+
+        {/* Running total */}
+        <div className="mt-3 pt-3 flex justify-between items-center" style={{ borderTop: "1px solid #1e293b" }}>
+          <span className="text-xs font-mono" style={{ color: "#374151" }}>running total</span>
+          <span className="text-xs font-mono" style={{ color: usedPct > DANGER_START ? "#ef4444" : "#22c55e" }}>
+            {totalUsed.toLocaleString()} / {WINDOW_SIZE.toLocaleString()} tokens used ({Math.round(usedPct * 100)}%)
+          </span>
+        </div>
+      </div>
+
+      {/* Contextual note */}
+      {currentMsg.note && (
+        <div className="p-3 rounded mb-3" style={{ background: "#1a0f00", border: "1px solid #92400e" }}>
+          <div className="text-xs font-mono mb-1" style={{ color: "#f59e0b" }}>INSTRUCTOR NOTE</div>
+          <div className="text-sm" style={{ color: "#fcd34d", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            {currentMsg.note}
+          </div>
+        </div>
+      )}
+
+      {step === MESSAGES.length - 1 && (
+        <div className="p-3 rounded" style={{ background: "#1a0a0a", border: "1px solid #7f1d1d" }}>
+          <div className="text-xs font-mono mb-1" style={{ color: "#ef4444" }}>POST-MORTEM</div>
+          <div className="text-sm" style={{ color: "#fca5a5", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            Both critical constraints (ORM only, no schema changes) were violated. Neither was forgotten due to message count — they were lost because two large pastes pushed them deep into the danger zone by token volume. The constraint in message 5 was only 38 tokens, but it was surrounded by 3,500+ tokens of schema and model dumps.
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function TechniqueCard({ technique, isActive, onClick }) {
+  const impactColors = { high: "#22c55e", medium: "#f59e0b", low: "#6b7280" };
+
+  return (
+    <button
+      onClick={onClick}
+      className="text-left p-4 rounded w-full transition-all"
+      style={{
+        background: isActive ? "#0f172a" : "#111827",
+        border: `1px solid ${isActive ? "#3b82f6" : "#1f2937"}`,
+        cursor: "pointer",
+      }}
+    >
+      <div className="flex items-center gap-2 mb-1">
+        <span className="text-lg">{technique.icon}</span>
+        <span className="font-mono text-sm font-semibold" style={{ color: isActive ? "#93c5fd" : "#e2e8f0" }}>
+          {technique.title}
+        </span>
+        <span
+          className="ml-auto text-xs font-mono px-1.5 py-0.5 rounded"
+          style={{ background: "#1f2937", color: impactColors[technique.impact] }}
+        >
+          {technique.impact} impact
+        </span>
+      </div>
+      <div className="text-xs font-mono" style={{ color: "#6b7280" }}>
+        {technique.tagline}
+      </div>
+
+      {isActive && (
+        <div className="mt-3">
+          <div className="text-sm mb-3" style={{ color: "#94a3b8", lineHeight: "1.6" }}>
+            {technique.description}
+          </div>
+          <div className="p-3 rounded text-xs font-mono whitespace-pre-wrap" style={{ background: "#0a0f1a", color: "#22c55e", border: "1px solid #1e293b" }}>
+            {technique.example}
+          </div>
+        </div>
+      )}
+    </button>
+  );
+}
+
+function QuizSection() {
+  const questions = [
+    {
+      q: "You mention a critical constraint in message 3 of a 20-message conversation. How confident should you be Claude remembers it at message 18?",
+      options: ["Very confident — Claude has good memory", "Somewhat confident", "Not confident — it's in the danger zone", "Doesn't matter, just repeat it at the end"],
+      correct: 2,
+      explanation: "Message 3 of 20 puts that constraint squarely in the middle of the context window — the highest-risk zone. You should assume it may be lost and repeat it before any step that depends on it.",
+    },
+    {
+      q: "What's the best place to put your most critical project constraints?",
+      options: ["Anywhere — Claude reads everything equally", "At the very end of your prompt", "At the very start, before anything else", "Spread throughout for coverage"],
+      correct: 2,
+      explanation: "The start of context gets privileged attention. Front-loading critical constraints — or using tools like CLAUDE.md that load at session start — puts your most important content in the safe zone.",
+    },
+    {
+      q: "A planning session has grown very long. Claude seems confused about earlier decisions. What's the best move?",
+      options: ["Keep going and clarify in chat", "Start a fresh session with a summary", "Repeat everything from scratch", "Just re-read the whole conversation"],
+      correct: 1,
+      explanation: "Starting fresh gives Claude a clean, uncluttered context window. The key is to bring your persistent artifact (plan.md, decisions.md) into the new session — so you don't lose the work, just the clutter.",
+    },
+    {
+      q: "Which pattern best protects context across long, multi-session projects?",
+      options: ["Very detailed chat messages", "Persistent markdown files (plan.md, decisions.md)", "Repeating yourself constantly", "Using shorter conversations"],
+      correct: 1,
+      explanation: "Persistent files exist outside the context window entirely. They can be re-injected at any point, survive session ends, and aren't vulnerable to the U-curve at all. Chat is ephemeral; files are durable.",
+    },
+  ];
+
+  const [current, setCurrent] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [done, setDone] = useState(false);
+
+  const q = questions[current];
+
+  const handleSelect = (idx) => {
+    if (selected !== null) return;
+    setSelected(idx);
+    if (idx === q.correct) setScore(score + 1);
+  };
+
+  const handleNext = () => {
+    if (current < questions.length - 1) {
+      setCurrent(current + 1);
+      setSelected(null);
+    } else {
+      setDone(true);
+    }
+  };
+
+  if (done) {
+    const pct = Math.round((score / questions.length) * 100);
+    return (
+      <div className="text-center p-8">
+        <div className="text-5xl mb-4">{pct >= 75 ? "🏆" : pct >= 50 ? "📈" : "🔁"}</div>
+        <div className="text-2xl font-mono font-bold mb-2" style={{ color: "#e2e8f0" }}>
+          {score} / {questions.length}
+        </div>
+        <div className="text-sm font-mono mb-6" style={{ color: "#6b7280" }}>
+          {pct >= 75 ? "Strong grasp of context window principles." : pct >= 50 ? "Solid start — review the techniques section." : "Revisit the simulator and technique cards, then try again."}
+        </div>
+        <button
+          onClick={() => { setCurrent(0); setSelected(null); setScore(0); setDone(false); }}
+          className="px-6 py-2 rounded font-mono text-sm"
+          style={{ background: "#1e3a5f", color: "#93c5fd", border: "1px solid #2563eb" }}
+        >
+          retake quiz
+        </button>
+      </div>
+    );
+  }
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-4">
+        <div className="text-xs font-mono" style={{ color: "#6b7280" }}>
+          Question {current + 1} of {questions.length}
+        </div>
+        <div className="flex gap-1">
+          {questions.map((_, i) => (
+            <div
+              key={i}
+              className="w-2 h-2 rounded-full"
+              style={{ background: i < current ? "#22c55e" : i === current ? "#3b82f6" : "#1f2937" }}
+            />
+          ))}
+        </div>
+      </div>
+      <div className="text-sm mb-4" style={{ color: "#e2e8f0", lineHeight: "1.6" }}>
+        {q.q}
+      </div>
+      <div className="flex flex-col gap-2 mb-4">
+        {q.options.map((opt, idx) => {
+          let bg = "#111827";
+          let border = "#1f2937";
+          let color = "#94a3b8";
+          if (selected !== null) {
+            if (idx === q.correct) { bg = "#0d2618"; border = "#22c55e"; color = "#86efac"; }
+            else if (idx === selected && idx !== q.correct) { bg = "#1a0a0a"; border = "#ef4444"; color = "#fca5a5"; }
+          }
+          return (
+            <button
+              key={idx}
+              onClick={() => handleSelect(idx)}
+              className="text-left p-3 rounded text-sm transition-all"
+              style={{ background: bg, border: `1px solid ${border}`, color, cursor: selected !== null ? "default" : "pointer" }}
+            >
+              <span className="font-mono mr-2" style={{ color: "#475569" }}>{String.fromCharCode(65 + idx)}.</span>
+              {opt}
+            </button>
+          );
+        })}
+      </div>
+      {selected !== null && (
+        <div className="p-3 rounded mb-4 text-sm" style={{ background: "#0a0f1a", color: "#94a3b8", border: "1px solid #1e293b" }}>
+          <strong style={{ color: "#e2e8f0" }}>Why: </strong>{q.explanation}
+        </div>
+      )}
+      {selected !== null && (
+        <button
+          onClick={handleNext}
+          className="w-full py-2 rounded font-mono text-sm"
+          style={{ background: "#1e3a5f", color: "#93c5fd", border: "1px solid #2563eb" }}
+        >
+          {current < questions.length - 1 ? "next question →" : "see results →"}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [tab, setTab] = useState("concept");
+  const [activeTechnique, setActiveTechnique] = useState(null);
+  const [curveHighlight, setCurveHighlight] = useState(null);
+
+  const tabs = [
+    { id: "concept", label: "The Problem" },
+    { id: "simulator", label: "Live Demo" },
+    { id: "techniques", label: "Countermeasures" },
+    { id: "quiz", label: "Test Yourself" },
+  ];
+
+  return (
+    <div
+      className="min-h-screen p-4 md:p-8"
+      style={{ background: "#030712", fontFamily: "'IBM Plex Mono', 'Courier New', monospace" }}
+    >
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@300;400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+        * { box-sizing: border-box; }
+        ::-webkit-scrollbar { width: 4px; } 
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #1e293b; }
+      `}</style>
+
+      <div className="max-w-2xl mx-auto">
+
+        {/* Header */}
+        <div className="mb-8">
+          <div className="text-xs font-mono mb-2" style={{ color: "#374151", letterSpacing: "0.2em" }}>
+            LEARNING MODULE 001
+          </div>
+          <h1 className="text-2xl font-semibold mb-1" style={{ color: "#f1f5f9", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            The Context Window
+          </h1>
+          <p className="text-sm" style={{ color: "#64748b", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+            Why AI forgets, why it's not random, and what to do about it.
+          </p>
+        </div>
+
+        {/* Tab Nav */}
+        <div className="flex gap-1 mb-6 p-1 rounded" style={{ background: "#0f172a" }}>
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              onClick={() => setTab(t.id)}
+              className="flex-1 py-2 px-3 rounded text-xs font-mono transition-all"
+              style={{
+                background: tab === t.id ? "#1e3a5f" : "transparent",
+                color: tab === t.id ? "#93c5fd" : "#475569",
+                border: tab === t.id ? "1px solid #2563eb" : "1px solid transparent",
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div className="rounded-lg p-6" style={{ background: "#0a0f1a", border: "1px solid #1e293b" }}>
+
+          {/* CONCEPT TAB */}
+          {tab === "concept" && (
+            <div>
+              <div className="mb-6">
+                <h2 className="text-base font-semibold mb-3" style={{ color: "#e2e8f0", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  What is a context window?
+                </h2>
+                <p className="text-sm mb-3" style={{ color: "#94a3b8", lineHeight: "1.7", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Claude's working memory. Everything it can "see" at once — your question, shared documents, and the entire conversation history. It reads it all, thinks, and responds. It has no memory of previous conversations.
+                </p>
+                <div className="p-3 rounded text-sm" style={{ background: "#111827", border: "1px solid #1f2937", color: "#64748b", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Think of it as a fixed-size desk. You can put papers on it, but once it's full, older papers fall off. Claude only works with what's on the desk.
+                </div>
+              </div>
+
+              <div className="mb-6">
+                <h2 className="text-base font-semibold mb-1" style={{ color: "#e2e8f0", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  The U-Curve Problem
+                </h2>
+                <p className="text-sm mb-4" style={{ color: "#94a3b8", lineHeight: "1.7", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Forgetting isn't random. Research shows a consistent U-shaped curve: Claude reliably attends to the <strong style={{ color: "#22c55e" }}>beginning</strong> and <strong style={{ color: "#22c55e" }}>end</strong> of its context window, but information buried in the <strong style={{ color: "#ef4444" }}>middle</strong> is most likely to be missed or underweighted.
+                </p>
+
+                <UCurveChart highlighted={curveHighlight} />
+
+                <div className="flex gap-2 mt-4">
+                  {["start", "middle", "end"].map((zone) => (
+                    <button
+                      key={zone}
+                      onMouseEnter={() => setCurveHighlight(zone)}
+                      onMouseLeave={() => setCurveHighlight(null)}
+                      className="flex-1 py-2 text-xs font-mono rounded transition-all"
+                      style={{
+                        background: curveHighlight === zone ? (zone === "middle" ? "#1a0a0a" : "#0d2618") : "#111827",
+                        border: `1px solid ${zone === "middle" ? "#7f1d1d" : "#14532d"}`,
+                        color: zone === "middle" ? "#fca5a5" : "#86efac",
+                      }}
+                    >
+                      highlight {zone}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-4 rounded" style={{ background: "#0d1117", border: "1px solid #1e3a5f" }}>
+                <div className="text-xs font-mono mb-2" style={{ color: "#475569" }}>KEY INSIGHT</div>
+                <p className="text-sm" style={{ color: "#93c5fd", fontFamily: "'IBM Plex Sans', sans-serif", lineHeight: "1.6" }}>
+                  This is called <strong>"lost in the middle."</strong> A constraint you set in message 5 of a 30-message conversation is in the danger zone. Claude may violate it in message 28 — not because it's wrong, but because that context has low attention weight.
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* SIMULATOR TAB */}
+          {tab === "simulator" && (
+            <div>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold mb-1" style={{ color: "#e2e8f0", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Watch it happen
+                </h2>
+                <p className="text-sm" style={{ color: "#64748b", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Step through a real conversation. The bar shows proportional token weight — a large paste looks very different from a short message. Watch how fast the danger zone arrives.
+                </p>
+              </div>
+              <ConversationSimulator />
+            </div>
+          )}
+
+          {/* TECHNIQUES TAB */}
+          {tab === "techniques" && (
+            <div>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold mb-1" style={{ color: "#e2e8f0", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Countermeasures
+                </h2>
+                <p className="text-sm" style={{ color: "#64748b", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Patterns used by experienced practitioners to work with the context window, not against it. Click any card to expand.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2">
+                {TECHNIQUES.map((t) => (
+                  <TechniqueCard
+                    key={t.id}
+                    technique={t}
+                    isActive={activeTechnique === t.id}
+                    onClick={() => setActiveTechnique(activeTechnique === t.id ? null : t.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* QUIZ TAB */}
+          {tab === "quiz" && (
+            <div>
+              <div className="mb-4">
+                <h2 className="text-base font-semibold mb-1" style={{ color: "#e2e8f0", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  Test Yourself
+                </h2>
+                <p className="text-sm" style={{ color: "#64748b", fontFamily: "'IBM Plex Sans', sans-serif" }}>
+                  4 questions. No tricks — just checking whether the concepts landed.
+                </p>
+              </div>
+              <QuizSection />
+            </div>
+          )}
+        </div>
+
+        <div className="mt-4 text-center text-xs font-mono" style={{ color: "#1f2937" }}>
+          context-window-playground · v1.1 — token-aware simulator
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
